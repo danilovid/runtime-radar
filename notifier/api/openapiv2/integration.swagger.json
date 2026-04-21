@@ -48,6 +48,71 @@
         ]
       }
     },
+    "/api/v1/integration/ai/explain-runtime-event": {
+      "post": {
+        "operationId": "IntegrationController_ExplainRuntimeEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/integrationExplainRuntimeEventResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/integrationExplainRuntimeEventReq"
+            }
+          }
+        ],
+        "tags": [
+          "IntegrationController"
+        ]
+      }
+    },
+    "/api/v1/integration/ai/test": {
+      "post": {
+        "operationId": "IntegrationController_TestAI",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/integrationTestAIReq"
+            }
+          }
+        ],
+        "tags": [
+          "IntegrationController"
+        ]
+      }
+    },
     "/api/v1/integration/{id}": {
       "patch": {
         "operationId": "IntegrationController_Update",
@@ -196,6 +261,15 @@
     }
   },
   "definitions": {
+    "AIProvider": {
+      "type": "string",
+      "enum": [
+        "PROVIDER_OPENAI_COMPATIBLE",
+        "PROVIDER_ANTHROPIC",
+        "PROVIDER_OLLAMA"
+      ],
+      "default": "PROVIDER_OPENAI_COMPATIBLE"
+    },
     "EmailAuthType": {
       "type": "string",
       "enum": [
@@ -205,6 +279,32 @@
         "AUTH_TYPE_NONE"
       ],
       "default": "AUTH_TYPE_PLAIN"
+    },
+    "integrationAI": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "$ref": "#/definitions/AIProvider"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "isLocal": {
+          "type": "boolean"
+        },
+        "insecure": {
+          "type": "boolean"
+        },
+        "ca": {
+          "type": "string"
+        }
+      }
     },
     "integrationCreateIntegrationResp": {
       "type": "object",
@@ -249,6 +349,43 @@
         }
       }
     },
+    "integrationExplainRuntimeEventReq": {
+      "type": "object",
+      "properties": {
+        "integrationId": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string"
+        },
+        "eventJson": {
+          "type": "string"
+        }
+      }
+    },
+    "integrationExplainRuntimeEventResp": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "string"
+        },
+        "possibleCause": {
+          "type": "string"
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rawText": {
+          "type": "string"
+        }
+      }
+    },
     "integrationIntegration": {
       "type": "object",
       "properties": {
@@ -273,6 +410,9 @@
         },
         "syslog": {
           "$ref": "#/definitions/integrationSyslog"
+        },
+        "ai": {
+          "$ref": "#/definitions/integrationAI"
         }
       }
     },
@@ -297,6 +437,9 @@
         },
         "syslog": {
           "$ref": "#/definitions/integrationSyslog"
+        },
+        "ai": {
+          "$ref": "#/definitions/integrationAI"
         }
       }
     },
@@ -317,6 +460,14 @@
       "properties": {
         "address": {
           "type": "string"
+        }
+      }
+    },
+    "integrationTestAIReq": {
+      "type": "object",
+      "properties": {
+        "integration": {
+          "$ref": "#/definitions/integrationIntegration"
         }
       }
     },

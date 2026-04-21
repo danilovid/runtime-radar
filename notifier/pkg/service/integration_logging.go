@@ -93,6 +93,38 @@ func (il *IntegrationLogging) List(ctx context.Context, req *api.ListIntegration
 	return
 }
 
+func (il *IntegrationLogging) TestAI(ctx context.Context, req *api.TestAIReq) (resp *emptypb.Empty, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Interface("args", hidePassword(req.GetIntegration())).
+			Interface("result", resp).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.TestAI")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.TestAI(ctx, req)
+	return
+}
+
+func (il *IntegrationLogging) ExplainRuntimeEvent(ctx context.Context, req *api.ExplainRuntimeEventReq) (resp *api.ExplainRuntimeEventResp, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Interface("args", req).
+			Interface("result", resp).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.ExplainRuntimeEvent")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.ExplainRuntimeEvent(ctx, req)
+	return
+}
+
 func hidePassword(req *api.Integration) *api.Integration {
 	if req == nil {
 		return nil
@@ -110,6 +142,10 @@ func hidePassword(req *api.Integration) *api.Integration {
 
 	if webhook := clone.GetWebhook(); webhook != nil {
 		webhook.Password = mask
+	}
+
+	if ai := clone.GetAi(); ai != nil {
+		ai.ApiKey = mask
 	}
 
 	return clone

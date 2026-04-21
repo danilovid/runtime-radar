@@ -6,6 +6,7 @@ import { INTEGRATION_TYPE, IntegrationType } from '@cs/domains/integration';
 
 import { IntegrationSidepanelFormProps } from '../../interfaces/integration-sidepanel.interface';
 import {
+    IntegrationAIForm,
     IntegrationEmailForm,
     IntegrationSyslogForm,
     IntegrationWebhookForm
@@ -25,6 +26,8 @@ export class IntegrationFeatureSidepanelFormComponent {
 
     private emailFormValues?: IntegrationEmailForm;
 
+    private aiFormValues?: IntegrationAIForm;
+
     private syslogFormValues?: IntegrationSyslogForm;
 
     private webhookFormValues?: IntegrationWebhookForm;
@@ -38,9 +41,15 @@ export class IntegrationFeatureSidepanelFormComponent {
 
     changeType() {
         this.isFormValid$.next(false);
+        this.aiFormValues = undefined;
         this.emailFormValues = undefined;
         this.syslogFormValues = undefined;
         this.webhookFormValues = undefined;
+    }
+
+    changeAIForm(form?: IntegrationAIForm) {
+        this.isFormValid$.next(form === undefined ? false : true);
+        this.aiFormValues = form;
     }
 
     changeEmailForm(form?: IntegrationEmailForm) {
@@ -59,7 +68,13 @@ export class IntegrationFeatureSidepanelFormComponent {
     }
 
     confirmWithoutCheck(hasSkipCheck: boolean) {
-        if (this.integrationTypeValue === IntegrationType.EMAIL && this.emailFormValues) {
+        if (this.integrationTypeValue === IntegrationType.AI && this.aiFormValues) {
+            this.sidepanelRef.close({
+                type: this.integrationTypeValue,
+                ai: this.aiFormValues,
+                hasSkipCheck
+            });
+        } else if (this.integrationTypeValue === IntegrationType.EMAIL && this.emailFormValues) {
             this.sidepanelRef.close({
                 type: this.integrationTypeValue,
                 email: this.emailFormValues,

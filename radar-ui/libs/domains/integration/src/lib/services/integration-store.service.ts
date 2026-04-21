@@ -6,24 +6,29 @@ import { LoadStatus } from '@cs/core';
 
 import { IntegrationState } from '../interfaces/state/integration-state.interface';
 import {
+    CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION,
+    DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION,
+    UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION
 } from '../stores/integration-action.store';
 import {
     CreateIntegrationRequest,
+    IntegrationAI,
     IntegrationEmail,
     IntegrationSyslog,
     IntegrationWebhook,
     UpdateIntegrationRequest
 } from '../interfaces';
 import {
+    getAIIntegrations,
     getEmailIntegrations,
     getIntegrationLoadStatus,
     getSyslogIntegrations,
@@ -34,6 +39,8 @@ import {
     providedIn: 'root'
 })
 export class IntegrationStoreService {
+    readonly aiIntegrations$: Observable<IntegrationAI[]> = this.store.select(getAIIntegrations);
+
     readonly emailIntegrations$: Observable<IntegrationEmail[]> = this.store.select(getEmailIntegrations);
 
     readonly syslogIntegrations$: Observable<IntegrationSyslog[]> = this.store.select(getSyslogIntegrations);
@@ -43,6 +50,10 @@ export class IntegrationStoreService {
     readonly loadStatus$: Observable<LoadStatus> = this.store.select(getIntegrationLoadStatus);
 
     constructor(private readonly store: Store<IntegrationState>) {}
+
+    createAIIntegration(item: CreateIntegrationRequest<IntegrationAI>) {
+        this.store.dispatch(CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION({ item }));
+    }
 
     createEmailIntegration(item: CreateIntegrationRequest<IntegrationEmail>) {
         this.store.dispatch(CREATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION({ item }));
@@ -56,6 +67,10 @@ export class IntegrationStoreService {
         this.store.dispatch(CREATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION({ item }));
     }
 
+    updateAIIntegration(id: string, item: UpdateIntegrationRequest<IntegrationAI>) {
+        this.store.dispatch(UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION({ id, item }));
+    }
+
     updateEmailIntegration(id: string, item: UpdateIntegrationRequest<IntegrationEmail>) {
         this.store.dispatch(UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION({ id, item }));
     }
@@ -66,6 +81,10 @@ export class IntegrationStoreService {
 
     updateWebhookIntegration(id: string, item: UpdateIntegrationRequest<IntegrationWebhook>) {
         this.store.dispatch(UPDATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION({ id, item }));
+    }
+
+    deleteAIIntegration(id: string) {
+        this.store.dispatch(DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION({ id }));
     }
 
     deleteEmailIntegration(id: string) {

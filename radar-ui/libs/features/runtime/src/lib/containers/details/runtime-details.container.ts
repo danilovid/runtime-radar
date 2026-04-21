@@ -16,6 +16,7 @@ import {
 } from 'rxjs';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { DateAdapter, PopUpPlacements } from '@koobiq/components/core';
+import { IModalOptionsForService, KbqModalService, ModalSize } from '@koobiq/components/modal';
 import { KbqSidepanelConfig, KbqSidepanelPosition, KbqSidepanelService } from '@koobiq/components/sidepanel';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
@@ -41,6 +42,7 @@ import { RUNTIME_DETAILS_LIST_ITEMS_LIMIT } from '../../constants/runtime-config
 import { RUNTIME_FILTER_INITIAL_STATE } from '../../constants/runtime-filter.constant';
 import { RuntimeEventContext } from '../../interfaces/runtime-filter.interface';
 import { RuntimeFeatureRequestAdapterService } from '../../services/runtime-request-adapter.service';
+import { RuntimeFeatureExplainEventModalComponent } from '../../components/explain-event-modal/runtime-explain-event-modal.component';
 import { RuntimeFeatureSidepanelCodeComponent } from '../../components/sidepanel-code/runtime-sidepanel-code.component';
 import { RuntimeFeatureSidepanelThreatsComponent } from '../../components/sidepanel-threats/runtime-sidepanel-threats.component';
 import { RuntimeRouterName } from '../../interfaces/runtime-navigation.interface';
@@ -174,6 +176,7 @@ export class RuntimeFeatureDetailsContainer {
     expandErrorsLimit: number | undefined = RUNTIME_DETAILS_LIST_ITEMS_LIMIT;
 
     constructor(
+        private readonly modalService: KbqModalService,
         private readonly sidepanelService: KbqSidepanelService,
         private readonly dateAdapter: DateAdapter<DateTime>,
         private readonly i18nService: I18nService,
@@ -254,6 +257,17 @@ export class RuntimeFeatureDetailsContainer {
             .afterClosed()
             .pipe(take(1))
             .subscribe();
+    }
+
+    openExplainEventModal(event: RuntimeEvent) {
+        const config: IModalOptionsForService = {
+            kbqComponent: RuntimeFeatureExplainEventModalComponent,
+            kbqComponentParams: { event },
+            kbqSize: ModalSize.Medium,
+            kbqClosable: true
+        };
+
+        this.modalService.open(config);
     }
 
     expandThreats() {

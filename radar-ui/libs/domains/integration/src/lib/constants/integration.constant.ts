@@ -1,4 +1,6 @@
 import {
+    IntegrationAIProviderType,
+    IntegrationAIProviderTypeOption,
     IntegrationEmailAuthType,
     IntegrationEmailAuthTypeOption,
     IntegrationType,
@@ -17,6 +19,10 @@ export const INTEGRATION_TYPE: IntegrationTypeOption[] = [
     {
         id: IntegrationType.WEBHOOK,
         localizationKey: 'Integration.Pseudo.Type.Webhook'
+    },
+    {
+        id: IntegrationType.AI,
+        localizationKey: 'Integration.Pseudo.Type.Ai'
     }
 ];
 
@@ -36,5 +42,20 @@ export const INTEGRATION_EMAIL_AUTH_TYPE: IntegrationEmailAuthTypeOption[] = [
     {
         id: IntegrationEmailAuthType.PLAIN,
         localizationKey: 'Integration.Pseudo.AuthType.Plain'
+    }
+];
+
+export const INTEGRATION_AI_PROVIDER_TYPE: IntegrationAIProviderTypeOption[] = [
+    {
+        id: IntegrationAIProviderType.OPENAI_COMPATIBLE,
+        localizationKey: 'Integration.Pseudo.AIProvider.OpenAICompatible'
+    },
+    {
+        id: IntegrationAIProviderType.ANTHROPIC,
+        localizationKey: 'Integration.Pseudo.AIProvider.Anthropic'
+    },
+    {
+        id: IntegrationAIProviderType.OLLAMA,
+        localizationKey: 'Integration.Pseudo.AIProvider.Ollama'
     }
 ];

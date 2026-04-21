@@ -1,5 +1,6 @@
 <ng-container *transloco="let tIntegration; prefix: 'integration'">
     <ng-container *ngrxLet="{
+        aiIntegrations: (aiIntegrations$ | async),
         emailIntegrations: (emailIntegrations$ | async),
         syslogIntegrations: (syslogIntegrations$ | async),
         webhookIntegrations: (webhookIntegrations$ | async),
@@ -15,7 +16,7 @@
                         [activeClusterHost]="activeClusterHost$ | async"
                         (selectClusterId)="switchCluster($event)"
                         testLocator="integration-cluster-select"></cs-cluster-select-component>
-                @if ((rxlet.emailIntegrations?.length || rxlet.syslogIntegrations?.length || rxlet.webhookIntegrations?.length) && rxlet.loadStatus === loadStatus.LOADED) {
+                @if ((rxlet.aiIntegrations?.length || rxlet.emailIntegrations?.length || rxlet.syslogIntegrations?.length || rxlet.webhookIntegrations?.length) && rxlet.loadStatus === loadStatus.LOADED) {
                     <button kbq-button
                             kbqStyle="outline"
                             color="theme-fade"
@@ -31,6 +32,13 @@
         </header>
 
         <section class="layout-column integration-feature-list-section">
+            @if (rxlet.aiIntegrations?.length) {
+                <cs-integration-feature-collapse-card-container
+                        [type]="integrationType.AI"
+                        [list]="rxlet.aiIntegrations"
+                        [permissions]="permissions"></cs-integration-feature-collapse-card-container>
+            }
+
             @if (rxlet.emailIntegrations?.length) {
                 <cs-integration-feature-collapse-card-container
                         [type]="integrationType.EMAIL"
@@ -52,7 +60,7 @@
                         [permissions]="permissions"></cs-integration-feature-collapse-card-container>
             }
 
-            @if (!rxlet.emailIntegrations?.length && !rxlet.syslogIntegrations?.length && !rxlet.webhookIntegrations?.length && rxlet.loadStatus === loadStatus.LOADED) {
+            @if (!rxlet.aiIntegrations?.length && !rxlet.emailIntegrations?.length && !rxlet.syslogIntegrations?.length && !rxlet.webhookIntegrations?.length && rxlet.loadStatus === loadStatus.LOADED) {
                 <cs-empty-screen-component
                         imageUrl="/assets/koobiq/light/folder-plus_256@2x.png"
                         [title]="tIntegration('Integration.ListPage.SubHeading.EmptyResult')"

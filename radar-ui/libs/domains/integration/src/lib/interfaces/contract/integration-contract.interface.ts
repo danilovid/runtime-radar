@@ -8,7 +8,14 @@ interface AbstractIntegration {
 export enum IntegrationType {
     EMAIL = 'email',
     SYSLOG = 'syslog',
-    WEBHOOK = 'webhook'
+    WEBHOOK = 'webhook',
+    AI = 'ai'
+}
+
+export enum IntegrationAIProviderType {
+    OPENAI_COMPATIBLE = 'PROVIDER_OPENAI_COMPATIBLE',
+    ANTHROPIC = 'PROVIDER_ANTHROPIC',
+    OLLAMA = 'PROVIDER_OLLAMA'
 }
 
 export enum IntegrationEmailAuthType {
@@ -57,4 +64,19 @@ export interface IntegrationWebhook extends AbstractIntegration {
     webhook: IntegrationWebhookEntity;
 }
 
-export type Integration = IntegrationEmail | IntegrationSyslog | IntegrationWebhook;
+export interface IntegrationAIEntity {
+    provider: IntegrationAIProviderType;
+    base_url: string;
+    model: string;
+    api_key: string;
+    is_local: boolean;
+    insecure: boolean;
+    ca: string;
+}
+
+export interface IntegrationAI extends AbstractIntegration {
+    type: IntegrationType.AI;
+    ai: IntegrationAIEntity;
+}
+
+export type Integration = IntegrationEmail | IntegrationSyslog | IntegrationWebhook | IntegrationAI;

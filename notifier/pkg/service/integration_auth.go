@@ -50,3 +50,17 @@ func (ia *IntegrationAuth) List(ctx context.Context, req *api.ListIntegrationReq
 	}
 	return ia.IntegrationControllerServer.List(ctx, req)
 }
+
+func (ia *IntegrationAuth) TestAI(ctx context.Context, req *api.TestAIReq) (*emptypb.Empty, error) {
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+	return ia.IntegrationControllerServer.TestAI(ctx, req)
+}
+
+func (ia *IntegrationAuth) ExplainRuntimeEvent(ctx context.Context, req *api.ExplainRuntimeEventReq) (*api.ExplainRuntimeEventResp, error) {
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+	return ia.IntegrationControllerServer.ExplainRuntimeEvent(ctx, req)
+}

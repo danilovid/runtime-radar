@@ -9,6 +9,7 @@ import { NotificationDomainModule } from '@cs/domains/notification';
 import { RuleDomainModule } from '@cs/domains/rule';
 import { SharedModule } from '@cs/shared';
 
+import { IntegrationFeatureAIFormComponent } from './components/ai-form/integration-ai-form.component';
 import { IntegrationFeatureCollapseCardContainer } from './containers/collapse-card/integration-collapse-card.container';
 import { IntegrationFeatureEmailFormComponent } from './components/email-form/integration-email-form.component';
 import { IntegrationFeatureListContainer } from './containers/list/integration-list.container';
@@ -33,6 +34,7 @@ import { IntegrationFeatureWebhookFormComponent } from './components/webhook-for
         SharedModule
     ],
     declarations: [
+        IntegrationFeatureAIFormComponent,
         IntegrationFeatureCollapseCardContainer,
         IntegrationFeatureEmailFormComponent,
         IntegrationFeatureListContainer,

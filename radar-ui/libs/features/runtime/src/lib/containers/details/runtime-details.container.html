@@ -79,6 +79,15 @@
 
                         <div class="layout-row">
                             <button kbq-button
+                                    kbqStyle="outline"
+                                    color="theme-fade"
+                                    type="button"
+                                    class="layout-margin-right-s"
+                                    (click)="openExplainEventModal(event)"
+                                    data-testid="event-details-open-explain-modal-button">
+                                {{ tRuntime('Runtime.DetailsPage.Button.ExplainEvent') }}
+                            </button>
+                            <button kbq-button
                                     kbqStyle="transparent"
                                     color="contrast"
                                     type="button"

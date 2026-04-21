@@ -41,6 +41,18 @@ service IntegrationController {
       get: "/api/v1/integration/{type}/list"
     };
   }
+  rpc TestAI(TestAIReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/test"
+      body: "*"
+    };
+  }
+  rpc ExplainRuntimeEvent(ExplainRuntimeEventReq) returns (ExplainRuntimeEventResp) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/explain-runtime-event"
+      body: "*"
+    };
+  }
 }
 
 message Integration {
@@ -53,7 +65,24 @@ message Integration {
     Email email = 5;
     Webhook webhook = 6;
     Syslog syslog = 7;
+    AI ai = 8;
   }
+}
+
+message AI {
+  enum Provider {
+    PROVIDER_OPENAI_COMPATIBLE = 0;
+    PROVIDER_ANTHROPIC = 1;
+    PROVIDER_OLLAMA = 2;
+  }
+
+  Provider provider = 1;
+  string base_url = 2;
+  string model = 3;
+  string api_key = 4;
+  bool is_local = 5;
+  bool insecure = 6;
+  string ca = 7;
 }
 
 message Email {
@@ -111,4 +140,22 @@ message ListIntegrationReq {
 
 message ListIntegrationResp {
   repeated Integration integrations = 1;
+}
+
+message TestAIReq {
+  Integration integration = 1;
+}
+
+message ExplainRuntimeEventReq {
+  string integration_id = 1;
+  string event_id = 2;
+  string event_json = 3;
+}
+
+message ExplainRuntimeEventResp {
+  string summary = 1;
+  string risk = 2;
+  string possible_cause = 3;
+  repeated string next_steps = 4;
+  string raw_text = 5;
 }

@@ -7,6 +7,7 @@
     "Runtime.Pseudo.Notification.DetectorDeleted": "The detector is deleted",
     "Runtime.Pseudo.Notification.DetectorUploadFailed": "Failed to load the detector",
     "Runtime.Pseudo.Notification.DetectorDuplicate": "This detector is already added",
+    "Runtime.Pseudo.Notification.ExplainFailed": "Failed to get an explanation for the event. Try again shortly.",
 
     "Runtime.Pseudo.EventProcessorHistory.All": "All",
     "Runtime.Pseudo.EventProcessorHistory.WithThreats": "With threats only",
@@ -173,6 +174,7 @@
     "Runtime.EventsPage.Filter.PresetDrowdown.Option.OneWeek": "During one week",
 
     "Runtime.DetailsPage.Header.Title": "Event",
+    "Runtime.DetailsPage.Button.ExplainEvent": "Explain event",
     "Runtime.DetailsPage.Label.Id": "ID",
     "Runtime.DetailsPage.Label.Date": "Event date",
     "Runtime.DetailsPage.SubTitle.Sibling": "Same parent",
@@ -197,6 +199,17 @@
     "Runtime.DetailsPage.Meta.Title.Error": "Errors",
 
     "Runtime.CodeSidepanel.Title.Source": "Raw data of the event",
+
+    "Runtime.ExplainEventModal.Title": "Explain event",
+    "Runtime.ExplainEventModal.Label.Integration": "AI connection",
+    "Runtime.ExplainEventModal.Label.Summary": "Summary",
+    "Runtime.ExplainEventModal.Label.Risk": "Risk",
+    "Runtime.ExplainEventModal.Label.PossibleCause": "Possible cause",
+    "Runtime.ExplainEventModal.Label.NextSteps": "Next steps",
+    "Runtime.ExplainEventModal.Label.RawText": "Raw response",
+    "Runtime.ExplainEventModal.Text.EmptyIntegrations": "Create an AI connection in notification services to explain events.",
+    "Runtime.ExplainEventModal.Button.Run": "Run",
+    "Runtime.ExplainEventModal.Button.Cancel": "Cancel",
 
     "Runtime.PolicySidepanel.Title.Policy": "Source",
     "Runtime.PolicySidepanel.Label.Name": "Name",

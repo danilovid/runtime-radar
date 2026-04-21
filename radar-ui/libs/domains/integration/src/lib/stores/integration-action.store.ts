@@ -4,6 +4,7 @@ import { createAction, props } from '@ngrx/store';
 import { IntegrationState } from '../interfaces/state/integration-state.interface';
 import {
     CreateIntegrationRequest,
+    IntegrationAI,
     IntegrationEmail,
     IntegrationSyslog,
     IntegrationType,
@@ -11,7 +12,8 @@ import {
     UpdateIntegrationRequest
 } from '../interfaces';
 
-type ActionPropsType<E, S, W> = Partial<{
+type ActionPropsType<A, E, S, W> = Partial<{
+    ai: A;
     email: E;
     syslog: S;
     webhook: W;
@@ -31,6 +33,11 @@ export const CREATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION = createAction(
     props<{ item: CreateIntegrationRequest<IntegrationEmail> }>()
 );
 
+export const CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION = createAction(
+    '[Integration] Create AI',
+    props<{ item: CreateIntegrationRequest<IntegrationAI> }>()
+);
+
 export const CREATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION = createAction(
     '[Integration] Create Syslog',
     props<{ item: CreateIntegrationRequest<IntegrationSyslog> }>()
@@ -46,6 +53,11 @@ export const UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION = createAction(
     props<{ id: string; item: UpdateIntegrationRequest<IntegrationEmail> }>()
 );
 
+export const UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION = createAction(
+    '[Integration] Update AI',
+    props<{ id: string; item: UpdateIntegrationRequest<IntegrationAI> }>()
+);
+
 export const UPDATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION = createAction(
     '[Integration] Update Syslog',
     props<{ id: string; item: UpdateIntegrationRequest<IntegrationSyslog> }>()
@@ -58,6 +70,11 @@ export const UPDATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION = createAction(
 
 export const DELETE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION = createAction(
     '[Integration] Delete Email',
+    props<{ id: string }>()
+);
+
+export const DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION = createAction(
+    '[Integration] Delete AI',
     props<{ id: string }>()
 );
 
@@ -83,22 +100,29 @@ export const SET_INTEGRATION_LOADED_TYPE_DOC_ACTION = createAction(
 
 export const SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION = createAction(
     '[Integration] (Doc) Set All',
-    props<ActionPropsType<IntegrationEmail[], IntegrationSyslog[], IntegrationWebhook[]>>()
+    props<ActionPropsType<IntegrationAI[], IntegrationEmail[], IntegrationSyslog[], IntegrationWebhook[]>>()
 );
 
 export const SET_INTEGRATION_ENTITY_DOC_ACTION = createAction(
     '[Integration] (Doc) Set One',
-    props<ActionPropsType<IntegrationEmail, IntegrationSyslog, IntegrationWebhook>>()
+    props<ActionPropsType<IntegrationAI, IntegrationEmail, IntegrationSyslog, IntegrationWebhook>>()
 );
 
 export const UPDATE_INTEGRATION_ENTITY_DOC_ACTION = createAction(
     '[Integration] (Doc) Update',
-    props<ActionPropsType<Update<IntegrationEmail>, Update<IntegrationSyslog>, Update<IntegrationWebhook>>>()
+    props<
+        ActionPropsType<
+            Update<IntegrationAI>,
+            Update<IntegrationEmail>,
+            Update<IntegrationSyslog>,
+            Update<IntegrationWebhook>
+        >
+    >()
 );
 
 export const DELETE_INTEGRATION_ENTITY_DOC_ACTION = createAction(
     '[Integration] (Doc) Delete',
-    props<Partial<{ emailId: string; syslogId: string; webhookId: string }>>()
+    props<Partial<{ aiId: string; emailId: string; syslogId: string; webhookId: string }>>()
 );
 
 export const DELETE_CONNECTED_INTEGRATION_EVENT_ACTION = createAction(

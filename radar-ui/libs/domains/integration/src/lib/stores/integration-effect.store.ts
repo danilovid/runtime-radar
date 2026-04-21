@@ -15,15 +15,18 @@ import { ApiErrorCode, ApiUtilsService as apiUtils } from '@cs/api';
 
 import { IntegrationEmailRequestService } from '../services/integration-email-request.service';
 import { IntegrationState } from '../interfaces/state/integration-state.interface';
+import { IntegrationAIRequestService } from '../services/integration-ai-request.service';
 import { IntegrationSyslogRequestService } from '../services/integration-syslog-request.service';
 import { IntegrationWebhookRequestService } from '../services/integration-webhook-request.service';
 import { getIntegrationLoadStatus } from './integration-selector.store';
 import {
     APPLY_INTEGRATION_LOAD_STATUS_TODO_ACTION,
+    CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_CONNECTED_INTEGRATION_EVENT_ACTION,
+    DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_INTEGRATION_ENTITY_DOC_ACTION,
     DELETE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
@@ -33,18 +36,42 @@ import {
     SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION,
     SET_INTEGRATION_ENTITY_DOC_ACTION,
     SET_INTEGRATION_LOADED_TYPE_DOC_ACTION,
+    UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_INTEGRATION_ENTITY_DOC_ACTION,
     UPDATE_INTEGRATION_STATE_DOC_ACTION,
     UPDATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION
 } from './integration-action.store';
-import { IntegrationEmail, IntegrationSyslog, IntegrationType, IntegrationWebhook } from '../interfaces';
+import { IntegrationAI, IntegrationEmail, IntegrationSyslog, IntegrationType, IntegrationWebhook } from '../interfaces';
 
 @Injectable({
     providedIn: 'root'
 })
 export class IntegrationEffectStore {
+    readonly loadAIIntegrations$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(LOAD_INTEGRATION_ENTITIES_TODO_ACTION),
+            switchMap(() =>
+                this.integrationAIRequestService.getAIIntegrations().pipe(
+                    take(1),
+                    catchError(() => of(undefined))
+                )
+            ),
+            switchMap((ai) => {
+                if (ai === undefined) {
+                    return [APPLY_INTEGRATION_LOAD_STATUS_TODO_ACTION({ isLoaded: false })];
+                }
+
+                return [
+                    APPLY_INTEGRATION_LOAD_STATUS_TODO_ACTION({ isLoaded: true }),
+                    SET_INTEGRATION_LOADED_TYPE_DOC_ACTION({ integrationType: IntegrationType.AI }),
+                    SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION({ ai })
+                ];
+            })
+        )
+    );
+
     readonly loadEmailIntegrations$: Observable<Action> = createEffect(() =>
         this.actions$.pipe(
             ofType(LOAD_INTEGRATION_ENTITIES_TODO_ACTION),
@@ -144,19 +171,45 @@ export class IntegrationEffectStore {
             ofType(POLLING_LOAD_INTEGRATION_ENTITIES_TODO_ACTION),
             concatMap(() =>
                 forkJoin([
+                    this.integrationAIRequestService.getAIIntegrations().pipe(take(1)),
                     this.integrationEmailRequestService.getEmailIntegrations().pipe(take(1)),
                     this.integrationSyslogRequestService.getSyslogIntegrations().pipe(take(1)),
                     this.integrationWebhookRequestService.getWebhookIntegrations().pipe(take(1))
                 ])
             ),
-            switchMap(([email, syslog, webhook]) => [
+            switchMap(([ai, email, syslog, webhook]) => [
                 UPDATE_INTEGRATION_STATE_DOC_ACTION({ lastUpdate: this.dateAdapter.today().toMillis() }),
                 SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION({
+                    ai,
                     email,
                     syslog,
                     webhook
                 })
             ])
+        )
+    );
+
+    readonly createAIIntegration$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION),
+            switchMap((action) =>
+                this.integrationAIRequestService.createAIIntegration(action.item).pipe(
+                    take(1),
+                    catchError((error: HttpErrorResponse) => {
+                        this.handleWarningToastMessages(error);
+
+                        return of({} as IntegrationAI);
+                    })
+                )
+            ),
+            filter((ai) => !!ai.id),
+            map((ai) => SET_INTEGRATION_ENTITY_DOC_ACTION({ ai })),
+            tap(() => {
+                this.toastService.show({
+                    style: KbqToastStyle.Success,
+                    title: this.i18nService.translate('Integration.Pseudo.Notification.Created')
+                });
+            })
         )
     );
 
@@ -232,6 +285,30 @@ export class IntegrationEffectStore {
         )
     );
 
+    readonly updateAIIntegration$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION),
+            switchMap((action) =>
+                this.integrationAIRequestService.updateAIIntegration(action.id, action.item).pipe(take(1))
+            ),
+            filter((ai) => !!ai.id),
+            map((ai) =>
+                UPDATE_INTEGRATION_ENTITY_DOC_ACTION({
+                    ai: {
+                        id: ai.id,
+                        changes: ai
+                    }
+                })
+            ),
+            tap(() => {
+                this.toastService.show({
+                    style: KbqToastStyle.Success,
+                    title: this.i18nService.translate('Integration.Pseudo.Notification.Updated')
+                });
+            })
+        )
+    );
+
     readonly updateEmailIntegration$: Observable<Action> = createEffect(() =>
         this.actions$.pipe(
             ofType(UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION),
@@ -301,6 +378,33 @@ export class IntegrationEffectStore {
                     title: this.i18nService.translate('Integration.Pseudo.Notification.Updated')
                 });
             })
+        )
+    );
+
+    readonly deleteAIIntegration$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION),
+            switchMap((item) =>
+                this.integrationAIRequestService.deleteAIIntegration(item.id).pipe(
+                    take(1),
+                    catchError((error: HttpErrorResponse) => {
+                        this.handleWarningToastMessages(error);
+
+                        return of('');
+                    })
+                )
+            ),
+            filter((aiId) => !!aiId),
+            tap(() => {
+                this.toastService.show({
+                    style: KbqToastStyle.Contrast,
+                    title: this.i18nService.translate('Integration.Pseudo.Notification.Deleted')
+                });
+            }),
+            switchMap((aiId) => [
+                DELETE_INTEGRATION_ENTITY_DOC_ACTION({ aiId }),
+                DELETE_CONNECTED_INTEGRATION_EVENT_ACTION({ integrationId: aiId })
+            ])
         )
     );
 
@@ -389,6 +493,7 @@ export class IntegrationEffectStore {
         private readonly actions$: Actions,
         private readonly dateAdapter: DateAdapter<DateTime>,
         private readonly i18nService: I18nService,
+        private readonly integrationAIRequestService: IntegrationAIRequestService,
         private readonly integrationEmailRequestService: IntegrationEmailRequestService,
         private readonly integrationSyslogRequestService: IntegrationSyslogRequestService,
         private readonly integrationWebhookRequestService: IntegrationWebhookRequestService,

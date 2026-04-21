@@ -10,6 +10,7 @@ import (
 	"github.com/runtime-radar/runtime-radar/lib/errcommon"
 	"github.com/runtime-radar/runtime-radar/lib/security/cipher"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
+	aiclient "github.com/runtime-radar/runtime-radar/notifier/pkg/ai"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/database"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/model"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/model/convert"
@@ -45,12 +46,7 @@ func (ig *IntegrationGeneric) Create(ctx context.Context, req *api.Integration) 
 	}
 
 	if !req.GetSkipCheck() {
-		n, err := notifier.FromIntegration(i)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
-
-		if err := n.Test(ctx); err != nil {
+		if err := ig.testIntegration(ctx, i); err != nil {
 			msg := fmt.Sprintf("integration is inaccessible: %v", err)
 			return nil, errcommon.StatusWithReason(codes.InvalidArgument, IntegrationInaccessible, msg).Err()
 		}
@@ -110,12 +106,7 @@ func (ig *IntegrationGeneric) Update(ctx context.Context, req *api.Integration) 
 	}
 
 	if !req.GetSkipCheck() {
-		n, err := notifier.FromIntegration(i)
-		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
-
-		if err := n.Test(ctx); err != nil {
+		if err := ig.testIntegration(ctx, i); err != nil {
 			msg := fmt.Sprintf("integration is inaccessible: %v", err)
 			return nil, errcommon.StatusWithReason(codes.InvalidArgument, IntegrationInaccessible, msg).Err()
 		}
@@ -130,6 +121,8 @@ func (ig *IntegrationGeneric) Update(ctx context.Context, req *api.Integration) 
 		updateMap = ig.webhookUpdateMap(req.GetName(), conf.Webhook)
 	case *api.Integration_Syslog:
 		updateMap = ig.syslogUpdateMap(req.GetName(), conf.Syslog)
+	case *api.Integration_Ai:
+		updateMap = ig.aiUpdateMap(req.GetName(), conf.Ai)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "invalid config type given: %T", conf)
 	}
@@ -207,6 +200,86 @@ func (ig *IntegrationGeneric) List(ctx context.Context, req *api.ListIntegration
 	}, nil
 }
 
+func (ig *IntegrationGeneric) TestAI(ctx context.Context, req *api.TestAIReq) (*emptypb.Empty, error) {
+	if req.GetIntegration() == nil {
+		return nil, status.Error(codes.InvalidArgument, "integration is nil")
+	}
+
+	if reason, ok := validateAIIntegration(req.GetIntegration()); !ok {
+		return nil, status.Error(codes.InvalidArgument, reason)
+	}
+
+	integration, err := convert.IntegrationFromPB(req.GetIntegration())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse integration: %v", err)
+	}
+
+	aiIntegration, ok := integration.(*model.AI)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid integration type given: %T", integration)
+	}
+
+	client, err := aiclient.NewClient(aiIntegration)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
+	}
+
+	if err := client.Test(ctx); err != nil {
+		msg := fmt.Sprintf("ai integration is inaccessible: %v", err)
+		return nil, errcommon.StatusWithReason(codes.InvalidArgument, IntegrationInaccessible, msg).Err()
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (ig *IntegrationGeneric) ExplainRuntimeEvent(ctx context.Context, req *api.ExplainRuntimeEventReq) (*api.ExplainRuntimeEventResp, error) {
+	if req.GetIntegrationId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "integration ID is empty")
+	}
+	if req.GetEventJson() == "" {
+		return nil, status.Error(codes.InvalidArgument, "event json is empty")
+	}
+
+	id, err := uuid.Parse(req.GetIntegrationId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse integration ID: %v", err)
+	}
+
+	integration, err := ig.IntegrationRepository.GetByTypeAndID(ctx, model.IntegrationAI, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "integration not found")
+		}
+
+		return nil, status.Errorf(codes.Internal, "can't get integration: %v", err)
+	}
+
+	aiIntegration, ok := integration.(*model.AI)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid integration type given: %T", integration)
+	}
+
+	aiIntegration.DecryptSensitive(ig.Crypter)
+
+	client, err := aiclient.NewClient(aiIntegration)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
+	}
+
+	result, err := client.ExplainRuntimeEvent(ctx, req.GetEventId(), req.GetEventJson())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "can't explain runtime event: %v", err)
+	}
+
+	return &api.ExplainRuntimeEventResp{
+		Summary:       result.Summary,
+		Risk:          result.Risk,
+		PossibleCause: result.PossibleCause,
+		NextSteps:     result.NextSteps,
+		RawText:       result.RawText,
+	}, nil
+}
+
 func validateIntegration(req *api.Integration) (reason string, valid bool) {
 	if req.GetName() == "" {
 		return "name is empty", false
@@ -245,6 +318,17 @@ func validateIntegration(req *api.Integration) (reason string, valid bool) {
 		}
 
 		reason, valid = validateSyslog(conf.Syslog)
+		if !valid {
+			return
+		}
+
+	case model.IntegrationAI:
+		conf, ok := req.GetConfig().(*api.Integration_Ai)
+		if !ok {
+			return fmt.Sprintf("integration type %s does not match config type %T", req.GetType(), req.GetConfig()), false
+		}
+
+		reason, valid = validateAI(conf.Ai)
 		if !valid {
 			return
 		}
@@ -288,6 +372,45 @@ func validateSyslog(w *api.Syslog) (reason string, valid bool) {
 	_, err := url.Parse(w.GetAddress())
 	if err != nil {
 		return fmt.Sprintf("can't parse address '%s': %+v", w.GetAddress(), err), false
+	}
+
+	return "", true
+}
+
+func validateAIIntegration(req *api.Integration) (reason string, valid bool) {
+	if req.GetType() != model.IntegrationAI {
+		return fmt.Sprintf("unsupported integration type given: %s", req.GetType()), false
+	}
+
+	conf, ok := req.GetConfig().(*api.Integration_Ai)
+	if !ok {
+		return fmt.Sprintf("integration type %s does not match config type %T", req.GetType(), req.GetConfig()), false
+	}
+
+	return validateAI(conf.Ai)
+}
+
+func validateAI(conf *api.AI) (reason string, valid bool) {
+	if conf.GetModel() == "" {
+		return "model is empty", false
+	}
+
+	switch conf.GetProvider() {
+	case api.AI_PROVIDER_OPENAI_COMPATIBLE, api.AI_PROVIDER_ANTHROPIC, api.AI_PROVIDER_OLLAMA:
+	default:
+		return fmt.Sprintf("unsupported ai provider given: %s", conf.GetProvider().String()), false
+	}
+
+	if conf.GetBaseUrl() == "" {
+		return "", true
+	}
+
+	parsed, err := url.Parse(conf.GetBaseUrl())
+	if err != nil {
+		return fmt.Sprintf("can't parse base url '%s': %+v", conf.GetBaseUrl(), err), false
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Sprintf("base url is invalid: %s", conf.GetBaseUrl()), false
 	}
 
 	return "", true
@@ -342,4 +465,40 @@ func (ig *IntegrationGeneric) syslogUpdateMap(name string, conf *api.Syslog) map
 		"Name":    name,
 		"Address": conf.GetAddress(),
 	}
+}
+
+func (ig *IntegrationGeneric) aiUpdateMap(name string, conf *api.AI) map[string]any {
+	encryptedAPIKey := ""
+	if conf.GetApiKey() != "" {
+		encryptedAPIKey = ig.Crypter.EncryptStringAsHex(conf.GetApiKey())
+	}
+
+	return map[string]any{
+		"Name":            name,
+		"Provider":        convert.AIProviderFromPB(conf.GetProvider()),
+		"BaseURL":         conf.GetBaseUrl(),
+		"Model":           conf.GetModel(),
+		"EncryptedAPIKey": encryptedAPIKey,
+		"IsLocal":         conf.GetIsLocal(),
+		"Insecure":        conf.GetInsecure(),
+		"CA":              conf.GetCa(),
+	}
+}
+
+func (ig *IntegrationGeneric) testIntegration(ctx context.Context, integration model.Integration) error {
+	if aiIntegration, ok := integration.(*model.AI); ok {
+		client, err := aiclient.NewClient(aiIntegration)
+		if err != nil {
+			return err
+		}
+
+		return client.Test(ctx)
+	}
+
+	n, err := notifier.FromIntegration(integration)
+	if err != nil {
+		return err
+	}
+
+	return n.Test(ctx)
 }

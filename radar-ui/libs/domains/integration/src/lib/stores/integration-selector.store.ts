@@ -1,12 +1,14 @@
 import { ActionReducerMap, createFeatureSelector, createSelector } from '@ngrx/store';
 
 import {
+    IntegrationAIEntityState,
     IntegrationEmailEntityState,
     IntegrationState,
     IntegrationSyslogEntityState,
     IntegrationWebhookEntityState
 } from '../interfaces/state/integration-state.interface';
 import {
+    integrationAIEntitySelector,
     integrationEmailEntitySelector,
     integrationReducer,
     integrationSyslogEntitySelector,
@@ -27,6 +29,10 @@ const selectIntegrationState = createSelector(
 const selectIntegrationEmailEntityState = createSelector(
     selectIntegrationState,
     (state: IntegrationState) => state.email
+);
+const selectIntegrationAIEntityState = createSelector(
+    selectIntegrationState,
+    (state: IntegrationState) => state.ai
 );
 const selectIntegrationSyslogEntityState = createSelector(
     selectIntegrationState,
@@ -50,6 +56,11 @@ export const getIntegrationLoadedTypes = createSelector(
 export const getIntegrationLastUpdate = createSelector(
     selectIntegrationState,
     (state: IntegrationState) => state.lastUpdate
+);
+
+export const getAIIntegrations = createSelector(
+    selectIntegrationAIEntityState,
+    (state: IntegrationAIEntityState) => integrationAIEntitySelector.selectAll(state)
 );
 
 export const getEmailIntegrations = createSelector(

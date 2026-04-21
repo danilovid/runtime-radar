@@ -81,6 +81,13 @@ func (i *IntegrationDatabase) GetAllByType(ctx context.Context, it string, order
 		}
 
 		return toIntegrationSlice(sl), nil
+	case model.IntegrationAI:
+		as, err := i.getAIs(ctx, nil, sanitizedOrder)
+		if err != nil {
+			return nil, fmt.Errorf("can't get ai integrations: %w", err)
+		}
+
+		return toIntegrationSlice(as), nil
 	default:
 		return nil, fmt.Errorf("invalid integration type: %s", it)
 	}
@@ -130,6 +137,13 @@ func (i *IntegrationDatabase) GetByNotifications(ctx context.Context, ns ...*mod
 			}
 
 			res = append(res, toIntegrationSlice(sl)...)
+		case model.IntegrationAI:
+			as, err := i.getAIs(ctx, ids, nil)
+			if err != nil {
+				return nil, fmt.Errorf("can't get ai integrations: %w", err)
+			}
+
+			res = append(res, toIntegrationSlice(as)...)
 		}
 	}
 
@@ -184,6 +198,22 @@ func (i *IntegrationDatabase) getSyslogs(ctx context.Context, filter, order any)
 	return sl, err
 }
 
+func (i *IntegrationDatabase) getAIs(ctx context.Context, filter, order any) ([]*model.AI, error) {
+	var as []*model.AI
+
+	if filter == nil {
+		filter = ""
+	}
+
+	err := i.WithContext(ctx).
+		Where(filter).
+		Order(order).
+		Find(&as).
+		Error
+
+	return as, err
+}
+
 // IntegrationFromTypeAndID returns integration gorm model with ID set depending on given integration type
 func integrationFromTypeAndID(it string, id uuid.UUID) (i model.Integration, ok bool) {
 	switch it {
@@ -193,6 +223,8 @@ func integrationFromTypeAndID(it string, id uuid.UUID) (i model.Integration, ok 
 		return &model.Webhook{Base: model.Base{ID: id}}, true
 	case model.IntegrationSyslog:
 		return &model.Syslog{Base: model.Base{ID: id}}, true
+	case model.IntegrationAI:
+		return &model.AI{Base: model.Base{ID: id}}, true
 	default:
 		return nil, false
 	}

@@ -68,6 +68,7 @@ func Migrate(db *gorm.DB, newDB bool) error {
 	if newDB {
 		if err := db.Migrator().DropTable(
 			&model.Notification{},
+			&model.AI{},
 			&model.Syslog{},
 			&model.Email{},
 			&model.Webhook{},
@@ -77,6 +78,7 @@ func Migrate(db *gorm.DB, newDB bool) error {
 	}
 
 	if err := db.Migrator().AutoMigrate(
+		&model.AI{},
 		&model.Webhook{},
 		&model.Email{},
 		&model.Syslog{},

@@ -12,6 +12,7 @@ import { SharedModule } from '@cs/shared';
 import { RuntimeFeatureByteFormatterPipe } from './pipes/runtime-byte-formatter.pipe';
 import { RuntimeFeatureContextPopoverComponent } from './components/context-popover/runtime-context-popover.component';
 import { RuntimeFeatureDateTimePeriodPickerComponent } from './components/datetime-period-picker/runtime-datetime-period-picker.component';
+import { RuntimeFeatureExplainEventModalComponent } from './components/explain-event-modal/runtime-explain-event-modal.component';
 import { RuntimeFeatureDetailsContainer } from './containers/details/runtime-details.container';
 import { RuntimeFeatureDetectorsContainer } from './containers/detectors/runtime-detectors.container';
 import { RuntimeFeatureEventCounterComponent } from './components/event-counter/runtime-event-counter.component';
@@ -53,6 +54,7 @@ import { RuntimeFeatureUploadDetectorModalComponent } from './components/upload-
         RuntimeFeatureByteFormatterPipe,
         RuntimeFeatureContextPopoverComponent,
         RuntimeFeatureDateTimePeriodPickerComponent,
+        RuntimeFeatureExplainEventModalComponent,
         RuntimeFeatureEventTypeIconDirective,
         RuntimeFeatureFilterPopoverComponent,
         RuntimeFeatureHistoryDropdownComponent,
