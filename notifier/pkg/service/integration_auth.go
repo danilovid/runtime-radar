@@ -51,8 +51,10 @@ func (ia *IntegrationAuth) List(ctx context.Context, req *api.ListIntegrationReq
 	return ia.IntegrationControllerServer.List(ctx, req)
 }
 
+// TestAI probes an endpoint taken from the request body rather than from
+// storage, so it's gated like Create instead of like a read.
 func (ia *IntegrationAuth) TestAI(ctx context.Context, req *api.TestAIReq) (*emptypb.Empty, error) {
-	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionCreate); err != nil {
 		return nil, errcommon.PermissionErrorToStatus(err)
 	}
 	return ia.IntegrationControllerServer.TestAI(ctx, req)

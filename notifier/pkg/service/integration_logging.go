@@ -113,10 +113,14 @@ func (il *IntegrationLogging) ExplainRuntimeEvent(ctx context.Context, req *api.
 	defer func(t0 time.Time) {
 		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
 
+		// The event JSON carries process command lines and the response carries
+		// free-form model output, so only the call's shape is audited.
 		log.Err(err).Str("delay", time.Since(t0).String()).
 			Bool("audit", true).
-			Interface("args", req).
-			Interface("result", resp).
+			Str("integration_id", req.GetIntegrationId()).
+			Str("event_id", req.GetEventId()).
+			Int("event_json_bytes", len(req.GetEventJson())).
+			Str("risk", resp.GetRisk()).
 			Stringer("correlation_id", corrID).
 			Msg("Called IntegrationControllerServer.ExplainRuntimeEvent")
 	}(time.Now())

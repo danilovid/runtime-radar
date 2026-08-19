@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     AfterViewInit,
@@ -9,11 +10,11 @@ import {
     OnInit,
     Output
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { BehaviorSubject, Observable, debounceTime, distinctUntilChanged, map, startWith, tap } from 'rxjs';
+import { FormBuilder, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
+import { I18nService } from '@cs/i18n';
 import { ApiErrorCode, ApiUtilsService as apiUtils } from '@cs/api';
 import {
     CoreValidators,
@@ -29,9 +30,24 @@ import {
     IntegrationAIRequestService,
     IntegrationType
 } from '@cs/domains/integration';
-import { I18nService } from '@cs/i18n';
 
 import { IntegrationAIForm } from '../../interfaces/integration-form.interface';
+
+// An empty base url is resolved by the backend to the public OpenAI API, so the
+// openai-compatible provider has to name its endpoint explicitly. Anthropic and
+// Ollama each have a single meaningful default and may leave it blank.
+function baseUrlValidators(provider: IntegrationAIProviderType | null): ValidatorFn[] {
+    const validators: ValidatorFn[] = [
+        Validators.pattern(FORM_VALIDATION_REG_EXP.API_BASE_URL),
+        CoreValidators.isIpSegmentAllowed(FORM_VALIDATION_DENIED_IP.LOCALHOST)
+    ];
+
+    if (provider === IntegrationAIProviderType.OPENAI_COMPATIBLE) {
+        validators.push(Validators.required);
+    }
+
+    return validators;
+}
 
 @Component({
     selector: 'cs-integration-feature-ai-form-component',
@@ -48,13 +64,7 @@ export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit 
     readonly form: FormGroup<FormScheme<IntegrationAIForm>> = this.formBuilder.group({
         name: ['', Validators.required],
         provider: [IntegrationAIProviderType.OPENAI_COMPATIBLE, Validators.required],
-        baseUrl: [
-            '',
-            [
-                Validators.pattern(FORM_VALIDATION_REG_EXP.IP_DOMAIN_SCHEME),
-                CoreValidators.isIpSegmentAllowed(FORM_VALIDATION_DENIED_IP.LOCALHOST)
-            ]
-        ],
+        baseUrl: ['', baseUrlValidators(IntegrationAIProviderType.OPENAI_COMPATIBLE)],
         model: ['', Validators.required],
         apiKey: [''],
         ca: [''],
@@ -89,6 +99,19 @@ export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit 
 
     ngOnInit() {
         this.onFormValidChanges$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+
+        this.form.controls.provider.valueChanges
+            .pipe(
+                startWith(this.form.controls.provider.value),
+                distinctUntilChanged(),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe((provider) => {
+                const control = this.form.controls.baseUrl;
+
+                control.setValidators(baseUrlValidators(provider));
+                control.updateValueAndValidity();
+            });
     }
 
     ngAfterViewInit() {

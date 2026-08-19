@@ -3,8 +3,8 @@ import { Observable } from 'rxjs';
 import { Notification } from '@cs/domains/notification';
 import { RegisteredCluster } from '@cs/domains/cluster';
 import {
-    IntegrationAI,
     Integration,
+    IntegrationAI,
     IntegrationEmail,
     IntegrationSyslog,
     IntegrationType,

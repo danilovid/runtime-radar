@@ -106,6 +106,10 @@ func (ig *IntegrationGeneric) Update(ctx context.Context, req *api.Integration) 
 	}
 
 	if !req.GetSkipCheck() {
+		if err := ig.restoreStoredAPIKey(ctx, i); err != nil {
+			return nil, status.Errorf(codes.Internal, "can't read stored integration: %v", err)
+		}
+
 		if err := ig.testIntegration(ctx, i); err != nil {
 			msg := fmt.Sprintf("integration is inaccessible: %v", err)
 			return nil, errcommon.StatusWithReason(codes.InvalidArgument, IntegrationInaccessible, msg).Err()
@@ -402,15 +406,30 @@ func validateAI(conf *api.AI) (reason string, valid bool) {
 	}
 
 	if conf.GetBaseUrl() == "" {
-		return "", true
+		// Anthropic and Ollama have a single meaningful endpoint, but an empty
+		// base url for an openai-compatible provider silently resolves to the
+		// public OpenAI API, which nobody configures by leaving a field blank.
+		if conf.GetProvider() == api.AI_PROVIDER_OPENAI_COMPATIBLE {
+			return "base url is empty", false
+		}
+	} else {
+		parsed, err := url.Parse(conf.GetBaseUrl())
+		if err != nil {
+			return fmt.Sprintf("can't parse base url '%s': %+v", conf.GetBaseUrl(), err), false
+		}
+		if parsed.Scheme == "" || parsed.Host == "" {
+			return fmt.Sprintf("base url is invalid: %s", conf.GetBaseUrl()), false
+		}
 	}
 
-	parsed, err := url.Parse(conf.GetBaseUrl())
-	if err != nil {
-		return fmt.Sprintf("can't parse base url '%s': %+v", conf.GetBaseUrl(), err), false
-	}
-	if parsed.Scheme == "" || parsed.Host == "" {
-		return fmt.Sprintf("base url is invalid: %s", conf.GetBaseUrl()), false
+	// The flag promises event data never leaves the deployment, so the endpoint
+	// events would actually be posted to has to back that up. An empty base url
+	// is checked too: it resolves to a provider default that may well be public.
+	if conf.GetIsLocal() && !aiclient.IsLocalEndpoint(&model.AI{
+		Provider: convert.AIProviderFromPB(conf.GetProvider()),
+		BaseURL:  conf.GetBaseUrl(),
+	}) {
+		return "base url is not a local endpoint", false
 	}
 
 	return "", true
@@ -468,21 +487,53 @@ func (ig *IntegrationGeneric) syslogUpdateMap(name string, conf *api.Syslog) map
 }
 
 func (ig *IntegrationGeneric) aiUpdateMap(name string, conf *api.AI) map[string]any {
-	encryptedAPIKey := ""
-	if conf.GetApiKey() != "" {
-		encryptedAPIKey = ig.Crypter.EncryptStringAsHex(conf.GetApiKey())
+	m := map[string]any{
+		"Name":     name,
+		"Provider": convert.AIProviderFromPB(conf.GetProvider()),
+		"BaseURL":  conf.GetBaseUrl(),
+		"Model":    conf.GetModel(),
+		"IsLocal":  conf.GetIsLocal(),
+		"Insecure": conf.GetInsecure(),
+		"CA":       conf.GetCa(),
 	}
 
-	return map[string]any{
-		"Name":            name,
-		"Provider":        convert.AIProviderFromPB(conf.GetProvider()),
-		"BaseURL":         conf.GetBaseUrl(),
-		"Model":           conf.GetModel(),
-		"EncryptedAPIKey": encryptedAPIKey,
-		"IsLocal":         conf.GetIsLocal(),
-		"Insecure":        conf.GetInsecure(),
-		"CA":              conf.GetCa(),
+	// The key is only ever handed out masked, so an edit that doesn't touch it
+	// sends nothing back. Leaving the column out of the update map keeps the
+	// stored key; writing "" here would disable the integration on any edit.
+	if conf.GetApiKey() != "" {
+		m["EncryptedAPIKey"] = ig.Crypter.EncryptStringAsHex(conf.GetApiKey())
 	}
+
+	return m
+}
+
+// restoreStoredAPIKey fills in the API key an update request left out, so that
+// the connectivity check probes with the credentials the integration will
+// actually keep using rather than with none at all.
+func (ig *IntegrationGeneric) restoreStoredAPIKey(ctx context.Context, i model.Integration) error {
+	ai, ok := i.(*model.AI)
+	if !ok || ai.APIKey != "" || ai.ID == uuid.Nil {
+		return nil
+	}
+
+	stored, err := ig.IntegrationRepository.GetByTypeAndID(ctx, model.IntegrationAI, ai.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+
+		return err
+	}
+
+	storedAI, ok := stored.(*model.AI)
+	if !ok {
+		return nil
+	}
+
+	storedAI.DecryptSensitive(ig.Crypter)
+	ai.APIKey = storedAI.APIKey
+
+	return nil
 }
 
 func (ig *IntegrationGeneric) testIntegration(ctx context.Context, integration model.Integration) error {

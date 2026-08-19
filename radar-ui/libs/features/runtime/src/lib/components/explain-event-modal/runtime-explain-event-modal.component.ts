@@ -1,26 +1,16 @@
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import {
-    ChangeDetectionStrategy,
-    Component,
-    DestroyRef,
-    Input,
-    OnInit
-} from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { BehaviorSubject, catchError, of, take, tap } from 'rxjs';
 import { KbqModalRef } from '@koobiq/components/modal';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { BehaviorSubject, catchError, of, take, tap } from 'rxjs';
+import { ChangeDetectionStrategy, Component, DestroyRef, Input, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
-import { ApiErrorCode, ApiUtilsService as apiUtils } from '@cs/api';
-import {
-    ExplainRuntimeEventResponse,
-    IntegrationAI,
-    IntegrationAIRequestService
-} from '@cs/domains/integration';
 import { FormScheme } from '@cs/core';
 import { I18nService } from '@cs/i18n';
 import { RuntimeEvent } from '@cs/domains/runtime';
+import { ApiErrorCode, ApiUtilsService as apiUtils } from '@cs/api';
+import { ExplainRuntimeEventResponse, IntegrationAI, IntegrationAIRequestService } from '@cs/domains/integration';
 
 interface RuntimeExplainEventForm {
     integrationId: string;

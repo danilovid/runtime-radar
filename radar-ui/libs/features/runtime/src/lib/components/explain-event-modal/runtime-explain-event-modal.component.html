@@ -44,7 +44,7 @@
                     <kbq-dd>{{ result.possible_cause || '—' }}</kbq-dd>
                     <kbq-dt>{{ tRuntime('Runtime.ExplainEventModal.Label.NextSteps') }}</kbq-dt>
                     <kbq-dd>
-                        @if (result.next_steps?.length) {
+                        @if (result.next_steps.length) {
                             <ul class="layout-margin-no-top layout-margin-no-bottom">
                                 @for (step of result.next_steps; track step) {
                                     <li>{{ step }}</li>
