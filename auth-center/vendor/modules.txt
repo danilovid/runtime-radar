@@ -778,6 +778,7 @@ github.com/rs/zerolog/log
 ## explicit; go 1.25
 github.com/runtime-radar/runtime-radar/lib/config
 github.com/runtime-radar/runtime-radar/lib/errcommon
+github.com/runtime-radar/runtime-radar/lib/logger
 github.com/runtime-radar/runtime-radar/lib/security
 github.com/runtime-radar/runtime-radar/lib/security/cipher
 github.com/runtime-radar/runtime-radar/lib/security/jwt
@@ -1282,7 +1283,7 @@ gopkg.in/yaml.v3
 # gorm.io/driver/postgres v1.6.0
 ## explicit; go 1.20
 gorm.io/driver/postgres
-# gorm.io/gorm v1.30.0
+# gorm.io/gorm v1.31.1
 ## explicit; go 1.18
 gorm.io/gorm
 gorm.io/gorm/callbacks

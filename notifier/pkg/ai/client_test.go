@@ -14,6 +14,10 @@ import (
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/model"
 )
 
+// The Authorization header both the OpenAI-compatible and the Ollama client
+// build from an integration whose API key is "secret".
+const bearerSecret = "Bearer secret"
+
 func TestOpenAICompatibleExplainRuntimeEvent(t *testing.T) {
 	t.Parallel()
 
@@ -22,7 +26,7 @@ func TestOpenAICompatibleExplainRuntimeEvent(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 			return
 		}
-		if r.Header.Get("Authorization") != "Bearer secret" {
+		if r.Header.Get("Authorization") != bearerSecret {
 			t.Errorf("unexpected authorization header: %s", r.Header.Get("Authorization"))
 			return
 		}
@@ -75,7 +79,7 @@ func TestOpenAICompatibleExplainRuntimeEvent(t *testing.T) {
 func TestOpenAICompatibleFallsBackToReasoningContent(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := w.Write([]byte(`{"choices":[{"message":{"content":"","reasoning_content":"{\"summary\":\"s\",\"risk\":\"low\",\"possible_cause\":\"c\",\"next_steps\":[\"a\"]}"}}]}`)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
@@ -318,7 +322,7 @@ func TestParseResultReportsUnparsedOutput(t *testing.T) {
 func TestTestFailsOnUnparsableResponse(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := w.Write([]byte(`{"choices":[{"message":{"content":"Sure! I am a helpful assistant."}}]}`)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
@@ -342,7 +346,7 @@ func TestTestFailsOnUnparsableResponse(t *testing.T) {
 func TestAnthropicFailsWhenNoTextBlocks(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := w.Write([]byte(`{"content":[{"type":"thinking","text":""}]}`)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
@@ -395,7 +399,7 @@ func TestOllamaSendsAPIKey(t *testing.T) {
 		t.Fatalf("explain runtime event: %v", err)
 	}
 
-	if got := <-authorization; got != "Bearer secret" {
+	if got := <-authorization; got != bearerSecret {
 		t.Fatalf("unexpected authorization header: %q", got)
 	}
 }
@@ -693,7 +697,7 @@ func TestExplainKeepsFirstAnswerWhenRetryAlsoFails(t *testing.T) {
 
 	var calls int32
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt32(&calls, 1)
 
 		if _, err := w.Write([]byte(`{"choices":[{"message":{"content":"Still not JSON."}}]}`)); err != nil {
