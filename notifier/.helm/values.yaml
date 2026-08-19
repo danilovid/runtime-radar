@@ -28,6 +28,8 @@ podSecurityContext:
 env:
   - name: "POLICY_ENFORCER_GRPC_ADDR"
     value: "policy-enforcer:8000"
+  - name: "HISTORY_API_GRPC_ADDR"
+    value: "history-api:8000"
 encryption:
   enabled: true
 postgresql:

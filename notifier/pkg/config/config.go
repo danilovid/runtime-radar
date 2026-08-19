@@ -22,6 +22,7 @@ type Config struct {
 	InstrumentationAddr    string // address "[host]:port" that instrumentation server should be listening for health checks and metrics
 	TLS                    bool   // is TLS enabled?
 	PolicyEnforcerGRPCAddr string // Policy Enforcer address in host[:port] format
+	HistoryAPIGRPCAddr     string // History API address in host[:port] format
 	EncryptionKey          string // key for encryption
 	TokenKey               string // key for jwt token
 	Auth                   bool   // is auth enabled?
@@ -54,6 +55,7 @@ func New() *Config {
 	flag.StringVar(&c.ListenGRPCAddr, "listenGRPCAddr", config.LookupEnvString("LISTEN_GRPC_ADDR", ":8000"), `Address in form of "[host]:port" that gRPC server should be listening on.`)
 	flag.StringVar(&c.ListenHTTPAddr, "listenHTTPAddr", config.LookupEnvString("LISTEN_HTTP_ADDR", ":9000"), `Address in form of "[host]:port" that HTTP server should be listening on.`)
 	flag.StringVar(&c.PolicyEnforcerGRPCAddr, "policyEnforcerGRPCAddr", config.LookupEnvString("POLICY_ENFORCER_GRPC_ADDR", "127.0.0.1:10000"), "Policy Enforcer gRPC address in host[:port] format.")
+	flag.StringVar(&c.HistoryAPIGRPCAddr, "historyAPIGRPCAddr", config.LookupEnvString("HISTORY_API_GRPC_ADDR", "127.0.0.1:10000"), "History API gRPC address in host[:port] format.")
 	flag.BoolVar(&c.TLS, "tls", config.LookupEnvBool("TLS", false), "Set to enable TLS.")
 	flag.StringVar(&c.EncryptionKey, "encryptionKey", config.LookupEnvString("ENCRYPTION_KEY", ""), "Hex encoded encryption key to store passwords in database. Supported key sizes are 16, 24 and 32 bytes.")
 	flag.StringVar(&c.TokenKey, "tokenKey", config.LookupEnvString("TOKEN_KEY", ""), "Hex encoded token key to verify jwt token. Supported key sizes are 16, 24 and 32 bytes.")

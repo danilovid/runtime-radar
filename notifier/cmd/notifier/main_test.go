@@ -142,8 +142,13 @@ func TestMain(m *testing.M) {
 		log.Fatal().Msgf("### Failed to connect to Policy Enforcer: %v", err)
 	}
 
+	runtimeHistory, closeRH, err := client.NewRuntimeHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+
 	grpcSrv := grpc.NewServer(opts...)
-	notifier, notification, email := composeServices(db, ruleController, crypter, verifier, cfg.Auth, cfg.CSVersion)
+	notifier, notification, email := composeServices(db, ruleController, runtimeHistory, crypter, verifier, cfg.Auth, cfg.CSVersion)
 
 	api.RegisterNotifierServer(grpcSrv, notifier)
 	api.RegisterNotificationControllerServer(grpcSrv, notification)
@@ -167,6 +172,7 @@ func TestMain(m *testing.M) {
 	grpcSrv.GracefulStop()
 	closeDB()
 	closeRC()
+	closeRH()
 
 	os.Exit(res)
 }

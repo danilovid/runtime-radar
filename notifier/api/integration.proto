@@ -148,7 +148,10 @@ message TestAIReq {
 
 message ExplainRuntimeEventReq {
   string integration_id = 1;
+  // Identifier of the event to explain. The event itself is read from History API.
   string event_id = 2;
+  // Deprecated: kept only as a fallback for clients that can't be read back from
+  // History API. Client-supplied event data is never trusted when event_id is set.
   string event_json = 3;
 }
 

@@ -7,6 +7,8 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+	history_api "github.com/runtime-radar/runtime-radar/history-api/api"
 	"github.com/runtime-radar/runtime-radar/lib/errcommon"
 	"github.com/runtime-radar/runtime-radar/lib/security/cipher"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
@@ -18,6 +20,7 @@ import (
 	enforcer_api "github.com/runtime-radar/runtime-radar/policy-enforcer/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
@@ -28,6 +31,7 @@ type IntegrationGeneric struct {
 	IntegrationRepository  database.IntegrationRepository
 	NotificationRepository database.NotificationRepository
 	RuleController         enforcer_api.RuleControllerClient
+	RuntimeHistory         history_api.RuntimeHistoryClient
 	Crypter                cipher.Crypter
 }
 
@@ -240,8 +244,18 @@ func (ig *IntegrationGeneric) ExplainRuntimeEvent(ctx context.Context, req *api.
 	if req.GetIntegrationId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "integration ID is empty")
 	}
-	if req.GetEventJson() == "" {
-		return nil, status.Error(codes.InvalidArgument, "event json is empty")
+	if req.GetEventId() == "" && req.GetEventJson() == "" {
+		return nil, status.Error(codes.InvalidArgument, "event ID is empty")
+	}
+	if req.GetEventId() != "" {
+		if _, err := uuid.Parse(req.GetEventId()); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "can't parse event ID: %v", err)
+		}
+	}
+
+	eventJSON, err := ig.readRuntimeEventJSON(ctx, req.GetEventId(), req.GetEventJson())
+	if err != nil {
+		return nil, err
 	}
 
 	id, err := uuid.Parse(req.GetIntegrationId())
@@ -270,7 +284,7 @@ func (ig *IntegrationGeneric) ExplainRuntimeEvent(ctx context.Context, req *api.
 		return nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
 	}
 
-	result, err := client.ExplainRuntimeEvent(ctx, req.GetEventId(), req.GetEventJson())
+	result, err := client.ExplainRuntimeEvent(ctx, req.GetEventId(), eventJSON)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "can't explain runtime event: %v", err)
 	}
@@ -282,6 +296,45 @@ func (ig *IntegrationGeneric) ExplainRuntimeEvent(ctx context.Context, req *api.
 		NextSteps:     result.NextSteps,
 		RawText:       result.RawText,
 	}, nil
+}
+
+// readRuntimeEventJSON returns the event to analyse. It's read from History API
+// by ID rather than taken from the request, so that what the model sees is the
+// event the system actually recorded and not whatever a browser chose to send.
+// The caller-supplied JSON is only a fallback for a deployment where History API
+// is unreachable, and is dropped entirely once every client sends an event ID.
+func (ig *IntegrationGeneric) readRuntimeEventJSON(ctx context.Context, eventID, fallbackJSON string) (string, error) {
+	if eventID == "" || ig.RuntimeHistory == nil {
+		if fallbackJSON == "" {
+			return "", status.Error(codes.Internal, "runtime history is not configured")
+		}
+
+		return fallbackJSON, nil
+	}
+
+	event, err := ig.RuntimeHistory.Read(ctx, &history_api.ReadRuntimeEventReq{Id: eventID})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return "", status.Error(codes.NotFound, "runtime event not found")
+		}
+
+		if fallbackJSON == "" {
+			return "", status.Errorf(codes.Internal, "can't get runtime event: %v", err)
+		}
+
+		log.Warn().Err(err).Str("event_id", eventID).Msg("Can't get runtime event, falling back to the event JSON from the request")
+
+		return fallbackJSON, nil
+	}
+
+	// Same options the HTTP gateway marshals responses with, so that the model
+	// reads the event in the shape the rest of the product presents it in.
+	eventJSON, err := protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}.Marshal(event)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "can't marshal runtime event: %v", err)
+	}
+
+	return string(eventJSON), nil
 }
 
 func validateIntegration(req *api.Integration) (reason string, valid bool) {

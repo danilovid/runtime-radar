@@ -886,8 +886,11 @@ func (x *TestAIReq) GetIntegration() *Integration {
 type ExplainRuntimeEventReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	IntegrationId string                 `protobuf:"bytes,1,opt,name=integration_id,json=integrationId,proto3" json:"integration_id,omitempty"`
-	EventId       string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
-	EventJson     string                 `protobuf:"bytes,3,opt,name=event_json,json=eventJson,proto3" json:"event_json,omitempty"`
+	// Identifier of the event to explain. The event itself is read from History API.
+	EventId string `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	// Deprecated: kept only as a fallback for clients that can't be read back from
+	// History API. Client-supplied event data is never trusted when event_id is set.
+	EventJson     string `protobuf:"bytes,3,opt,name=event_json,json=eventJson,proto3" json:"event_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

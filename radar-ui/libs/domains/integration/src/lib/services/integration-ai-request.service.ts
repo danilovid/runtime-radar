@@ -19,7 +19,6 @@ export interface TestAIIntegrationRequest {
 export interface ExplainRuntimeEventRequest {
     integration_id: string;
     event_id: string;
-    event_json: string;
 }
 
 export interface ExplainRuntimeEventResponse {

@@ -110,8 +110,7 @@ export class RuntimeFeatureExplainEventModalComponent implements OnInit {
         this.integrationAIRequestService
             .explainRuntimeEvent({
                 integration_id: integrationId,
-                event_id: this.event.id,
-                event_json: JSON.stringify(this.event)
+                event_id: this.event.id
             })
             .pipe(take(1), takeUntilDestroyed(this.destroyRef))
             .subscribe({
