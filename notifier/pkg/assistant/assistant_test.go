@@ -32,7 +32,12 @@ func (m *fakeModel) ExplainRuntimeEvent(context.Context, string, string) (*ai.Re
 	return nil, errors.New("not used")
 }
 
-func (m *fakeModel) Chat(ctx context.Context, messages []ai.Message, tools []ai.Tool) (*ai.ChatResult, error) {
+func (m *fakeModel) Chat(
+	ctx context.Context,
+	messages []ai.Message,
+	tools []ai.Tool,
+	onDelta ai.DeltaFunc,
+) (*ai.ChatResult, error) {
 	m.mu.Lock()
 	// The conversation is rebuilt for every turn, so it has to be copied to be
 	// inspected after the run.
@@ -55,11 +60,22 @@ func (m *fakeModel) Chat(ctx context.Context, messages []ai.Message, tools []ai.
 		return nil, m.err
 	}
 
+	answer := m.answers[len(m.answers)-1]
 	if index < len(m.answers) {
-		return m.answers[index], nil
+		answer = m.answers[index]
 	}
 
-	return m.answers[len(m.answers)-1], nil
+	// A real provider streams the text before returning; the loop forwards
+	// those pieces, so the fake has to produce them too.
+	if onDelta != nil && answer.Text != "" {
+		for _, part := range strings.SplitAfter(answer.Text, " ") {
+			if part != "" {
+				onDelta(part)
+			}
+		}
+	}
+
+	return answer, nil
 }
 
 func (m *fakeModel) conversation(turn int) []ai.Message {
@@ -175,21 +191,34 @@ func TestRunAnswersAfterToolCall(t *testing.T) {
 		t.Fatalf("run: %v", err)
 	}
 
-	if len(chunks) != 4 {
-		t.Fatalf("chunks = %d: %+v", len(chunks), chunks)
-	}
-
 	if chunks[0].Tool == nil || chunks[0].Tool.Name != toolSearchDocs || chunks[0].Tool.Phase != PhaseStarted {
 		t.Errorf("first chunk = %+v, want the tool starting", chunks[0])
 	}
 	if chunks[1].Tool == nil || chunks[1].Tool.Phase != PhaseFinished || chunks[1].Tool.Error != "" {
 		t.Errorf("second chunk = %+v, want the tool finishing", chunks[1])
 	}
-	if chunks[2].Delta != "Open **Response rules** and press Create." {
-		t.Errorf("third chunk = %+v, want the answer", chunks[2])
+
+	// The answer is forwarded as the model writes it, so it arrives in several
+	// delta chunks that together make up the text.
+	deltas := 0
+	answer := ""
+	for _, chunk := range chunks {
+		if chunk.Tool == nil && chunk.Done == nil {
+			deltas++
+			answer += chunk.Delta
+		}
 	}
-	if chunks[3].Done == nil || chunks[3].Done.StopReason != StopReasonEndTurn || chunks[3].Done.Iterations != 2 {
-		t.Errorf("last chunk = %+v, want done after two turns", chunks[3])
+
+	if deltas < 2 {
+		t.Errorf("delta chunks = %d, want the answer streamed in pieces", deltas)
+	}
+	if answer != "Open **Response rules** and press Create." {
+		t.Errorf("streamed answer = %q", answer)
+	}
+
+	last := chunks[len(chunks)-1]
+	if last.Done == nil || last.Done.StopReason != StopReasonEndTurn || last.Done.Iterations != 2 {
+		t.Errorf("last chunk = %+v, want done after two turns", last)
 	}
 
 	if len(box.callNames) != 1 || box.callNames[0] != toolSearchDocs {

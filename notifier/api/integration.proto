@@ -74,6 +74,12 @@ message AI {
     PROVIDER_OPENAI_COMPATIBLE = 0;
     PROVIDER_ANTHROPIC = 1;
     PROVIDER_OLLAMA = 2;
+    // Qwen (DashScope), DeepSeek and GLM (Zhipu) all speak the OpenAI chat
+    // completions protocol; they are separate entries only so that the form
+    // can offer their endpoints and the operator sees what they picked.
+    PROVIDER_QWEN = 3;
+    PROVIDER_DEEPSEEK = 4;
+    PROVIDER_GLM = 5;
   }
 
   Provider provider = 1;

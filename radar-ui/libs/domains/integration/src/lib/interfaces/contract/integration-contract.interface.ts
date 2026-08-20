@@ -15,7 +15,10 @@ export enum IntegrationType {
 export enum IntegrationAIProviderType {
     OPENAI_COMPATIBLE = 'PROVIDER_OPENAI_COMPATIBLE',
     ANTHROPIC = 'PROVIDER_ANTHROPIC',
-    OLLAMA = 'PROVIDER_OLLAMA'
+    OLLAMA = 'PROVIDER_OLLAMA',
+    QWEN = 'PROVIDER_QWEN',
+    DEEPSEEK = 'PROVIDER_DEEPSEEK',
+    GLM = 'PROVIDER_GLM'
 }
 
 export enum IntegrationEmailAuthType {

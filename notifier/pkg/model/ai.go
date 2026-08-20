@@ -17,7 +17,23 @@ const (
 	AIProviderOpenAICompatible AIProvider = "openai-compatible"
 	AIProviderAnthropic        AIProvider = "anthropic"
 	AIProviderOllama           AIProvider = "ollama"
+	// The three below speak the same protocol as AIProviderOpenAICompatible
+	// and differ only in the endpoint they default to.
+	AIProviderQwen     AIProvider = "qwen"
+	AIProviderDeepSeek AIProvider = "deepseek"
+	AIProviderGLM      AIProvider = "glm"
 )
+
+// IsOpenAICompatible reports whether the provider speaks the OpenAI chat
+// completions protocol, which is what the client is built from.
+func (p AIProvider) IsOpenAICompatible() bool {
+	switch p {
+	case AIProviderOpenAICompatible, AIProviderQwen, AIProviderDeepSeek, AIProviderGLM:
+		return true
+	default:
+		return false
+	}
+}
 
 type AI struct {
 	Base

@@ -193,6 +193,12 @@ func AIProviderFromPB(provider api.AI_Provider) model.AIProvider {
 		return model.AIProviderAnthropic
 	case api.AI_PROVIDER_OLLAMA:
 		return model.AIProviderOllama
+	case api.AI_PROVIDER_QWEN:
+		return model.AIProviderQwen
+	case api.AI_PROVIDER_DEEPSEEK:
+		return model.AIProviderDeepSeek
+	case api.AI_PROVIDER_GLM:
+		return model.AIProviderGLM
 	default:
 		return model.AIProviderOpenAICompatible
 	}
@@ -204,6 +210,12 @@ func AIProviderToPB(provider model.AIProvider) api.AI_Provider {
 		return api.AI_PROVIDER_ANTHROPIC
 	case model.AIProviderOllama:
 		return api.AI_PROVIDER_OLLAMA
+	case model.AIProviderQwen:
+		return api.AI_PROVIDER_QWEN
+	case model.AIProviderDeepSeek:
+		return api.AI_PROVIDER_DEEPSEEK
+	case model.AIProviderGLM:
+		return api.AI_PROVIDER_GLM
 	default:
 		return api.AI_PROVIDER_OPENAI_COMPATIBLE
 	}

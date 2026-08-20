@@ -30,6 +30,12 @@ const (
 	AI_PROVIDER_OPENAI_COMPATIBLE AI_Provider = 0
 	AI_PROVIDER_ANTHROPIC         AI_Provider = 1
 	AI_PROVIDER_OLLAMA            AI_Provider = 2
+	// Qwen (DashScope), DeepSeek and GLM (Zhipu) all speak the OpenAI chat
+	// completions protocol; they are separate entries only so that the form
+	// can offer their endpoints and the operator sees what they picked.
+	AI_PROVIDER_QWEN     AI_Provider = 3
+	AI_PROVIDER_DEEPSEEK AI_Provider = 4
+	AI_PROVIDER_GLM      AI_Provider = 5
 )
 
 // Enum value maps for AI_Provider.
@@ -38,11 +44,17 @@ var (
 		0: "PROVIDER_OPENAI_COMPATIBLE",
 		1: "PROVIDER_ANTHROPIC",
 		2: "PROVIDER_OLLAMA",
+		3: "PROVIDER_QWEN",
+		4: "PROVIDER_DEEPSEEK",
+		5: "PROVIDER_GLM",
 	}
 	AI_Provider_value = map[string]int32{
 		"PROVIDER_OPENAI_COMPATIBLE": 0,
 		"PROVIDER_ANTHROPIC":         1,
 		"PROVIDER_OLLAMA":            2,
+		"PROVIDER_QWEN":              3,
+		"PROVIDER_DEEPSEEK":          4,
+		"PROVIDER_GLM":               5,
 	}
 )
 
@@ -1037,7 +1049,7 @@ const file_integration_proto_rawDesc = "" +
 	"\awebhook\x18\x06 \x01(\v2\x14.integration.WebhookH\x00R\awebhook\x12-\n" +
 	"\x06syslog\x18\a \x01(\v2\x13.integration.SyslogH\x00R\x06syslog\x12!\n" +
 	"\x02ai\x18\b \x01(\v2\x0f.integration.AIH\x00R\x02aiB\b\n" +
-	"\x06config\"\xa4\x02\n" +
+	"\x06config\"\xe1\x02\n" +
 	"\x02AI\x124\n" +
 	"\bprovider\x18\x01 \x01(\x0e2\x18.integration.AI.ProviderR\bprovider\x12\x19\n" +
 	"\bbase_url\x18\x02 \x01(\tR\abaseUrl\x12\x14\n" +
@@ -1045,11 +1057,14 @@ const file_integration_proto_rawDesc = "" +
 	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12\x19\n" +
 	"\bis_local\x18\x05 \x01(\bR\aisLocal\x12\x1a\n" +
 	"\binsecure\x18\x06 \x01(\bR\binsecure\x12\x0e\n" +
-	"\x02ca\x18\a \x01(\tR\x02ca\"W\n" +
+	"\x02ca\x18\a \x01(\tR\x02ca\"\x93\x01\n" +
 	"\bProvider\x12\x1e\n" +
 	"\x1aPROVIDER_OPENAI_COMPATIBLE\x10\x00\x12\x16\n" +
 	"\x12PROVIDER_ANTHROPIC\x10\x01\x12\x13\n" +
-	"\x0fPROVIDER_OLLAMA\x10\x02\"\xf0\x02\n" +
+	"\x0fPROVIDER_OLLAMA\x10\x02\x12\x11\n" +
+	"\rPROVIDER_QWEN\x10\x03\x12\x15\n" +
+	"\x11PROVIDER_DEEPSEEK\x10\x04\x12\x10\n" +
+	"\fPROVIDER_GLM\x10\x05\"\xf0\x02\n" +
 	"\x05Email\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x16\n" +
 	"\x06server\x18\x02 \x01(\tR\x06server\x128\n" +

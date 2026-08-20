@@ -202,15 +202,25 @@ func (r *Runner) run(ctx context.Context, req Request, emit Emit) (errorReason s
 	messages := buildMessages(req)
 
 	for iterations = 0; iterations < r.maxIterations; iterations++ {
-		result, err := req.Client.Chat(ctx, messages, tools)
-		if err != nil {
-			return errorReasonModel, iterations, fmt.Errorf("can't get an answer from the model: %w", err)
+		// The answer is forwarded to the client as the model writes it. An emit
+		// that fails means the client is gone; the loop notices right after the
+		// call rather than in the middle of a callback.
+		var emitErr error
+
+		result, err := req.Client.Chat(ctx, messages, tools, func(delta string) {
+			if emitErr != nil || delta == "" {
+				return
+			}
+
+			emitErr = emit(Chunk{Delta: delta})
+		})
+
+		if emitErr != nil {
+			return "", iterations, errEmitFailed
 		}
 
-		if result.Text != "" {
-			if emitErr := emit(Chunk{Delta: result.Text}); emitErr != nil {
-				return "", iterations, errEmitFailed
-			}
+		if err != nil {
+			return errorReasonModel, iterations, fmt.Errorf("can't get an answer from the model: %w", err)
 		}
 
 		if len(result.ToolCalls) == 0 {

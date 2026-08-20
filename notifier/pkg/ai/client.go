@@ -28,10 +28,17 @@ const (
 	openAIAPIHost        = "api.openai.com"
 	defaultAnthropicURL  = "https://api.anthropic.com/v1"
 	defaultOllamaBaseURL = "http://localhost:11434"
-	anthropicVersion     = "2023-06-01"
-	maxEventJSONBytes    = 32 * 1024
-	maxErrorTextBytes    = 200
-	truncationMarker     = "\n...[truncated]"
+	// Endpoints of the OpenAI-compatible services the form offers by name. They
+	// are defaults only: a self-hosted deployment sets its own base url.
+	defaultQwenBaseURL     = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+	defaultDeepSeekBaseURL = "https://api.deepseek.com/v1"
+	defaultGLMBaseURL      = "https://open.bigmodel.cn/api/paas/v4"
+	anthropicVersion       = "2023-06-01"
+	maxEventJSONBytes      = 32 * 1024
+	maxErrorTextBytes      = 200
+	// How much of a failed streamed response is read back for the error.
+	maxErrorBodyBytes = 8 * 1024
+	truncationMarker  = "\n...[truncated]"
 	// Enough for testPrompt's answer with headroom: a reply cut off mid-JSON
 	// would fail the parse check below for no reason. Sized for the Cyrillic
 	// answer explainSystemPrompt asks for, which many tokenizers spend two to
@@ -70,7 +77,7 @@ type Client interface {
 	ExplainRuntimeEvent(ctx context.Context, eventID, eventJSON string) (*Result, error)
 	// Chat answers one turn of a conversation, optionally asking for tools to
 	// be run. The caller keeps the conversation; this client keeps no state.
-	Chat(ctx context.Context, messages []Message, tools []Tool) (*ChatResult, error)
+	Chat(ctx context.Context, messages []Message, tools []Tool, onDelta DeltaFunc) (*ChatResult, error)
 }
 
 type Result struct {
@@ -112,12 +119,12 @@ func NewClient(conf *model.AI) (Client, error) {
 		baseURL:    resolveBaseURL(conf),
 	}
 
-	switch conf.Provider {
-	case model.AIProviderOpenAICompatible:
+	switch {
+	case conf.Provider.IsOpenAICompatible():
 		return &openAICompatibleClient{baseClient: base}, nil
-	case model.AIProviderAnthropic:
+	case conf.Provider == model.AIProviderAnthropic:
 		return &anthropicClient{baseClient: base}, nil
-	case model.AIProviderOllama:
+	case conf.Provider == model.AIProviderOllama:
 		return &ollamaClient{baseClient: base}, nil
 	default:
 		return nil, fmt.Errorf("unsupported ai provider: %s", conf.Provider)
@@ -161,6 +168,12 @@ func resolveBaseURL(conf *model.AI) string {
 		return defaultAnthropicURL
 	case model.AIProviderOllama:
 		return defaultOllamaBaseURL
+	case model.AIProviderQwen:
+		return defaultQwenBaseURL
+	case model.AIProviderDeepSeek:
+		return defaultDeepSeekBaseURL
+	case model.AIProviderGLM:
+		return defaultGLMBaseURL
 	default:
 		return defaultOpenAIBaseURL
 	}
@@ -400,6 +413,24 @@ func newJSONRequest(ctx context.Context, method, url string, body any) (*http.Re
 	req.Header.Set("Content-Type", "application/json")
 
 	return req, nil
+}
+
+// streamBody hands back the response body of a streamed answer, turning an
+// error status into an error rather than a stream nobody can parse. The caller
+// closes the body.
+func streamBody(resp *http.Response) (io.ReadCloser, error) {
+	if resp.StatusCode >= http.StatusBadRequest {
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes))
+		if err != nil {
+			return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
+		}
+
+		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	return resp.Body, nil
 }
 
 func readResponse(resp *http.Response) ([]byte, error) {

@@ -22,6 +22,9 @@
     "Integration.Pseudo.AIProvider.OpenAICompatible": "OpenAI-compatible",
     "Integration.Pseudo.AIProvider.Anthropic": "Anthropic",
     "Integration.Pseudo.AIProvider.Ollama": "Ollama",
+    "Integration.Pseudo.AIProvider.Qwen": "Qwen (DashScope)",
+    "Integration.Pseudo.AIProvider.DeepSeek": "DeepSeek",
+    "Integration.Pseudo.AIProvider.GLM": "GLM (Zhipu)",
 
     "Integration.Pseudo.AuthType.None": "Not specified",
     "Integration.Pseudo.AuthType.Crammd5": "Cram MD5",

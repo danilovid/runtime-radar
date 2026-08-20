@@ -453,7 +453,8 @@ func validateAI(conf *api.AI) (reason string, valid bool) {
 	}
 
 	switch conf.GetProvider() {
-	case api.AI_PROVIDER_OPENAI_COMPATIBLE, api.AI_PROVIDER_ANTHROPIC, api.AI_PROVIDER_OLLAMA:
+	case api.AI_PROVIDER_OPENAI_COMPATIBLE, api.AI_PROVIDER_ANTHROPIC, api.AI_PROVIDER_OLLAMA,
+		api.AI_PROVIDER_QWEN, api.AI_PROVIDER_DEEPSEEK, api.AI_PROVIDER_GLM:
 	default:
 		return fmt.Sprintf("unsupported ai provider given: %s", conf.GetProvider().String()), false
 	}

@@ -57,5 +57,17 @@ export const INTEGRATION_AI_PROVIDER_TYPE: IntegrationAIProviderTypeOption[] = [
     {
         id: IntegrationAIProviderType.OLLAMA,
         localizationKey: 'Integration.Pseudo.AIProvider.Ollama'
+    },
+    {
+        id: IntegrationAIProviderType.QWEN,
+        localizationKey: 'Integration.Pseudo.AIProvider.Qwen'
+    },
+    {
+        id: IntegrationAIProviderType.DEEPSEEK,
+        localizationKey: 'Integration.Pseudo.AIProvider.DeepSeek'
+    },
+    {
+        id: IntegrationAIProviderType.GLM,
+        localizationKey: 'Integration.Pseudo.AIProvider.GLM'
     }
 ];

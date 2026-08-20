@@ -208,7 +208,6 @@
     "Runtime.ExplainEventModal.Label.Risk": "Risk",
     "Runtime.ExplainEventModal.Label.PossibleCause": "Possible cause",
     "Runtime.ExplainEventModal.Label.NextSteps": "Next steps",
-    "Runtime.ExplainEventModal.Label.RawText": "Raw response",
     "Runtime.ExplainEventModal.Text.EmptyIntegrations": "Create an AI connection in notification services to explain events.",
     "Runtime.ExplainEventModal.Button.Run": "Run",
     "Runtime.ExplainEventModal.Button.Cancel": "Cancel",

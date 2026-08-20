@@ -266,9 +266,13 @@
       "enum": [
         "PROVIDER_OPENAI_COMPATIBLE",
         "PROVIDER_ANTHROPIC",
-        "PROVIDER_OLLAMA"
+        "PROVIDER_OLLAMA",
+        "PROVIDER_QWEN",
+        "PROVIDER_DEEPSEEK",
+        "PROVIDER_GLM"
       ],
-      "default": "PROVIDER_OPENAI_COMPATIBLE"
+      "default": "PROVIDER_OPENAI_COMPATIBLE",
+      "description": " - PROVIDER_QWEN: Qwen (DashScope), DeepSeek and GLM (Zhipu) all speak the OpenAI chat\ncompletions protocol; they are separate entries only so that the form\ncan offer their endpoints and the operator sees what they picked."
     },
     "EmailAuthType": {
       "type": "string",

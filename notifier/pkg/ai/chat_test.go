@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/model"
@@ -53,6 +54,19 @@ func chatConversation() []Message {
 	}
 }
 
+// deltas collects what a streaming answer handed back as it was written.
+type deltas struct {
+	parts []string
+}
+
+func (d *deltas) collect(delta string) {
+	d.parts = append(d.parts, delta)
+}
+
+func (d *deltas) text() string {
+	return strings.Join(d.parts, "")
+}
+
 func decodeBody(t *testing.T, r *http.Request) map[string]any {
 	t.Helper()
 
@@ -77,9 +91,18 @@ func TestOpenAICompatibleChat(t *testing.T) {
 
 		captured = decodeBody(t, r)
 
-		if _, err := w.Write([]byte(`{"choices":[{"message":{"content":"here is how","tool_calls":[
-			{"id":"call_2","type":"function","function":{"name":"search_docs","arguments":"{\"query\":\"notification\"}"}}
-		]}}]}`)); err != nil {
+		// The answer arrives as a stream: text in pieces, and a tool call
+		// whose name and arguments are split across chunks.
+		stream := strings.Join([]string{
+			`data: {"choices":[{"delta":{"content":"here "}}]}`,
+			`data: {"choices":[{"delta":{"content":"is how"}}]}`,
+			`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_2","function":{"name":"search_docs","arguments":"{\"query\":"}}]}}]}`,
+			`data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"notification\"}"}}]}}]}`,
+			"data: [DONE]",
+			"",
+		}, "\n\n")
+
+		if _, err := w.Write([]byte(stream)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
 	}))
@@ -95,9 +118,16 @@ func TestOpenAICompatibleChat(t *testing.T) {
 		t.Fatalf("new client: %v", err)
 	}
 
-	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool})
+	streamed := &deltas{}
+
+	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool}, streamed.collect)
 	if err != nil {
 		t.Fatalf("chat: %v", err)
+	}
+
+	// The answer must arrive in pieces, not in one lump at the end.
+	if len(streamed.parts) < 2 || streamed.text() != result.Text {
+		t.Errorf("streamed %d parts = %q, result text = %q", len(streamed.parts), streamed.text(), result.Text)
 	}
 
 	if result.Text != "here is how" {
@@ -165,10 +195,18 @@ func TestAnthropicChat(t *testing.T) {
 
 		captured = decodeBody(t, r)
 
-		if _, err := w.Write([]byte(`{"content":[
-			{"type":"text","text":"looking"},
-			{"type":"tool_use","id":"toolu_1","name":"search_docs","input":{"query":"notification"}}
-		]}`)); err != nil {
+		stream := strings.Join([]string{
+			"event: content_block_start\ndata: {\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}",
+			"event: content_block_delta\ndata: {\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"look\"}}",
+			"event: content_block_delta\ndata: {\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ing\"}}",
+			"event: content_block_start\ndata: {\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"search_docs\"}}",
+			"event: content_block_delta\ndata: {\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"query\\\":\"}}",
+			"event: content_block_delta\ndata: {\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"notification\\\"}\"}}",
+			"event: message_stop\ndata: {}",
+			"",
+		}, "\n\n")
+
+		if _, err := w.Write([]byte(stream)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
 	}))
@@ -184,9 +222,16 @@ func TestAnthropicChat(t *testing.T) {
 		t.Fatalf("new client: %v", err)
 	}
 
-	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool})
+	streamed := &deltas{}
+
+	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool}, streamed.collect)
 	if err != nil {
 		t.Fatalf("chat: %v", err)
+	}
+
+	// The answer must arrive in pieces, not in one lump at the end.
+	if len(streamed.parts) < 2 || streamed.text() != result.Text {
+		t.Errorf("streamed %d parts = %q, result text = %q", len(streamed.parts), streamed.text(), result.Text)
 	}
 
 	if result.Text != "looking" {
@@ -255,7 +300,9 @@ func TestAnthropicChatMergesConsecutiveToolResults(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		captured = decodeBody(t, r)
 
-		if _, err := w.Write([]byte(`{"content":[{"type":"text","text":"done"}]}`)); err != nil {
+		stream := "event: content_block_delta\ndata: {\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\n"
+
+		if _, err := w.Write([]byte(stream)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
 	}))
@@ -280,7 +327,7 @@ func TestAnthropicChatMergesConsecutiveToolResults(t *testing.T) {
 		{Role: RoleTool, Content: "detectors", ToolCallID: "b", ToolName: "list_detectors"},
 	}
 
-	if _, err := client.Chat(context.Background(), messages, nil); err != nil {
+	if _, err := client.Chat(context.Background(), messages, nil, nil); err != nil {
 		t.Fatalf("chat: %v", err)
 	}
 
@@ -308,10 +355,17 @@ func TestOllamaChat(t *testing.T) {
 
 		captured = decodeBody(t, r)
 
-		// Ollama sends the arguments as an object and no call identifier.
-		if _, err := w.Write([]byte(`{"message":{"content":"","tool_calls":[
-			{"function":{"name":"search_docs","arguments":{"query":"notification"}}}
-		]}}`)); err != nil {
+		// Ollama streams newline-delimited JSON, sends the arguments as an
+		// object and gives no call identifier.
+		stream := strings.Join([]string{
+			`{"message":{"content":"look"},"done":false}`,
+			`{"message":{"content":"ing"},"done":false}`,
+			`{"message":{"content":"","tool_calls":[{"function":{"name":"search_docs","arguments":{"query":"notification"}}}]},"done":false}`,
+			`{"done":true}`,
+			"",
+		}, "\n")
+
+		if _, err := w.Write([]byte(stream)); err != nil {
 			t.Errorf("write response: %v", err)
 		}
 	}))
@@ -326,9 +380,16 @@ func TestOllamaChat(t *testing.T) {
 		t.Fatalf("new client: %v", err)
 	}
 
-	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool})
+	streamed := &deltas{}
+
+	result, err := client.Chat(context.Background(), chatConversation(), []Tool{searchDocsTool}, streamed.collect)
 	if err != nil {
 		t.Fatalf("chat: %v", err)
+	}
+
+	// The answer must arrive in pieces, not in one lump at the end.
+	if len(streamed.parts) < 2 || streamed.text() != result.Text {
+		t.Errorf("streamed %d parts = %q, result text = %q", len(streamed.parts), streamed.text(), result.Text)
 	}
 
 	if len(result.ToolCalls) != 1 {

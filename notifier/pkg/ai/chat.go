@@ -73,6 +73,17 @@ type Message struct {
 	ToolName   string
 }
 
+// DeltaFunc receives the answer as it is written. It may be nil, in which case
+// the answer is only returned whole.
+type DeltaFunc func(delta string)
+
+// emitDelta hands a piece of the answer to the caller, if there is one.
+func emitDelta(onDelta DeltaFunc, delta string) {
+	if onDelta != nil {
+		onDelta(delta)
+	}
+}
+
 // ChatResult is one answer from the model: either text, or a request to run
 // tools, or both (a model may narrate what it is about to do).
 type ChatResult struct {
@@ -329,12 +340,17 @@ func anthropicMessages(messages []Message) []map[string]any {
 
 // Chat asks the model for one answer, offering it tools it may ask to run. The
 // conversation is passed whole on every call: this service keeps no state.
-func (c *openAICompatibleClient) Chat(ctx context.Context, messages []Message, tools []Tool) (*ChatResult, error) {
+//
+// The answer is streamed: onDelta is called with each piece of text as it
+// arrives, so the chat widget can show the answer being written. Tool calls
+// arrive in fragments and are only complete when the stream ends.
+func (c *openAICompatibleClient) Chat(ctx context.Context, messages []Message, tools []Tool, onDelta DeltaFunc) (*ChatResult, error) {
 	reqBody := map[string]any{
 		"model":       c.conf.Model,
 		"messages":    openAIMessages(messages, false),
 		"temperature": chatTemperature,
 		"max_tokens":  chatMaxTokens,
+		"stream":      true,
 	}
 
 	if rendered := openAITools(tools); rendered != nil {
@@ -351,6 +367,8 @@ func (c *openAICompatibleClient) Chat(ctx context.Context, messages []Message, t
 		return nil, err
 	}
 
+	req.Header.Set("Accept", "text/event-stream")
+
 	if c.conf.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.conf.APIKey)
 	}
@@ -360,39 +378,71 @@ func (c *openAICompatibleClient) Chat(ctx context.Context, messages []Message, t
 		return nil, err
 	}
 
-	body, err := readResponse(resp)
+	body, err := streamBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	result := &ChatResult{}
+	text := &strings.Builder{}
+	calls := newToolCallAccumulator()
+
+	err = readSSE(body, func(_ string, data []byte) error {
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content   string `json:"content"`
+					ToolCalls []struct {
+						Index    int    `json:"index"`
+						ID       string `json:"id"`
+						Function struct {
+							Name      string `json:"name"`
+							Arguments string `json:"arguments"`
+						} `json:"function"`
+					} `json:"tool_calls"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal(data, &chunk); err != nil {
+			// A backend may interleave keep-alive or usage payloads that don't
+			// match this shape; skipping them is better than failing the answer.
+			return nil
+		}
+
+		for _, choice := range chunk.Choices {
+			if choice.Delta.Content != "" {
+				text.WriteString(choice.Delta.Content)
+				emitDelta(onDelta, choice.Delta.Content)
+			}
+
+			for _, call := range choice.Delta.ToolCalls {
+				calls.add(call.Index, call.ID, call.Function.Name, call.Function.Arguments)
+			}
+		}
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var payload struct {
-		Choices []struct {
-			Message struct {
-				Content   string           `json:"content"`
-				ToolCalls []openAIToolCall `json:"tool_calls"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, err
-	}
-	if len(payload.Choices) == 0 {
-		return nil, fmt.Errorf("empty response choices")
-	}
+	result.Text = strings.TrimSpace(text.String())
+	result.ToolCalls = calls.result()
 
-	return &ChatResult{
-		Text:      strings.TrimSpace(payload.Choices[0].Message.Content),
-		ToolCalls: parseOpenAIToolCalls(payload.Choices[0].Message.ToolCalls),
-	}, nil
+	return result, nil
 }
 
-// Chat asks the model for one answer through the Messages API.
-func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []Tool) (*ChatResult, error) {
+// Chat asks the model for one answer through the Messages API, streaming the
+// text as it is written. Anthropic streams a tool call's arguments as partial
+// JSON, which is accumulated per content block.
+func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []Tool, onDelta DeltaFunc) (*ChatResult, error) {
 	reqBody := map[string]any{
 		"model":       c.conf.Model,
 		"max_tokens":  chatMaxTokens,
 		"temperature": chatTemperature,
 		"messages":    anthropicMessages(messages),
+		"stream":      true,
 	}
 
 	if system := systemPrompt(messages); system != "" {
@@ -408,6 +458,8 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 		return nil, err
 	}
 
+	req.Header.Set("Accept", "text/event-stream")
+
 	if c.conf.APIKey != "" {
 		req.Header.Set("x-api-key", c.conf.APIKey)
 	}
@@ -418,56 +470,78 @@ func (c *anthropicClient) Chat(ctx context.Context, messages []Message, tools []
 		return nil, err
 	}
 
-	body, err := readResponse(resp)
+	body, err := streamBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	text := &strings.Builder{}
+	calls := newToolCallAccumulator()
+
+	err = readSSE(body, func(event string, data []byte) error {
+		switch event {
+		case "content_block_start":
+			var payload struct {
+				Index        int `json:"index"`
+				ContentBlock struct {
+					Type string `json:"type"`
+					ID   string `json:"id"`
+					Name string `json:"name"`
+				} `json:"content_block"`
+			}
+			if err := json.Unmarshal(data, &payload); err != nil {
+				return nil
+			}
+
+			if payload.ContentBlock.Type == anthropicBlockToolUse {
+				calls.add(payload.Index, payload.ContentBlock.ID, payload.ContentBlock.Name, "")
+			}
+
+		case "content_block_delta":
+			var payload struct {
+				Index int `json:"index"`
+				Delta struct {
+					Type        string `json:"type"`
+					Text        string `json:"text"`
+					PartialJSON string `json:"partial_json"`
+				} `json:"delta"`
+			}
+			if err := json.Unmarshal(data, &payload); err != nil {
+				return nil
+			}
+
+			switch payload.Delta.Type {
+			case "text_delta":
+				if payload.Delta.Text != "" {
+					text.WriteString(payload.Delta.Text)
+					emitDelta(onDelta, payload.Delta.Text)
+				}
+			case "input_json_delta":
+				calls.add(payload.Index, "", "", payload.Delta.PartialJSON)
+			}
+
+		case "error":
+			return fmt.Errorf("stream error: %s", truncateForError(string(data)))
+		}
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var payload struct {
-		Content []struct {
-			Type  string          `json:"type"`
-			Text  string          `json:"text"`
-			ID    string          `json:"id"`
-			Name  string          `json:"name"`
-			Input json.RawMessage `json:"input"`
-		} `json:"content"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, err
-	}
-
-	result := &ChatResult{}
-	texts := make([]string, 0, len(payload.Content))
-
-	for i, item := range payload.Content {
-		switch item.Type {
-		case anthropicBlockText:
-			texts = append(texts, item.Text)
-		case anthropicBlockToolUse:
-			id := item.ID
-			if id == "" {
-				id = toolCallID(i, item.Name)
-			}
-
-			result.ToolCalls = append(result.ToolCalls, ToolCall{
-				ID:        id,
-				Name:      item.Name,
-				Arguments: unquoteArguments(item.Input),
-			})
-		}
-	}
-
-	result.Text = strings.TrimSpace(strings.Join(texts, "\n"))
-
-	return result, nil
+	return &ChatResult{Text: strings.TrimSpace(text.String()), ToolCalls: calls.result()}, nil
 }
 
-// Chat asks the model for one answer through Ollama's chat endpoint.
-func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools []Tool) (*ChatResult, error) {
+// Chat asks the model for one answer through Ollama's chat endpoint, which
+// streams newline-delimited JSON rather than server-sent events. Ollama sends a
+// tool call whole, so nothing has to be reassembled.
+func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools []Tool, onDelta DeltaFunc) (*ChatResult, error) {
 	reqBody := map[string]any{
 		"model":    c.conf.Model,
 		"messages": openAIMessages(messages, true),
-		"stream":   false,
+		"stream":   true,
 		"options": map[string]any{
 			"temperature": chatTemperature,
 			"num_predict": chatMaxTokens,
@@ -492,23 +566,43 @@ func (c *ollamaClient) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, err
 	}
 
-	body, err := readResponse(resp)
+	body, err := streamBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	text := &strings.Builder{}
+	var toolCalls []ToolCall
+
+	err = readJSONLines(body, func(data []byte) error {
+		var chunk struct {
+			Message struct {
+				Content   string           `json:"content"`
+				ToolCalls []openAIToolCall `json:"tool_calls"`
+			} `json:"message"`
+			Error string `json:"error"`
+		}
+		if err := json.Unmarshal(data, &chunk); err != nil {
+			return nil
+		}
+
+		if chunk.Error != "" {
+			return fmt.Errorf("stream error: %s", truncateForError(chunk.Error))
+		}
+
+		if chunk.Message.Content != "" {
+			text.WriteString(chunk.Message.Content)
+			emitDelta(onDelta, chunk.Message.Content)
+		}
+
+		toolCalls = append(toolCalls, parseOpenAIToolCalls(chunk.Message.ToolCalls)...)
+
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var payload struct {
-		Message struct {
-			Content   string           `json:"content"`
-			ToolCalls []openAIToolCall `json:"tool_calls"`
-		} `json:"message"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, err
-	}
-
-	return &ChatResult{
-		Text:      strings.TrimSpace(payload.Message.Content),
-		ToolCalls: parseOpenAIToolCalls(payload.Message.ToolCalls),
-	}, nil
+	return &ChatResult{Text: strings.TrimSpace(text.String()), ToolCalls: toolCalls}, nil
 }
