@@ -30,11 +30,11 @@ env:
     value: "policy-enforcer:8000"
   - name: "HISTORY_API_GRPC_ADDR"
     value: "history-api:8000"
-  # The chat assistant runs its read-only tools through MCP Server. The scheme
-  # has to follow the deployment's TLS setting: MCP Server serves HTTPS when TLS
-  # is on, and a plaintext request to it comes back as a bare 400.
+  # The chat assistant talks to MCP Server directly (not through Caddy). The
+  # scheme must match the cluster TLS setting: with TLS on, mcp-server serves
+  # HTTPS, and a plaintext HTTP request fails the TLS handshake.
   - name: "MCP_SERVER_URL"
-    value: '{{ printf "%s://mcp-server:9000/mcp" (include "common.cs.http-scheme" .) }}'
+    value: '{{ include "common.cs.http-scheme" . }}://mcp-server:9000/mcp'
 encryption:
   enabled: true
 postgresql:

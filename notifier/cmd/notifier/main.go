@@ -139,8 +139,10 @@ func main() {
 	defer closeRH()
 
 	// The assistant reaches MCP Server over the same TLS settings as the rest
-	// of the internal traffic. Its tools are read-only, and every call carries
-	// the asking user's own token rather than a service credential.
+	// of the internal traffic. The URL scheme is aligned with TLS: a leftover
+	// http:// against ListenAndServeTLS fails the handshake. Tools are
+	// read-only, and every call carries the asking user's own token rather
+	// than a service credential.
 	assistantRunner := assistant.NewRunner(
 		assistant.NewMCPToolBoxFactory(cfg.MCPServerURL, tlsConfig),
 		cfg.AssistantMaxIterations,
