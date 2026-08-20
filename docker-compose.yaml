@@ -194,6 +194,24 @@ services:
     networks:
       - local
 
+  mcp-server:
+    build:
+      # The image ships the product documentation from docs/, so the build
+      # context is the repository root rather than the service directory.
+      context: .
+      dockerfile: mcp-server/Dockerfile
+    image: mcp-server
+    ports:
+      - "9009:9000"
+    depends_on:
+      event-processor:
+        condition: service_started
+      history-api:
+        condition: service_started
+    command: --historyAPIGRPCAddr=history-api:8000 --eventProcessorGRPCAddr=event-processor:8000 --logLevel=INFO
+    networks:
+      - local
+
   cs-manager:
     build:
       context: ./cs-manager

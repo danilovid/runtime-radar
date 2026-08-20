@@ -1,0 +1,15 @@
+# This file only applies to image builds whose context is the repository root.
+# Today that is mcp-server: its image ships the product documentation, which
+# lives outside the service directory. Every other service builds from its own
+# directory and is filtered by its own .dockerignore.
+*
+
+!docs
+!mcp-server
+
+docs/**/pics
+
+mcp-server/bin
+mcp-server/.task
+mcp-server/.helm
+mcp-server/README.md

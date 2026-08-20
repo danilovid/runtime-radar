@@ -7,6 +7,11 @@
 		reverse_proxy {$GRAFANA}
 	}
 
+	# mcp-server: Model Context Protocol endpoint for AI agents (read-only).
+	handle /mcp* {
+		reverse_proxy {args[0]}://mcp-server:9000
+	}
+
 	handle /api/* {
 		# route is needed to respond with 404 if no route matches
 		# about precedence: https://caddyserver.com/docs/caddyfile/directives#directive-order
