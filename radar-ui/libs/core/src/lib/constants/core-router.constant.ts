@@ -1,5 +1,6 @@
 export enum RouterName {
     DEFAULT = '',
+    CHATS = 'chats',
     CLUSTERS = 'clusters',
     FORBIDDEN = 'forbidden',
     ERROR = 'error',

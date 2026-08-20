@@ -1,6 +1,12 @@
+/* Palette taken from the chat design, like the rest of the widget. */
+$rr-primary: #0066ff;
+$rr-line: #d7dee4;
+$rr-muted: #6d7a86;
+$rr-surface: #f2f5f9;
+
 /* Message layout follows the chat design: the question sits in a bubble on the
    right, the answer runs full width under a quiet author line. */
-.assistant-feature-message {
+.assistant-message {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -13,13 +19,13 @@
         max-width: 85%;
         padding: 8px 12px;
         border-radius: 12px;
-        background: var(--kbq-background-contrast-fade);
+        background: $rr-surface;
         white-space: pre-wrap;
         word-break: break-word;
     }
 
     &__meta {
-        color: var(--kbq-foreground-contrast-secondary);
+        color: $rr-muted;
         font-size: 13px;
         line-height: 16px;
     }
@@ -36,26 +42,39 @@
         align-items: center;
         gap: 6px;
         padding: 2px 8px;
-        border: 1px solid var(--kbq-line-contrast-less);
+        border: 1px solid $rr-line;
         border-radius: 100px;
-        color: var(--kbq-foreground-contrast-secondary);
+        color: $rr-muted;
         font-size: 13px;
         line-height: 18px;
 
         &_running {
-            border-color: var(--kbq-line-theme);
-            color: var(--kbq-foreground-contrast);
+            border-color: $rr-primary;
+            color: #000;
         }
 
         &_failed {
-            border-color: var(--kbq-line-error);
-            color: var(--kbq-foreground-error);
+            border-color: #f00;
+            color: #c00;
         }
     }
 
-    &__tool-spinner {
-        width: 14px;
-        height: 14px;
+    &__files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    &__file {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border: 1px solid $rr-line;
+        border-radius: 100px;
+        background: #fff;
+        font-size: 13px;
+        line-height: 16px;
     }
 
     &__markdown {
@@ -87,15 +106,15 @@
         code {
             padding: 0 4px;
             border-radius: 4px;
-            background: var(--kbq-background-bg-secondary);
-            font-family: var(--kbq-typography-code-mono-font-family, monospace);
+            background: $rr-surface;
+            font-family: 'SFMono-Regular', Consolas, monospace;
             font-size: 12px;
         }
 
         pre {
             padding: 8px 12px;
             border-radius: 8px;
-            background: var(--kbq-background-bg-secondary);
+            background: $rr-surface;
             overflow-x: auto;
 
             code {
@@ -112,7 +131,7 @@
         th,
         td {
             padding: 4px 8px;
-            border: 1px solid var(--kbq-line-contrast-less);
+            border: 1px solid $rr-line;
             text-align: left;
         }
     }
@@ -126,7 +145,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--kbq-foreground-contrast-secondary);
+            background: $rr-muted;
             animation: assistant-typing 1.2s infinite;
 
             &:nth-child(2) {
@@ -140,7 +159,7 @@
     }
 
     &__error {
-        color: var(--kbq-foreground-error);
+        color: #c00;
         font-size: 13px;
         line-height: 18px;
     }

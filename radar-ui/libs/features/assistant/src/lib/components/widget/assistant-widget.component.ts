@@ -1,3 +1,4 @@
+import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     AfterViewChecked,
@@ -10,7 +11,19 @@ import {
 } from '@angular/core';
 import { Observable, combineLatest, map } from 'rxjs';
 
-import { AssistantMessage, AssistantStoreService } from '@cs/domains/assistant';
+import { I18nService } from '@cs/i18n';
+import { RouterName } from '@cs/core';
+import {
+    ASSISTANT_ATTACHMENT_ACCEPT,
+    ASSISTANT_MAX_ATTACHMENTS,
+    ASSISTANT_QUICK_ACTIONS,
+    ASSISTANT_SUGGESTION_KEYS,
+    ASSISTANT_TOUR_TOPICS,
+    AssistantAttachment,
+    AssistantMessage,
+    AssistantStoreService,
+    AssistantView
+} from '@cs/domains/assistant';
 import { IntegrationAI, IntegrationStoreService } from '@cs/domains/integration';
 
 @Component({
@@ -20,7 +33,7 @@ import { IntegrationAI, IntegrationStoreService } from '@cs/domains/integration'
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked {
-    @ViewChild('thread') thread?: ElementRef<HTMLElement>;
+    @ViewChild('body') body?: ElementRef<HTMLElement>;
 
     readonly integrations$: Observable<IntegrationAI[]> = this.integrationStoreService.aiIntegrations$;
 
@@ -31,20 +44,38 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
 
     readonly isStreaming$: Observable<boolean> = this.assistantStoreService.isStreaming$;
 
+    readonly view$: Observable<AssistantView> = this.assistantStoreService.view$;
+
     readonly messages$: Observable<AssistantMessage[]> = this.assistantStoreService.messages$;
 
     readonly integrationId$: Observable<string> = this.assistantStoreService.integrationId$;
 
     readonly eventId$: Observable<string> = this.assistantStoreService.eventId$;
 
+    readonly attachments$: Observable<AssistantAttachment[]> = this.assistantStoreService.pendingAttachments$;
+
+    readonly assistantView = AssistantView;
+
+    readonly quickActions = ASSISTANT_QUICK_ACTIONS;
+
+    readonly tourTopics = ASSISTANT_TOUR_TOPICS;
+
+    readonly suggestions = ASSISTANT_SUGGESTION_KEYS;
+
+    readonly attachmentAccept = ASSISTANT_ATTACHMENT_ACCEPT;
+
+    readonly maxAttachments = ASSISTANT_MAX_ATTACHMENTS;
+
     input = '';
 
-    private lastRenderedLength = 0;
+    private lastScrollHeight = 0;
 
     constructor(
         private readonly assistantStoreService: AssistantStoreService,
         private readonly destroyRef: DestroyRef,
-        private readonly integrationStoreService: IntegrationStoreService
+        private readonly i18nService: I18nService,
+        private readonly integrationStoreService: IntegrationStoreService,
+        private readonly router: Router
     ) {}
 
     ngOnInit() {
@@ -66,6 +97,14 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
         this.scrollToLatest();
     }
 
+    heading(view: AssistantView): string {
+        return view === AssistantView.CHAT
+            ? 'Assistant.Widget.Title.Chat'
+            : view === AssistantView.TOUR
+              ? 'Assistant.Widget.Title.Tour'
+              : 'Assistant.Widget.Title.Home';
+    }
+
     open() {
         this.assistantStoreService.open();
     }
@@ -74,12 +113,34 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
         this.assistantStoreService.close();
     }
 
-    clear() {
-        this.assistantStoreService.clear();
+    showHome() {
+        this.assistantStoreService.showView(AssistantView.HOME);
     }
 
-    selectIntegration(integrationId: string) {
-        this.assistantStoreService.selectIntegration(integrationId);
+    showTour() {
+        this.assistantStoreService.showView(AssistantView.TOUR);
+    }
+
+    startChat() {
+        this.assistantStoreService.startChat();
+    }
+
+    /**
+     * Opens a new conversation with this question already asked. The key is
+     * translated here rather than in the template: Angular does not allow a
+     * pipe inside an event handler.
+     */
+    askKey(localizationKey: string) {
+        this.assistantStoreService.startChat(this.i18nService.translate(localizationKey));
+    }
+
+    openChatsPage() {
+        this.assistantStoreService.close();
+        void this.router.navigate([RouterName.CHATS]);
+    }
+
+    selectIntegration(event: Event) {
+        this.assistantStoreService.selectIntegration((event.target as HTMLSelectElement).value);
     }
 
     send() {
@@ -93,6 +154,21 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
         this.input = '';
     }
 
+    attach(event: Event) {
+        const picker = event.target as HTMLInputElement;
+
+        if (picker.files?.length) {
+            this.assistantStoreService.attach(Array.from(picker.files));
+        }
+
+        // Reset, so that picking the same file twice in a row still fires.
+        picker.value = '';
+    }
+
+    removeAttachment(name: string) {
+        this.assistantStoreService.removeAttachment(name);
+    }
+
     /** Enter sends, Shift+Enter starts a new line. */
     onKeyDown(event: KeyboardEvent) {
         if (event.key !== 'Enter' || event.shiftKey) {
@@ -103,16 +179,12 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
         this.send();
     }
 
-    trackMessage(_: number, message: AssistantMessage): string {
-        return message.id;
-    }
-
     /**
      * Keeps the newest text in view while an answer streams in, without
      * fighting a user who scrolled up to read something.
      */
     private scrollToLatest() {
-        const element = this.thread?.nativeElement;
+        const element = this.body?.nativeElement;
 
         if (!element) {
             return;
@@ -120,10 +192,10 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
 
         const isAtBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
 
-        if (element.scrollHeight !== this.lastRenderedLength && isAtBottom) {
+        if (element.scrollHeight !== this.lastScrollHeight && isAtBottom) {
             element.scrollTop = element.scrollHeight;
         }
 
-        this.lastRenderedLength = element.scrollHeight;
+        this.lastScrollHeight = element.scrollHeight;
     }
 }

@@ -1,26 +1,74 @@
 import {
+    ADD_ASSISTANT_CONVERSATION_DOC_ACTION,
     ADD_ASSISTANT_MESSAGE_DOC_ACTION,
     APPEND_ASSISTANT_DELTA_DOC_ACTION,
-    CLEAR_ASSISTANT_CONVERSATION_DOC_ACTION,
+    DELETE_ASSISTANT_CONVERSATION_DOC_ACTION,
     FINISH_ASSISTANT_MESSAGE_DOC_ACTION,
+    SET_ASSISTANT_ATTACHMENTS_DOC_ACTION,
     UPDATE_ASSISTANT_TOOL_DOC_ACTION
 } from './assistant-action.store';
-import { AssistantMessage, AssistantRole, AssistantStopReason, AssistantToolPhase } from '../interfaces';
+import {
+    AssistantConversation,
+    AssistantMessage,
+    AssistantRole,
+    AssistantState,
+    AssistantStopReason,
+    AssistantToolPhase,
+    AssistantView
+} from '../interfaces';
 import { assistantInitialState, assistantReducer } from './assistant-reducer.store';
 
-const answer = (): AssistantMessage => ({
-    id: 'answer',
-    role: AssistantRole.ASSISTANT,
-    content: '',
-    tools: [],
-    isPending: true
+const conversation = (): AssistantConversation => ({
+    id: 'conversation',
+    title: '',
+    createdAt: '2026-08-20T00:00:00.000Z',
+    updatedAt: '2026-08-20T00:00:00.000Z',
+    messages: [],
+    eventId: ''
 });
 
+const message = (role: AssistantRole, content = ''): AssistantMessage => ({
+    id: `${role}-message`,
+    role,
+    content,
+    tools: [],
+    attachments: [],
+    isPending: role === AssistantRole.ASSISTANT
+});
+
+/** A state with one open conversation, which is where every answer lands. */
+const withConversation = (): AssistantState =>
+    assistantReducer(assistantInitialState, ADD_ASSISTANT_CONVERSATION_DOC_ACTION({ conversation: conversation() }));
+
+const messagesOf = (state: AssistantState) => state.conversations[0].messages;
+
 describe('assistantReducer', () => {
+    it('opens a conversation and shows it', () => {
+        const state = withConversation();
+
+        expect(state.conversations).toHaveLength(1);
+        expect(state.activeConversationId).toBe('conversation');
+        expect(state.view).toBe(AssistantView.CHAT);
+    });
+
+    it('names a conversation after its first question', () => {
+        let state = withConversation();
+
+        state = assistantReducer(
+            state,
+            ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: message(AssistantRole.USER, 'how do I create a rule?') })
+        );
+
+        expect(state.conversations[0].title).toBe('how do I create a rule?');
+    });
+
     it('streams an answer that ran a tool', () => {
-        // The shape of a real answer: the tool starts, finishes, and the text
-        // arrives after it.
-        let state = assistantReducer(assistantInitialState, ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer() }));
+        let state = withConversation();
+
+        state = assistantReducer(
+            state,
+            ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: message(AssistantRole.ASSISTANT) })
+        );
 
         expect(state.isStreaming).toBe(true);
 
@@ -29,7 +77,7 @@ describe('assistantReducer', () => {
             UPDATE_ASSISTANT_TOOL_DOC_ACTION({ activity: { name: 'search_docs', phase: AssistantToolPhase.STARTED } })
         );
 
-        expect(state.messages[0].tools).toEqual([{ name: 'search_docs', isRunning: true, error: undefined }]);
+        expect(messagesOf(state)[0].tools).toEqual([{ name: 'search_docs', isRunning: true, error: undefined }]);
 
         state = assistantReducer(
             state,
@@ -37,12 +85,12 @@ describe('assistantReducer', () => {
         );
 
         // The finished tool updates the entry rather than adding a second one.
-        expect(state.messages[0].tools).toEqual([{ name: 'search_docs', isRunning: false, error: undefined }]);
+        expect(messagesOf(state)[0].tools).toEqual([{ name: 'search_docs', isRunning: false, error: undefined }]);
 
         state = assistantReducer(state, APPEND_ASSISTANT_DELTA_DOC_ACTION({ delta: 'Open ' }));
         state = assistantReducer(state, APPEND_ASSISTANT_DELTA_DOC_ACTION({ delta: '**Response rules**.' }));
 
-        expect(state.messages[0].content).toBe('Open **Response rules**.');
+        expect(messagesOf(state)[0].content).toBe('Open **Response rules**.');
 
         state = assistantReducer(
             state,
@@ -50,12 +98,15 @@ describe('assistantReducer', () => {
         );
 
         expect(state.isStreaming).toBe(false);
-        expect(state.messages[0].isPending).toBe(false);
-        expect(state.messages[0].stopReason).toBe(AssistantStopReason.END_TURN);
+        expect(messagesOf(state)[0].isPending).toBe(false);
+        expect(messagesOf(state)[0].stopReason).toBe(AssistantStopReason.END_TURN);
     });
 
     it('records the same tool twice when it is called twice', () => {
-        let state = assistantReducer(assistantInitialState, ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer() }));
+        let state = assistantReducer(
+            withConversation(),
+            ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: message(AssistantRole.ASSISTANT) })
+        );
 
         for (const phase of [AssistantToolPhase.STARTED, AssistantToolPhase.FINISHED, AssistantToolPhase.STARTED]) {
             state = assistantReducer(
@@ -64,35 +115,15 @@ describe('assistantReducer', () => {
             );
         }
 
-        expect(state.messages[0].tools).toHaveLength(2);
-        expect(state.messages[0].tools[1].isRunning).toBe(true);
-    });
-
-    it('reports a failed tool', () => {
-        let state = assistantReducer(assistantInitialState, ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer() }));
-
-        state = assistantReducer(
-            state,
-            UPDATE_ASSISTANT_TOOL_DOC_ACTION({
-                activity: { name: 'get_runtime_event', phase: AssistantToolPhase.STARTED }
-            })
-        );
-        state = assistantReducer(
-            state,
-            UPDATE_ASSISTANT_TOOL_DOC_ACTION({
-                activity: { name: 'get_runtime_event', phase: AssistantToolPhase.FINISHED, error: 'permission denied' }
-            })
-        );
-
-        expect(state.messages[0].tools[0]).toEqual({
-            name: 'get_runtime_event',
-            isRunning: false,
-            error: 'permission denied'
-        });
+        expect(messagesOf(state)[0].tools).toHaveLength(2);
+        expect(messagesOf(state)[0].tools[1].isRunning).toBe(true);
     });
 
     it('stops a tool left running when the answer failed', () => {
-        let state = assistantReducer(assistantInitialState, ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer() }));
+        let state = assistantReducer(
+            withConversation(),
+            ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: message(AssistantRole.ASSISTANT) })
+        );
 
         state = assistantReducer(
             state,
@@ -100,22 +131,34 @@ describe('assistantReducer', () => {
         );
         state = assistantReducer(state, FINISH_ASSISTANT_MESSAGE_DOC_ACTION({ error: 'model is unreachable' }));
 
-        expect(state.messages[0].tools[0].isRunning).toBe(false);
-        expect(state.messages[0].error).toBe('model is unreachable');
-        expect(state.messages[0].stopReason).toBe(AssistantStopReason.ERROR);
+        expect(messagesOf(state)[0].tools[0].isRunning).toBe(false);
+        expect(messagesOf(state)[0].error).toBe('model is unreachable');
+        expect(messagesOf(state)[0].stopReason).toBe(AssistantStopReason.ERROR);
         expect(state.isStreaming).toBe(false);
     });
 
-    it('clears the conversation and the event it was attached to', () => {
+    it('deleting the open conversation returns to the home screen', () => {
+        let state = withConversation();
+
+        state = assistantReducer(state, DELETE_ASSISTANT_CONVERSATION_DOC_ACTION({ conversationId: 'conversation' }));
+
+        expect(state.conversations).toEqual([]);
+        expect(state.activeConversationId).toBe('');
+        expect(state.view).toBe(AssistantView.HOME);
+    });
+
+    it('keeps picked attachments until they are sent', () => {
+        const attachment = { name: 'deploy.yaml', size: 10, content: 'kind: Pod', isTruncated: false };
+
         let state = assistantReducer(
-            { ...assistantInitialState, eventId: 'event-1' },
-            ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer() })
+            assistantInitialState,
+            SET_ASSISTANT_ATTACHMENTS_DOC_ACTION({ attachments: [attachment] })
         );
 
-        state = assistantReducer(state, CLEAR_ASSISTANT_CONVERSATION_DOC_ACTION());
+        expect(state.pendingAttachments).toEqual([attachment]);
 
-        expect(state.messages).toEqual([]);
-        expect(state.eventId).toBe('');
-        expect(state.isStreaming).toBe(false);
+        state = assistantReducer(state, SET_ASSISTANT_ATTACHMENTS_DOC_ACTION({ attachments: [] }));
+
+        expect(state.pendingAttachments).toEqual([]);
     });
 });

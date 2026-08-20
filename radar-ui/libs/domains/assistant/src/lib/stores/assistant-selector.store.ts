@@ -1,7 +1,7 @@
 import { ActionReducerMap, createFeatureSelector, createSelector } from '@ngrx/store';
 
-import { AssistantState } from '../interfaces';
 import { assistantReducer } from './assistant-reducer.store';
+import { AssistantConversation, AssistantMessage, AssistantState } from '../interfaces';
 
 export const ASSISTANT_DOMAIN_KEY = 'assistant';
 
@@ -14,19 +14,49 @@ const selectAssistantState = createSelector(selectAssistantDomainState, (state: 
 
 export const getAssistantIsOpen = createSelector(selectAssistantState, (state: AssistantState) => state.isOpen);
 
+export const getAssistantView = createSelector(selectAssistantState, (state: AssistantState) => state.view);
+
 export const getAssistantIntegrationId = createSelector(
     selectAssistantState,
     (state: AssistantState) => state.integrationId
 );
 
-export const getAssistantMessages = createSelector(selectAssistantState, (state: AssistantState) => state.messages);
+export const getAssistantConversations = createSelector(
+    selectAssistantState,
+    (state: AssistantState) => state.conversations
+);
+
+export const getAssistantActiveConversationId = createSelector(
+    selectAssistantState,
+    (state: AssistantState) => state.activeConversationId
+);
+
+export const getAssistantActiveConversation = createSelector(
+    getAssistantConversations,
+    getAssistantActiveConversationId,
+    (conversations: AssistantConversation[], activeId: string) =>
+        conversations.find((conversation) => conversation.id === activeId)
+);
+
+export const getAssistantMessages = createSelector(
+    getAssistantActiveConversation,
+    (conversation: AssistantConversation | undefined): AssistantMessage[] => conversation?.messages ?? []
+);
+
+export const getAssistantEventId = createSelector(
+    getAssistantActiveConversation,
+    (conversation: AssistantConversation | undefined) => conversation?.eventId ?? ''
+);
 
 export const getAssistantIsStreaming = createSelector(
     selectAssistantState,
     (state: AssistantState) => state.isStreaming
 );
 
-export const getAssistantEventId = createSelector(selectAssistantState, (state: AssistantState) => state.eventId);
+export const getAssistantPendingAttachments = createSelector(
+    selectAssistantState,
+    (state: AssistantState) => state.pendingAttachments
+);
 
 export const assistantDomainReducer: ActionReducerMap<AssistantDomainState> = {
     domain: assistantReducer

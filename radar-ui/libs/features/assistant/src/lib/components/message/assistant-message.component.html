@@ -1,29 +1,34 @@
 <ng-container *transloco="let tAssistant; prefix: 'assistant'">
     @if (message.role === assistantRole.USER) {
-        <div class="assistant-feature-message assistant-feature-message_user">
-            <div class="assistant-feature-message__bubble">{{ message.content }}</div>
+        <div class="assistant-message assistant-message_user">
+            <div class="assistant-message__bubble">
+                {{ message.content }}
+
+                @if (message.attachments.length) {
+                    <div class="assistant-message__files">
+                        @for (attachment of message.attachments; track attachment.name) {
+                            <span class="assistant-message__file">{{ attachment.name }}</span>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     } @else {
-        <div class="assistant-feature-message">
-            <div class="assistant-feature-message__meta">{{ tAssistant('Assistant.Widget.Label.Assistant') }}</div>
+        <div class="assistant-message">
+            <div class="assistant-message__meta">{{ tAssistant('Assistant.Widget.Label.Assistant') }}</div>
 
             @if (message.tools.length) {
-                <div class="assistant-feature-message__tools">
+                <div class="assistant-message__tools">
                     @for (tool of message.tools; track $index) {
-                        <span class="assistant-feature-message__tool"
-                              [class.assistant-feature-message__tool_running]="tool.isRunning"
-                              [class.assistant-feature-message__tool_failed]="!!tool.error"
-                              [kbqTooltip]="tool.error ?? ''">
+                        <span class="assistant-message__tool"
+                              [class.assistant-message__tool_running]="tool.isRunning"
+                              [class.assistant-message__tool_failed]="!!tool.error"
+                              [title]="tool.error || ''">
                             @if (tool.isRunning) {
-                                <kbq-progress-spinner [mode]="'indeterminate'"
-                                                      [value]="20"
-                                                      class="assistant-feature-message__tool-spinner"></kbq-progress-spinner>
                                 {{ tAssistant('Assistant.Widget.Text.ToolRunning', { tool: tool.name }) }}
                             } @else if (tool.error) {
-                                <i kbq-icon="kbq-exclamation-circle_16"></i>
                                 {{ tAssistant('Assistant.Widget.Text.ToolFailed', { tool: tool.name }) }}
                             } @else {
-                                <i kbq-icon="kbq-check_16"></i>
                                 {{ tool.name }}
                             }
                         </span>
@@ -34,18 +39,18 @@
             @if (message.content) {
                 <!-- Model output about untrusted telemetry: rendered through
                      Angular's sanitizer, never with a trusted-HTML bypass. -->
-                <div class="assistant-feature-message__markdown"
+                <div class="assistant-message__markdown"
                      [innerHTML]="message.content | assistantMarkdown"></div>
             }
 
             @if (message.isPending && !message.content) {
-                <div class="assistant-feature-message__typing">
+                <div class="assistant-message__typing">
                     <span></span><span></span><span></span>
                 </div>
             }
 
             @if (message.error) {
-                <div class="assistant-feature-message__error">
+                <div class="assistant-message__error">
                     {{ tAssistant('Assistant.Widget.Text.AnswerFailed') }}
                 </div>
             }
