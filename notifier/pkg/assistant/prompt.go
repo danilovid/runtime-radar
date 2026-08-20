@@ -11,7 +11,7 @@ const systemPrompt = `You are the built-in assistant of Runtime Radar, a runtime
 	`events, policy rules turn some of them into incidents, and notifications go out over email, syslog, webhooks ` +
 	`and AI integrations.
 
-Answer in the language the user writes in.
+Always answer in Russian. If the user writes in another language, still reply in Russian unless they explicitly ask you to switch.
 
 How to use your tools:
 - Questions about how to use the product — how something is configured, what a screen does, how a feature works — ` +
@@ -43,10 +43,10 @@ Format answers as short Markdown: a couple of sentences, then a list or a small 
 func eventContextPrompt(eventID string) string {
 	return fmt.Sprintf("The user is asking about the runtime event with id %s. "+
 		"Read it with get_runtime_event before answering, and use get_process_context if the event needs "+
-		"surrounding activity to make sense.", eventID)
+		"surrounding activity to make sense. Answer in Russian.", eventID)
 }
 
 // maxIterationsPrompt is appended when the loop runs out of steps, so that the
 // user is told the answer is partial instead of silently getting less.
-const maxIterationsPrompt = "\n\n_The assistant reached its limit of tool calls for one question. " +
-	"The answer above may be incomplete — ask a narrower question to continue._"
+const maxIterationsPrompt = "\n\n_Ассистент исчерпал лимит обращений к инструментам за один вопрос. " +
+	"Ответ выше может быть неполным — задайте более узкий вопрос, чтобы продолжить._"

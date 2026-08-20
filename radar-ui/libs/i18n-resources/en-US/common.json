@@ -37,6 +37,7 @@
     "Common.Form.Hint.Optional": "Optional field",
 
     "Common.Pseudo.Locale.En": "English",
+    "Common.Pseudo.Locale.Ru": "Русский",
 
     "Common.Pseudo.Menu.Management": "Management",
     "Common.Pseudo.Menu.Cluster": "Clusters",
