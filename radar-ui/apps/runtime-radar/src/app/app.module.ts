@@ -5,11 +5,17 @@ import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { NavigationActionTiming, RouterState, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
-import { AssistantFeatureModule } from '@cs/features/assistant';
 import { I18nModule } from '@cs/i18n';
 import { SharedModule } from '@cs/shared';
 import { API_PATH, API_SINGLE_TENANT_PATHS } from '@cs/api';
 import { CoreInitService, CoreModule, IS_CHILD_CLUSTER, POLLING_INTERVAL, REFRESH_INTERVAL } from '@cs/core';
+
+// Imported after @cs/core on purpose. The application libraries import each
+// other in cycles (@cs/api -> @cs/core -> auth -> role -> @cs/api), so whichever
+// module reaches @cs/api first decides whether that cycle resolves: entering it
+// before @cs/core leaves RoleDomainModule reading an uninitialised namespace at
+// bootstrap.
+import { AssistantFeatureModule } from '@cs/features/assistant';
 
 import { AppContainer } from './app.container';
 import { AppRoutingModule } from './app-routing.module';

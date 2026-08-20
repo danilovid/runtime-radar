@@ -2,12 +2,18 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ApiPathService } from '@cs/api';
-import { AuthTokenName } from '@cs/domains/auth';
 import { CoreWindowService } from '@cs/core';
 
 import { AssistantChatChunk, AssistantChatRequest, AssistantChatStreamEnvelope } from '../interfaces';
 
 const ASSISTANT_CHAT_PATH = 'assistant/chat';
+
+// The header the access token is sent in, which is also the key it is stored
+// under. It mirrors AuthTokenName.ACCESS from @cs/domains/auth, which is
+// deliberately not imported here: that library and @cs/core import each other,
+// and this domain is evaluated eagerly from the application shell, so joining
+// that cycle leaves module namespaces uninitialised at bootstrap.
+const AUTHORIZATION_HEADER = 'Authorization';
 
 /**
  * The assistant answers as a stream, so this one request cannot go through
@@ -61,7 +67,7 @@ export class AssistantRequestService {
             signal,
             headers: {
                 'Content-Type': 'application/json',
-                [AuthTokenName.ACCESS]: this.accessToken()
+                [AUTHORIZATION_HEADER]: this.accessToken()
             },
             body: JSON.stringify(request)
         });
@@ -129,6 +135,6 @@ export class AssistantRequestService {
     }
 
     private accessToken(): string {
-        return this.coreWindowService.localStorage.getItem(AuthTokenName.ACCESS) || '';
+        return this.coreWindowService.localStorage.getItem(AUTHORIZATION_HEADER) || '';
     }
 }
