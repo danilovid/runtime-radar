@@ -63,7 +63,7 @@ func New() *Config {
 	flag.StringVar(&c.ListenHTTPAddr, "listenHTTPAddr", config.LookupEnvString("LISTEN_HTTP_ADDR", ":9000"), `Address in form of "[host]:port" that HTTP server should be listening on.`)
 	flag.StringVar(&c.PolicyEnforcerGRPCAddr, "policyEnforcerGRPCAddr", config.LookupEnvString("POLICY_ENFORCER_GRPC_ADDR", "127.0.0.1:10000"), "Policy Enforcer gRPC address in host[:port] format.")
 	flag.StringVar(&c.HistoryAPIGRPCAddr, "historyAPIGRPCAddr", config.LookupEnvString("HISTORY_API_GRPC_ADDR", "127.0.0.1:10000"), "History API gRPC address in host[:port] format.")
-	flag.StringVar(&c.MCPServerURL, "mcpServerURL", config.LookupEnvString("MCP_SERVER_URL", "http://mcp-server:9000/mcp"), "MCP Server Streamable HTTP endpoint the chat assistant runs its read-only tools through.")
+	flag.StringVar(&c.MCPServerURL, "mcpServerURL", config.LookupEnvString("MCP_SERVER_URL", "http://mcp-server:9000/mcp"), "MCP Server Streamable HTTP endpoint the chat assistant runs its read-only tools through. The scheme is rewritten to match -tls / TLS.")
 	flag.IntVar(&c.AssistantMaxIterations, "assistantMaxIterations", config.LookupEnvInt("ASSISTANT_MAX_ITERATIONS", assistant.DefaultMaxIterations), "Set how many model turns one assistant chat may take.")
 	flag.DurationVar(&c.AssistantTimeout, "assistantTimeout", config.LookupEnvDuration("ASSISTANT_TIMEOUT", assistant.DefaultTimeout), "Set the deadline for a whole assistant chat, model calls and tool calls included.")
 	flag.IntVar(&c.AssistantMaxChats, "assistantMaxChats", config.LookupEnvInt("ASSISTANT_MAX_CHATS", assistant.DefaultMaxConcurrentChats), "Set how many assistant chats one instance runs at once. Further requests are rejected until a slot frees up.")
@@ -86,6 +86,8 @@ func New() *Config {
 	flag.StringVar(&c.TestSyslogTCPAddr, "testSyslogTCPAddr", config.LookupEnvString("TEST_SYSLOG_TCP_ADDR", "tcp://127.0.0.1:6601"), `Address in form of "scheme://host:port" of Syslog TCP`)
 
 	flag.Parse()
+
+	c.MCPServerURL = assistant.NormalizeMCPEndpoint(c.MCPServerURL, c.TLS)
 
 	return c
 }

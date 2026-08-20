@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -67,7 +68,29 @@ func NewMCPToolBoxFactory(endpoint string, tlsConfig *tls.Config) *MCPToolBoxFac
 	// traffic has no business intercepting this.
 	transport.Proxy = nil
 
-	return &MCPToolBoxFactory{endpoint: strings.TrimRight(endpoint, "/"), transport: transport}
+	return &MCPToolBoxFactory{
+		endpoint:  strings.TrimRight(NormalizeMCPEndpoint(endpoint, tlsConfig != nil), "/"),
+		transport: transport,
+	}
+}
+
+// NormalizeMCPEndpoint makes the MCP URL scheme follow whether the rest of the
+// cluster speaks TLS. mcp-server listens with ListenAndServeTLS when TLS is on,
+// so a leftover http:// URL is answered with "client sent an HTTP request to an
+// HTTPS server" rather than JSON-RPC.
+func NormalizeMCPEndpoint(endpoint string, tlsEnabled bool) string {
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Host == "" {
+		return endpoint
+	}
+
+	if tlsEnabled {
+		u.Scheme = "https"
+	} else {
+		u.Scheme = "http"
+	}
+
+	return u.String()
 }
 
 // Open connects to MCP Server and initialises a session.
