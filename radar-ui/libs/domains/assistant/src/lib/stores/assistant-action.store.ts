@@ -1,9 +1,13 @@
 import { createAction, props } from '@ngrx/store';
 
 import {
+    AssistantAction,
+    AssistantActionState,
     AssistantAttachment,
     AssistantConversation,
     AssistantMessage,
+    AssistantMode,
+    AssistantSecret,
     AssistantStopReason,
     AssistantToolActivityResponse,
     AssistantView
@@ -11,7 +15,7 @@ import {
 
 export const OPEN_ASSISTANT_TODO_ACTION = createAction(
     '[Assistant] Open',
-    props<{ eventId?: string; question?: string }>()
+    props<{ eventId?: string; question?: string; mode?: AssistantMode }>()
 );
 
 export const CLOSE_ASSISTANT_TODO_ACTION = createAction('[Assistant] Close');
@@ -21,7 +25,21 @@ export const SHOW_ASSISTANT_VIEW_TODO_ACTION = createAction('[Assistant] Show Vi
 /** Starts a conversation, optionally asking its first question straight away. */
 export const START_ASSISTANT_CHAT_TODO_ACTION = createAction(
     '[Assistant] Start Chat',
-    props<{ question?: string; eventId?: string }>()
+    props<{ question?: string; eventId?: string; mode?: AssistantMode }>()
+);
+
+/**
+ * Approves the change the assistant proposed. It runs that exact call: the
+ * identifier names the arguments the user was shown.
+ */
+export const CONFIRM_ASSISTANT_ACTION_TODO_ACTION = createAction(
+    '[Assistant] Confirm Action',
+    props<{ messageId: string; actionId: string }>()
+);
+
+export const DECLINE_ASSISTANT_ACTION_TODO_ACTION = createAction(
+    '[Assistant] Decline Action',
+    props<{ messageId: string }>()
 );
 
 export const OPEN_ASSISTANT_CONVERSATION_TODO_ACTION = createAction(
@@ -102,4 +120,21 @@ export const FINISH_ASSISTANT_MESSAGE_DOC_ACTION = createAction(
 export const SET_ASSISTANT_ATTACHMENTS_DOC_ACTION = createAction(
     '[Assistant] (Doc) Set Attachments',
     props<{ attachments: AssistantAttachment[] }>()
+);
+
+/** The assistant asked to make a change; it is attached to the answer. */
+export const SET_ASSISTANT_ACTION_DOC_ACTION = createAction(
+    '[Assistant] (Doc) Set Action',
+    props<{ action: AssistantAction }>()
+);
+
+export const SET_ASSISTANT_ACTION_STATE_DOC_ACTION = createAction(
+    '[Assistant] (Doc) Set Action State',
+    props<{ messageId: string; state: AssistantActionState }>()
+);
+
+/** A credential an approved action produced, delivered to the user only. */
+export const ADD_ASSISTANT_SECRET_DOC_ACTION = createAction(
+    '[Assistant] (Doc) Add Secret',
+    props<{ secret: AssistantSecret }>()
 );

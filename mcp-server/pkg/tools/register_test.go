@@ -6,12 +6,101 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/client"
 )
 
 // TestRegister checks that every tool is exposed with a schema the SDK can
 // infer (AddTool panics otherwise) and with the untrusted-data warning in its
 // description, which is what stops a model from acting on telemetry.
 func TestRegister(t *testing.T) {
+	t.Parallel()
+
+	deps := newTestDeps(t, &mockRuntimeHistory{}, &mockRuntimeStats{}, &mockDetectors{})
+	// The tools managing API tokens are only offered when Public API is
+	// configured, and this asserts the whole set.
+	deps.PublicAPI = client.NewPublicAPI("http://public-api:9000", nil)
+
+	server := mcp.NewServer(&mcp.Implementation{Name: "mcp-server", Version: "v0.0.0"}, nil)
+	Register(server, deps)
+
+	serverTransport, clientTransport := mcp.NewInMemoryTransports()
+
+	ctx := context.Background()
+
+	serverSession, err := server.Connect(ctx, serverTransport, nil)
+	if err != nil {
+		t.Fatalf("can't connect the server: %v", err)
+	}
+	defer serverSession.Close()
+
+	clientSession, err := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "v0.0.0"}, nil).Connect(ctx, clientTransport, nil)
+	if err != nil {
+		t.Fatalf("can't connect the client: %v", err)
+	}
+	defer clientSession.Close()
+
+	result, err := clientSession.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("can't list tools: %v", err)
+	}
+
+	// The value is whether the tool only reads. A tool that changes the
+	// product must say so in its annotation, because that is what an MCP
+	// client decides whether to ask the user about.
+	readOnlyByTool := map[string]bool{
+		"search_runtime_events": true,
+		"get_runtime_event":     true,
+		"get_process_context":   true,
+		"list_detectors":        true,
+		"get_runtime_stats":     true,
+		"list_rules":            true,
+		"list_api_tokens":       true,
+		"search_docs":           true,
+		"create_rule":           false,
+		"delete_rule":           false,
+		"create_api_token":      false,
+		"delete_api_token":      false,
+	}
+
+	found := map[string]bool{}
+
+	for _, tool := range result.Tools {
+		wantReadOnly, ok := readOnlyByTool[tool.Name]
+		if !ok {
+			t.Errorf("unexpected tool %q", tool.Name)
+			continue
+		}
+		found[tool.Name] = true
+
+		if !strings.Contains(tool.Description, "UNTRUSTED TELEMETRY") {
+			t.Errorf("tool %q does not warn about untrusted data", tool.Name)
+		}
+		if tool.Annotations == nil {
+			t.Errorf("tool %q has no annotations", tool.Name)
+			continue
+		}
+		if tool.Annotations.ReadOnlyHint != wantReadOnly {
+			t.Errorf("tool %q: read-only hint is %v, want %v", tool.Name, tool.Annotations.ReadOnlyHint, wantReadOnly)
+		}
+		if !wantReadOnly && !strings.Contains(tool.Description, "THIS TOOL CHANGES RUNTIME RADAR") {
+			t.Errorf("tool %q does not say that it changes the product", tool.Name)
+		}
+		if tool.InputSchema == nil {
+			t.Errorf("tool %q has no input schema", tool.Name)
+		}
+	}
+
+	for name := range readOnlyByTool {
+		if !found[name] {
+			t.Errorf("tool %q was not registered", name)
+		}
+	}
+}
+
+// TestRegisterWithoutPublicAPI checks that the tools managing API tokens are
+// left out when there is no Public API to manage them through: a tool that
+// cannot work is worse than a missing one, because a model will still try it.
+func TestRegisterWithoutPublicAPI(t *testing.T) {
 	t.Parallel()
 
 	deps := newTestDeps(t, &mockRuntimeHistory{}, &mockRuntimeStats{}, &mockDetectors{})
@@ -40,36 +129,9 @@ func TestRegister(t *testing.T) {
 		t.Fatalf("can't list tools: %v", err)
 	}
 
-	want := map[string]bool{
-		"search_runtime_events": false,
-		"get_runtime_event":     false,
-		"get_process_context":   false,
-		"list_detectors":        false,
-		"get_runtime_stats":     false,
-		"search_docs":           false,
-	}
-
 	for _, tool := range result.Tools {
-		if _, ok := want[tool.Name]; !ok {
-			t.Errorf("unexpected tool %q", tool.Name)
-			continue
-		}
-		want[tool.Name] = true
-
-		if !strings.Contains(tool.Description, "UNTRUSTED TELEMETRY") {
-			t.Errorf("tool %q does not warn about untrusted data", tool.Name)
-		}
-		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
-			t.Errorf("tool %q is not annotated as read-only", tool.Name)
-		}
-		if tool.InputSchema == nil {
-			t.Errorf("tool %q has no input schema", tool.Name)
-		}
-	}
-
-	for name, found := range want {
-		if !found {
-			t.Errorf("tool %q was not registered", name)
+		if strings.HasSuffix(tool.Name, "_api_token") || strings.HasSuffix(tool.Name, "_api_tokens") {
+			t.Errorf("tool %q is offered without a public api to reach", tool.Name)
 		}
 	}
 }

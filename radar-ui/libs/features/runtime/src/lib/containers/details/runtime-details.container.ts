@@ -16,12 +16,11 @@ import {
 } from 'rxjs';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { DateAdapter, PopUpPlacements } from '@koobiq/components/core';
-import { IModalOptionsForService, KbqModalService, ModalSize } from '@koobiq/components/modal';
 import { KbqSidepanelConfig, KbqSidepanelPosition, KbqSidepanelService } from '@koobiq/components/sidepanel';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
-import { AssistantStoreService } from '@cs/domains/assistant';
 import { I18nService } from '@cs/i18n';
+import { AssistantMode, AssistantStoreService } from '@cs/domains/assistant';
 import {
     GetRuntimeEventsResponse,
     RUNTIME_CONTEXT,
@@ -42,7 +41,6 @@ import { RULE_SEVERITIES, RuleSeverity } from '@cs/domains/rule';
 import { RUNTIME_DETAILS_LIST_ITEMS_LIMIT } from '../../constants/runtime-config.constant';
 import { RUNTIME_FILTER_INITIAL_STATE } from '../../constants/runtime-filter.constant';
 import { RuntimeEventContext } from '../../interfaces/runtime-filter.interface';
-import { RuntimeFeatureExplainEventModalComponent } from '../../components/explain-event-modal/runtime-explain-event-modal.component';
 import { RuntimeFeatureRequestAdapterService } from '../../services/runtime-request-adapter.service';
 import { RuntimeFeatureSidepanelCodeComponent } from '../../components/sidepanel-code/runtime-sidepanel-code.component';
 import { RuntimeFeatureSidepanelThreatsComponent } from '../../components/sidepanel-threats/runtime-sidepanel-threats.component';
@@ -178,7 +176,6 @@ export class RuntimeFeatureDetailsContainer {
 
     constructor(
         private readonly assistantStoreService: AssistantStoreService,
-        private readonly modalService: KbqModalService,
         private readonly sidepanelService: KbqSidepanelService,
         private readonly dateAdapter: DateAdapter<DateTime>,
         private readonly i18nService: I18nService,
@@ -261,15 +258,17 @@ export class RuntimeFeatureDetailsContainer {
             .subscribe();
     }
 
-    openExplainEventModal(event: RuntimeEvent) {
-        const config: IModalOptionsForService = {
-            kbqComponent: RuntimeFeatureExplainEventModalComponent,
-            kbqComponentParams: { event },
-            kbqSize: ModalSize.Medium,
-            kbqClosable: true
-        };
-
-        this.modalService.open(config);
+    /**
+     * Explains the event in the assistant panel. The explanation streams in as
+     * the model writes it, and the conversation stays open, so the next
+     * question about the same event needs no second trip through a modal.
+     */
+    explainEvent(event: RuntimeEvent) {
+        this.assistantStoreService.open({
+            eventId: event.id,
+            question: this.i18nService.translate('Runtime.DetailsPage.Text.ExplainEvent'),
+            mode: AssistantMode.EXPLAIN
+        });
     }
 
     /**
@@ -278,7 +277,10 @@ export class RuntimeFeatureDetailsContainer {
      * read-only tools, so the model sees what the system recorded.
      */
     askAssistant(event: RuntimeEvent) {
-        this.assistantStoreService.open(event.id, this.i18nService.translate('Runtime.DetailsPage.Text.AskAssistant'));
+        this.assistantStoreService.open({
+            eventId: event.id,
+            question: this.i18nService.translate('Runtime.DetailsPage.Text.AskAssistant')
+        });
     }
 
     expandThreats() {

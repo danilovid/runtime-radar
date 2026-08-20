@@ -10,6 +10,7 @@ import {
 import {
     AssistantConversation,
     AssistantMessage,
+    AssistantMode,
     AssistantRole,
     AssistantState,
     AssistantStopReason,
@@ -24,7 +25,8 @@ const conversation = (): AssistantConversation => ({
     createdAt: '2026-08-20T00:00:00.000Z',
     updatedAt: '2026-08-20T00:00:00.000Z',
     messages: [],
-    eventId: ''
+    eventId: '',
+    mode: AssistantMode.CHAT
 });
 
 const message = (role: AssistantRole, content = ''): AssistantMessage => ({
@@ -33,6 +35,7 @@ const message = (role: AssistantRole, content = ''): AssistantMessage => ({
     content,
     tools: [],
     attachments: [],
+    secrets: [],
     isPending: role === AssistantRole.ASSISTANT
 });
 

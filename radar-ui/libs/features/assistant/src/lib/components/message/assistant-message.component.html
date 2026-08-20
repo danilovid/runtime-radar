@@ -36,14 +36,111 @@
                 </div>
             }
 
-            @if (message.content) {
+            @if (content) {
                 <!-- Model output about untrusted telemetry: rendered through
                      Angular's sanitizer, never with a trusted-HTML bypass. -->
                 <div class="assistant-message__markdown"
-                     [innerHTML]="message.content | assistantMarkdown"></div>
+                     [innerHTML]="content | assistantMarkdown"></div>
             }
 
-            @if (message.isPending && !message.content) {
+            @if (message.action; as action) {
+                <!-- The change the assistant proposes. Nothing has run yet: the
+                     arguments below are what will be sent if the user agrees. -->
+                <div class="assistant-action"
+                     [class.assistant-action_destructive]="action.isDestructive"
+                     data-testid="assistant-action-card">
+                    <div class="assistant-action__head">
+                        <span class="assistant-action__title">{{ action.title }}</span>
+                        <code class="assistant-action__tool">{{ action.tool }}</code>
+                    </div>
+
+                    <div class="assistant-action__hint">
+                        @if (action.isDestructive) {
+                            {{ tAssistant('Assistant.Widget.Action.HintDestructive') }}
+                        } @else {
+                            {{ tAssistant('Assistant.Widget.Action.Hint') }}
+                        }
+                    </div>
+
+                    <pre class="assistant-action__arguments">{{ action.arguments }}</pre>
+
+                    @switch (action.state) {
+                        @case (actionState.PENDING) {
+                            <div class="assistant-action__buttons">
+                                <button type="button"
+                                        class="assistant-action__confirm"
+                                        (click)="confirm(action)"
+                                        data-testid="assistant-action-confirm">
+                                    {{ tAssistant('Assistant.Widget.Action.Button.Confirm') }}
+                                </button>
+                                <button type="button"
+                                        class="assistant-action__decline"
+                                        (click)="decline()"
+                                        data-testid="assistant-action-decline">
+                                    {{ tAssistant('Assistant.Widget.Action.Button.Decline') }}
+                                </button>
+                            </div>
+                        }
+                        @case (actionState.APPROVED) {
+                            <div class="assistant-action__state">
+                                {{ tAssistant('Assistant.Widget.Action.Text.Approved') }}
+                            </div>
+                        }
+                        @default {
+                            <div class="assistant-action__state">
+                                {{ tAssistant('Assistant.Widget.Action.Text.Declined') }}
+                            </div>
+                        }
+                    }
+                </div>
+            }
+
+            @for (secret of message.secrets; track secret.value) {
+                <!-- Shown once: the product keeps only a hash of it, and it
+                     never reached the model. -->
+                <div class="assistant-secret" data-testid="assistant-secret">
+                    <div class="assistant-secret__label">{{ secret.label }}</div>
+                    <code class="assistant-secret__value">{{ secret.value }}</code>
+                    <div class="assistant-secret__note">{{ secret.note }}</div>
+                    <button type="button"
+                            class="assistant-secret__copy"
+                            (click)="copy(secret.value)"
+                            data-testid="assistant-secret-copy">
+                        @if (copiedSecret === secret.value) {
+                            {{ tAssistant('Assistant.Widget.Secret.Button.Copied') }}
+                        } @else {
+                            {{ tAssistant('Assistant.Widget.Secret.Button.Copy') }}
+                        }
+                    </button>
+                </div>
+            }
+
+            @if (supportRequest; as request) {
+                <div class="assistant-support" data-testid="assistant-support-request">
+                    <div class="assistant-support__label">{{ tAssistant('Assistant.Widget.Support.Title') }}</div>
+                    <div class="assistant-support__subject">{{ request.subject }}</div>
+                    <pre class="assistant-support__body">{{ request.body }}</pre>
+                    <div class="assistant-support__actions">
+                        <a class="assistant-support__send"
+                           [href]="mailto"
+                           data-testid="assistant-support-send">
+                            {{ tAssistant('Assistant.Widget.Support.Button.Send', { address: supportAddress }) }}
+                        </a>
+                        <button type="button"
+                                class="assistant-support__copy"
+                                (click)="copy(request.body)"
+                                data-testid="assistant-support-copy">
+                            @if (copiedSecret === request.body) {
+                                {{ tAssistant('Assistant.Widget.Secret.Button.Copied') }}
+                            } @else {
+                                {{ tAssistant('Assistant.Widget.Support.Button.Copy') }}
+                            }
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @if (message.isPending && !content) {
                 <div class="assistant-message__typing">
                     <span></span><span></span><span></span>
                 </div>

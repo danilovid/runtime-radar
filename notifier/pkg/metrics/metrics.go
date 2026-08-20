@@ -54,6 +54,13 @@ var (
 		Help:      "Total number of MCP tool calls made by the assistant.",
 	}, []string{"tool", "status"})
 
+	assistantConfirmedCalls = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: "assistant",
+		Name:      "confirmed_calls_total",
+		Help:      "Total number of tool calls a user approved and the assistant then ran.",
+	}, []string{"tool", "status"})
+
 	assistantToolDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: "assistant",
@@ -73,6 +80,7 @@ func Collectors() []prometheus.Collector {
 		assistantDuration,
 		assistantActive,
 		assistantToolCalls,
+		assistantConfirmedCalls,
 		assistantToolDuration,
 	}
 }
@@ -100,13 +108,23 @@ func AssistantChatFinished() {
 	assistantActive.Dec()
 }
 
+// ObserveAssistantConfirmedCall records a tool call that changed something,
+// which only ever happens after a user approved it. It is counted apart from
+// the read-only traffic: this is the series to alert on.
+func ObserveAssistantConfirmedCall(tool string, err error) {
+	assistantConfirmedCalls.WithLabelValues(tool, callStatus(err)).Inc()
+}
+
 // ObserveAssistantToolCall records one tool call.
 func ObserveAssistantToolCall(tool string, d time.Duration, err error) {
-	status := "ok"
+	assistantToolCalls.WithLabelValues(tool, callStatus(err)).Inc()
+	assistantToolDuration.WithLabelValues(tool).Observe(d.Seconds())
+}
+
+func callStatus(err error) string {
 	if err != nil {
-		status = "error"
+		return "error"
 	}
 
-	assistantToolCalls.WithLabelValues(tool, status).Inc()
-	assistantToolDuration.WithLabelValues(tool).Observe(d.Seconds())
+	return "ok"
 }

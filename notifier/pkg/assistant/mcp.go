@@ -1,6 +1,8 @@
 // Package assistant runs the product's built-in chat assistant: a loop between
-// a model of a configured AI integration and the read-only tools MCP Server
-// exposes over the Model Context Protocol.
+// a model of a configured AI integration and the tools MCP Server exposes over
+// the Model Context Protocol. The tools that only read are called as the model
+// asks for them; the ones that change the product are never called until the
+// user has approved that exact call (see confirm.go).
 package assistant
 
 import (
@@ -133,6 +135,12 @@ func (b *mcpToolBox) ListTools(ctx context.Context) ([]ai.Tool, error) {
 			Name:        tool.Name,
 			Description: tool.Description,
 			InputSchema: schema,
+			Title:       title(tool),
+			// A server that says nothing about a tool is taken to offer one
+			// that changes something: the loop then asks the user before
+			// running it, which is the safe way to be wrong.
+			ReadOnly:    tool.Annotations != nil && tool.Annotations.ReadOnlyHint,
+			Destructive: tool.Annotations == nil || tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint,
 		})
 	}
 
@@ -159,6 +167,20 @@ func (b *mcpToolBox) CallTool(ctx context.Context, name string, arguments json.R
 
 func (b *mcpToolBox) Close() error {
 	return b.session.Close()
+}
+
+// title is what the user is shown when asked to approve a call: the tool's own
+// title when the server gave one, its name otherwise.
+func title(tool *mcp.Tool) string {
+	if tool.Annotations != nil && tool.Annotations.Title != "" {
+		return tool.Annotations.Title
+	}
+
+	if tool.Title != "" {
+		return tool.Title
+	}
+
+	return tool.Name
 }
 
 // toolSchema normalises whatever shape the SDK handed back into the JSON Schema

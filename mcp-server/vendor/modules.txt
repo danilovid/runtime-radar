@@ -720,6 +720,9 @@ github.com/runtime-radar/runtime-radar/lib/security/cipher
 github.com/runtime-radar/runtime-radar/lib/security/jwt
 github.com/runtime-radar/runtime-radar/lib/server/healthcheck
 github.com/runtime-radar/runtime-radar/lib/server/middleware
+# github.com/runtime-radar/runtime-radar/policy-enforcer v0.4.8 => ../policy-enforcer
+## explicit; go 1.25
+github.com/runtime-radar/runtime-radar/policy-enforcer/api
 # github.com/ryancurrah/gomodguard v1.3.5
 ## explicit; go 1.22.0
 github.com/ryancurrah/gomodguard
@@ -1446,3 +1449,4 @@ rsc.io/goversion/version
 # github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 # github.com/runtime-radar/runtime-radar/history-api => ../history-api
 # github.com/runtime-radar/runtime-radar/lib => ../lib
+# github.com/runtime-radar/runtime-radar/policy-enforcer => ../policy-enforcer

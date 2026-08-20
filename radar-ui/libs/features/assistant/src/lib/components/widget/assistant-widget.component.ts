@@ -6,13 +6,13 @@ import {
     Component,
     DestroyRef,
     ElementRef,
+    Input,
     OnInit,
     ViewChild
 } from '@angular/core';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, map, take } from 'rxjs';
 
 import { I18nService } from '@cs/i18n';
-import { RouterName } from '@cs/core';
 import {
     ASSISTANT_ATTACHMENT_ACCEPT,
     ASSISTANT_MAX_ATTACHMENTS,
@@ -21,10 +21,12 @@ import {
     ASSISTANT_TOUR_TOPICS,
     AssistantAttachment,
     AssistantMessage,
+    AssistantMode,
     AssistantStoreService,
     AssistantView
 } from '@cs/domains/assistant';
 import { IntegrationAI, IntegrationStoreService } from '@cs/domains/integration';
+import { LoadStatus, RouterName } from '@cs/core';
 
 @Component({
     selector: 'cs-assistant-widget',
@@ -33,11 +35,20 @@ import { IntegrationAI, IntegrationStoreService } from '@cs/domains/integration'
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked {
+    /**
+     * Whether the signed-in user may read integrations. Without that permission
+     * there is no AI integration to answer with and the assistant's own RPC
+     * would be refused, so the widget neither loads them nor appears. The shell
+     * passes it in: this library must not import the auth domain, which it and
+     * @cs/core import each other through.
+     */
+    @Input() canReadIntegrations = false;
+
     @ViewChild('body') body?: ElementRef<HTMLElement>;
 
     readonly integrations$: Observable<IntegrationAI[]> = this.integrationStoreService.aiIntegrations$;
 
-    /** The launcher only exists once an AI integration does. */
+    /** The widget only exists once an AI integration does. */
     readonly isAvailable$: Observable<boolean> = this.integrations$.pipe(map((integrations) => !!integrations.length));
 
     readonly isOpen$: Observable<boolean> = this.assistantStoreService.isOpen$;
@@ -68,6 +79,13 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
 
     input = '';
 
+    /**
+     * What is typed into the collapsed widget. It is separate from the panel's
+     * composer: a question started down there opens the panel, and the two
+     * inputs are never on screen at the same time.
+     */
+    dockInput = '';
+
     private lastScrollHeight = 0;
 
     constructor(
@@ -79,6 +97,18 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
     ) {}
 
     ngOnInit() {
+        // The integrations page loads these through its route guard, and the
+        // widget is on every page, so it asks for them once itself.
+        if (this.canReadIntegrations) {
+            this.integrationStoreService.loadStatus$
+                .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+                .subscribe((status) => {
+                    if (status === LoadStatus.INIT) {
+                        this.integrationStoreService.load();
+                    }
+                });
+        }
+
         // The widget is part of the shell, so it picks an integration itself
         // rather than making the user choose before the first question. The
         // choice stays theirs whenever there is more than one.
@@ -107,6 +137,38 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
 
     open() {
         this.assistantStoreService.open();
+    }
+
+    /** Asks the question typed into the collapsed widget, opening the panel. */
+    sendFromDock() {
+        const question = this.dockInput.trim();
+
+        if (!question) {
+            return;
+        }
+
+        this.assistantStoreService.open({ question });
+        this.dockInput = '';
+    }
+
+    onDockKeyDown(event: KeyboardEvent) {
+        if (event.key !== 'Enter') {
+            return;
+        }
+
+        event.preventDefault();
+        this.sendFromDock();
+    }
+
+    /**
+     * Opens the interview that ends in a support request. The first message is
+     * the user's own words for it, so the assistant has something to start from.
+     */
+    reportProblem() {
+        this.assistantStoreService.open({
+            question: this.i18nService.translate('Assistant.Widget.Support.FirstMessage'),
+            mode: AssistantMode.SUPPORT
+        });
     }
 
     close() {

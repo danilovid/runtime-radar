@@ -5,6 +5,8 @@ import { Store } from '@ngrx/store';
 import {
     ATTACH_ASSISTANT_FILES_TODO_ACTION,
     CLOSE_ASSISTANT_TODO_ACTION,
+    CONFIRM_ASSISTANT_ACTION_TODO_ACTION,
+    DECLINE_ASSISTANT_ACTION_TODO_ACTION,
     DELETE_ASSISTANT_CONVERSATION_TODO_ACTION,
     OPEN_ASSISTANT_CONVERSATION_TODO_ACTION,
     OPEN_ASSISTANT_TODO_ACTION,
@@ -18,6 +20,7 @@ import {
     AssistantAttachment,
     AssistantConversation,
     AssistantMessage,
+    AssistantMode,
     AssistantState,
     AssistantView
 } from '../interfaces';
@@ -55,11 +58,13 @@ export class AssistantStoreService {
     constructor(private readonly store: Store<AssistantState>) {}
 
     /**
-     * Opens the widget. An event identifier or a question starts a conversation
-     * straight away; without either the widget shows its home screen.
+     * Opens the panel. An event identifier or a question starts a conversation
+     * straight away; without either the panel shows its home screen. That is
+     * what the entry points outside the widget use: "Explain event", the
+     * summary on the events page, and "Report a problem".
      */
-    open(eventId?: string, question?: string) {
-        this.store.dispatch(OPEN_ASSISTANT_TODO_ACTION({ eventId, question }));
+    open(options: { eventId?: string; question?: string; mode?: AssistantMode } = {}) {
+        this.store.dispatch(OPEN_ASSISTANT_TODO_ACTION(options));
     }
 
     close() {
@@ -70,8 +75,17 @@ export class AssistantStoreService {
         this.store.dispatch(SHOW_ASSISTANT_VIEW_TODO_ACTION({ view }));
     }
 
-    startChat(question?: string) {
-        this.store.dispatch(START_ASSISTANT_CHAT_TODO_ACTION({ question }));
+    startChat(question?: string, mode?: AssistantMode) {
+        this.store.dispatch(START_ASSISTANT_CHAT_TODO_ACTION({ question, mode }));
+    }
+
+    /** Approves the change the assistant proposed in that message. */
+    confirmAction(messageId: string, actionId: string) {
+        this.store.dispatch(CONFIRM_ASSISTANT_ACTION_TODO_ACTION({ messageId, actionId }));
+    }
+
+    declineAction(messageId: string) {
+        this.store.dispatch(DECLINE_ASSISTANT_ACTION_TODO_ACTION({ messageId }));
     }
 
     openConversation(conversationId: string) {

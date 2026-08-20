@@ -20,11 +20,25 @@ var (
 
 type Permissions jwt.RolePermissions
 
+// TokenKind tells apart the two things this table stores. They are deliberately
+// not interchangeable: an MCP key must not open the public API, and a public
+// API token must not open the MCP server.
+type TokenKind string
+
+const (
+	// TokenKindAccess is a public API token, the original use of this table.
+	TokenKindAccess TokenKind = "access"
+	// TokenKindMCP is a key an external AI agent authenticates to MCP Server
+	// with. It is exchanged for a short-lived JWT rather than used downstream.
+	TokenKindMCP TokenKind = "mcp"
+)
+
 type AccessToken struct {
 	Base
 
 	Name          string
 	UserID        uuid.UUID
+	Kind          TokenKind    `gorm:"not null;default:access;index"`
 	Hash          string       `gorm:"uniqueIndex"`
 	Permissions   *Permissions `gorm:"type:jsonb"`
 	ExpiresAt     *time.Time
@@ -39,6 +53,10 @@ func (a *AccessToken) BeforeCreate(tx *gorm.DB) error {
 		}
 	}
 
+	if a.Kind == "" {
+		a.Kind = TokenKindAccess
+	}
+
 	if err := a.checkTokenNameUnique(tx); err != nil {
 		return err
 	}
@@ -48,7 +66,7 @@ func (a *AccessToken) BeforeCreate(tx *gorm.DB) error {
 
 func (a *AccessToken) checkTokenNameUnique(tx *gorm.DB) error {
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where(&AccessToken{Name: a.Name, UserID: a.UserID}).
+		Where(&AccessToken{Name: a.Name, UserID: a.UserID, Kind: a.Kind}).
 		Not(&AccessToken{Base: Base{ID: a.ID}}).
 		Take(&AccessToken{}).
 		Error

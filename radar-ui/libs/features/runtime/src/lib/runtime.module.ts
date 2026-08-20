@@ -18,7 +18,6 @@ import { RuntimeFeatureEventCounterComponent } from './components/event-counter/
 import { RuntimeFeatureEventTypeIconDirective } from './directives/runtime-event-type-icon.directive';
 import { RuntimeFeatureEventsContainer } from './containers/events/runtime-events.container';
 import { RuntimeFeatureEventsGridContainer } from './containers/events-grid/runtime-events-grid.container';
-import { RuntimeFeatureExplainEventModalComponent } from './components/explain-event-modal/runtime-explain-event-modal.component';
 import { RuntimeFeatureFilterPopoverComponent } from './components/filter-popover/runtime-filter-popover.component';
 import { RuntimeFeatureHistoryDropdownComponent } from './components/history-dropdown/runtime-history-dropdown.component';
 import { RuntimeFeatureHistoryLabelPipe } from './pipes/runtime-history-label.pipe';
@@ -54,7 +53,6 @@ import { RuntimeFeatureUploadDetectorModalComponent } from './components/upload-
         RuntimeFeatureByteFormatterPipe,
         RuntimeFeatureContextPopoverComponent,
         RuntimeFeatureDateTimePeriodPickerComponent,
-        RuntimeFeatureExplainEventModalComponent,
         RuntimeFeatureEventTypeIconDirective,
         RuntimeFeatureFilterPopoverComponent,
         RuntimeFeatureHistoryDropdownComponent,

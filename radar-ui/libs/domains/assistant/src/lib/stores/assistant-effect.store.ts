@@ -13,9 +13,12 @@ import { AssistantRequestService } from '../services/assistant-request.service';
 import {
     ADD_ASSISTANT_CONVERSATION_DOC_ACTION,
     ADD_ASSISTANT_MESSAGE_DOC_ACTION,
+    ADD_ASSISTANT_SECRET_DOC_ACTION,
     APPEND_ASSISTANT_DELTA_DOC_ACTION,
     ATTACH_ASSISTANT_FILES_TODO_ACTION,
     CLOSE_ASSISTANT_TODO_ACTION,
+    CONFIRM_ASSISTANT_ACTION_TODO_ACTION,
+    DECLINE_ASSISTANT_ACTION_TODO_ACTION,
     DELETE_ASSISTANT_CONVERSATION_DOC_ACTION,
     DELETE_ASSISTANT_CONVERSATION_TODO_ACTION,
     FINISH_ASSISTANT_MESSAGE_DOC_ACTION,
@@ -24,6 +27,8 @@ import {
     REMOVE_ASSISTANT_ATTACHMENT_TODO_ACTION,
     SELECT_ASSISTANT_INTEGRATION_TODO_ACTION,
     SEND_ASSISTANT_MESSAGE_TODO_ACTION,
+    SET_ASSISTANT_ACTION_DOC_ACTION,
+    SET_ASSISTANT_ACTION_STATE_DOC_ACTION,
     SET_ASSISTANT_ACTIVE_CONVERSATION_DOC_ACTION,
     SET_ASSISTANT_ATTACHMENTS_DOC_ACTION,
     SET_ASSISTANT_INTEGRATION_DOC_ACTION,
@@ -34,11 +39,14 @@ import {
     UPDATE_ASSISTANT_TOOL_DOC_ACTION
 } from './assistant-action.store';
 import {
+    AssistantActionState,
     AssistantAttachment,
     AssistantChatChunk,
     AssistantChatMessageRequest,
+    AssistantChatRequest,
     AssistantConversation,
     AssistantMessage,
+    AssistantMode,
     AssistantRole,
     AssistantState,
     AssistantStopReason
@@ -69,7 +77,7 @@ export class AssistantEffectStore {
         this.actions$.pipe(
             ofType(OPEN_ASSISTANT_TODO_ACTION),
             filter(({ question, eventId }) => !!question || !!eventId),
-            map(({ question, eventId }) => START_ASSISTANT_CHAT_TODO_ACTION({ question, eventId }))
+            map(({ question, eventId, mode }) => START_ASSISTANT_CHAT_TODO_ACTION({ question, eventId, mode }))
         )
     );
 
@@ -90,7 +98,7 @@ export class AssistantEffectStore {
     readonly startChat$: Observable<Action> = createEffect(() =>
         this.actions$.pipe(
             ofType(START_ASSISTANT_CHAT_TODO_ACTION),
-            mergeMap(({ question, eventId }) => {
+            mergeMap(({ question, eventId, mode }) => {
                 const now = new Date().toISOString();
                 const conversation: AssistantConversation = {
                     id: this.identifier(),
@@ -98,7 +106,8 @@ export class AssistantEffectStore {
                     createdAt: now,
                     updatedAt: now,
                     messages: [],
-                    eventId: eventId ?? ''
+                    eventId: eventId ?? '',
+                    mode: mode ?? AssistantMode.CHAT
                 };
 
                 const started: Action[] = [ADD_ASSISTANT_CONVERSATION_DOC_ACTION({ conversation })];
@@ -191,12 +200,6 @@ export class AssistantEffectStore {
                 answer.isPending = true;
 
                 const history = conversation?.messages ?? [];
-                const payload: AssistantChatMessageRequest[] = [...history, question]
-                    .filter((message) => !message.error)
-                    .map((message) => ({
-                        role: message.role,
-                        content: message.content + this.assistantAttachmentService.render(message.attachments)
-                    }));
 
                 return concat(
                     of(
@@ -204,29 +207,61 @@ export class AssistantEffectStore {
                         ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: question }),
                         ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer })
                     ),
-                    this.assistantRequestService
-                        .chat({
-                            integration_id: integrationId,
-                            conversation: payload,
-                            ...(conversation?.eventId ? { event_id: conversation.eventId } : {})
-                        })
-                        .pipe(
-                            map((chunk) => this.toAction(chunk)),
-                            catchError((error: Error) => {
-                                this.toastService.show({
-                                    style: KbqToastStyle.Warning,
-                                    title: this.i18nService.translate('Assistant.Pseudo.Notification.ChatFailed')
-                                });
-
-                                return of(FINISH_ASSISTANT_MESSAGE_DOC_ACTION({ error: error.message }));
-                            })
-                        ),
-                    // A stream that ended without a done chunk — the connection
-                    // dropped — must still take the answer out of its pending
-                    // state. Finishing an already finished message is a no-op.
-                    of(FINISH_ASSISTANT_MESSAGE_DOC_ACTION({}))
+                    this.stream({
+                        integration_id: integrationId,
+                        conversation: this.payload([...history, question]),
+                        ...(conversation?.eventId ? { event_id: conversation.eventId } : {}),
+                        ...(conversation?.mode ? { mode: conversation.mode } : {})
+                    })
                 );
             })
+        )
+    );
+
+    /**
+     * Runs the change the assistant proposed, now that the user approved it.
+     * The request carries only the identifier: the arguments live on the server
+     * exactly as they were shown, so nothing between the two can alter them.
+     */
+    readonly confirmAction$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CONFIRM_ASSISTANT_ACTION_TODO_ACTION),
+            withLatestFrom(
+                this.store.select(getAssistantActiveConversation),
+                this.store.select(getAssistantIntegrationId)
+            ),
+            filter(([, conversation, integrationId]) => !!conversation && !!integrationId),
+            switchMap(([{ messageId, actionId }, conversation, integrationId]) => {
+                const answer = this.message(AssistantRole.ASSISTANT, '', []);
+                answer.isPending = true;
+
+                return concat(
+                    of(
+                        SET_ASSISTANT_ACTION_STATE_DOC_ACTION({ messageId, state: AssistantActionState.APPROVED }),
+                        ADD_ASSISTANT_MESSAGE_DOC_ACTION({ message: answer })
+                    ),
+                    this.stream({
+                        integration_id: integrationId,
+                        conversation: this.payload(conversation?.messages ?? []),
+                        confirm_id: actionId,
+                        ...(conversation?.eventId ? { event_id: conversation.eventId } : {}),
+                        ...(conversation?.mode ? { mode: conversation.mode } : {})
+                    })
+                );
+            })
+        )
+    );
+
+    /**
+     * Declining costs nothing to record: the proposal is marked as refused and
+     * the identifier is simply never used, so it expires on the server.
+     */
+    readonly declineAction$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(DECLINE_ASSISTANT_ACTION_TODO_ACTION),
+            map(({ messageId }) =>
+                SET_ASSISTANT_ACTION_STATE_DOC_ACTION({ messageId, state: AssistantActionState.DECLINED })
+            )
         )
     );
 
@@ -239,6 +274,44 @@ export class AssistantEffectStore {
         private readonly toastService: KbqToastService
     ) {}
 
+    /**
+     * Streams one answer into the store. Both asking a question and approving
+     * an action end here: the only difference is what the request carries.
+     */
+    private stream(request: AssistantChatRequest): Observable<Action> {
+        return concat(
+            this.assistantRequestService.chat(request).pipe(
+                map((chunk) => this.toAction(chunk)),
+                catchError((error: Error) => {
+                    this.toastService.show({
+                        style: KbqToastStyle.Warning,
+                        title: this.i18nService.translate('Assistant.Pseudo.Notification.ChatFailed')
+                    });
+
+                    return of(FINISH_ASSISTANT_MESSAGE_DOC_ACTION({ error: error.message }));
+                })
+            ),
+            // A stream that ended without a done chunk — the connection
+            // dropped — must still take the answer out of its pending state.
+            // Finishing an already finished message is a no-op.
+            of(FINISH_ASSISTANT_MESSAGE_DOC_ACTION({}))
+        );
+    }
+
+    /**
+     * Renders the history for the server. Only what the user and the assistant
+     * said is replayed: tool traffic belongs to the server side of the loop,
+     * and a failed or empty turn would only confuse the model.
+     */
+    private payload(messages: AssistantMessage[]): AssistantChatMessageRequest[] {
+        return messages
+            .filter((message) => !message.error && !!message.content.trim())
+            .map((message) => ({
+                role: message.role,
+                content: message.content + this.assistantAttachmentService.render(message.attachments)
+            }));
+    }
+
     private message(role: AssistantRole, content: string, attachments: AssistantAttachment[]): AssistantMessage {
         return {
             id: this.identifier(),
@@ -246,6 +319,7 @@ export class AssistantEffectStore {
             content,
             tools: [],
             attachments,
+            secrets: [],
             isPending: false
         };
     }
@@ -253,6 +327,23 @@ export class AssistantEffectStore {
     private toAction(chunk: AssistantChatChunk): Action {
         if (chunk.tool_activity) {
             return UPDATE_ASSISTANT_TOOL_DOC_ACTION({ activity: chunk.tool_activity });
+        }
+
+        if (chunk.confirmation) {
+            return SET_ASSISTANT_ACTION_DOC_ACTION({
+                action: {
+                    id: chunk.confirmation.id,
+                    tool: chunk.confirmation.tool,
+                    title: chunk.confirmation.title,
+                    arguments: chunk.confirmation.arguments,
+                    isDestructive: !!chunk.confirmation.destructive,
+                    state: AssistantActionState.PENDING
+                }
+            });
+        }
+
+        if (chunk.secret) {
+            return ADD_ASSISTANT_SECRET_DOC_ACTION({ secret: chunk.secret });
         }
 
         if (chunk.done) {

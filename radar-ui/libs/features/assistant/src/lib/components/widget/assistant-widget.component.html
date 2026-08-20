@@ -12,13 +12,37 @@
     } as rxlet">
         @if (rxlet.isAvailable) {
             @if (!rxlet.isOpen) {
-                <button type="button"
-                        class="assistant-launcher"
-                        (click)="open()"
-                        data-testid="assistant-launcher-button">
-                    <span class="assistant-launcher__badge">?</span>
-                    {{ tAssistant('Assistant.Widget.Button.Open') }}
-                </button>
+                <!-- Collapsed, the widget is still a chat: a question typed
+                     here opens the panel with the answer already coming. -->
+                <section class="assistant-dock" data-testid="assistant-dock">
+                    <div class="assistant-dock__row">
+                        <span class="assistant-dock__badge">AI</span>
+                        <input class="assistant-dock__input"
+                               type="text"
+                               [(ngModel)]="dockInput"
+                               [placeholder]="tAssistant('Assistant.Widget.Placeholder.Dock')"
+                               (keydown)="onDockKeyDown($event)"
+                               data-testid="assistant-dock-input">
+                        <button type="button"
+                                class="assistant-dock__send"
+                                [disabled]="!dockInput.trim()"
+                                (click)="sendFromDock()"
+                                data-testid="assistant-dock-send">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M8 13V3.5M4.5 7L8 3.5 11.5 7" stroke="#fff"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="assistant-dock__links">
+                        <button type="button" (click)="open()" data-testid="assistant-dock-open">
+                            {{ tAssistant('Assistant.Widget.Button.Open') }}
+                        </button>
+                        <button type="button" (click)="reportProblem()" data-testid="assistant-dock-support">
+                            {{ tAssistant('Assistant.Widget.Support.Entry') }}
+                        </button>
+                    </div>
+                </section>
             } @else {
                 <section class="assistant-panel" data-testid="assistant-widget">
                     <header class="assistant-panel__header">
@@ -136,6 +160,18 @@
                                         </div>
                                         <div class="assistant-home__action-hint">
                                             {{ tAssistant('Assistant.Widget.Text.FreeChatHint') }}
+                                        </div>
+                                    </button>
+
+                                    <button type="button"
+                                            class="assistant-home__support"
+                                            (click)="reportProblem()"
+                                            data-testid="assistant-support-entry">
+                                        <div class="assistant-home__action-title">
+                                            {{ tAssistant('Assistant.Widget.Support.Entry') }}
+                                        </div>
+                                        <div class="assistant-home__action-hint">
+                                            {{ tAssistant('Assistant.Widget.Support.Hint') }}
                                         </div>
                                     </button>
                                 </div>

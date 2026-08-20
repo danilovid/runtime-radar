@@ -1,7 +1,11 @@
 import { AssistantAttachment, AssistantConversation, AssistantView } from '../assistant-message.interface';
 
 export interface AssistantState {
-    /** Whether the chat widget is open. */
+    /**
+     * Whether the chat panel is expanded. The widget itself is always on
+     * screen: collapsed it is a one-line composer, and typing into it opens
+     * the panel with the question already asked.
+     */
     isOpen: boolean;
     /** Which screen the widget shows. */
     view: AssistantView;

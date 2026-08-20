@@ -17,7 +17,8 @@
         </section>
 
         @if (rxlet.loadStatus === loadStatus.LOADED) {
-            <cs-assistant-widget></cs-assistant-widget>
+            <cs-assistant-widget
+                    [canReadIntegrations]="(canReadIntegrations$ | async) ?? false"></cs-assistant-widget>
         }
 
         @if (rxlet.loadStatus === loadStatus.INIT) {

@@ -176,3 +176,189 @@ $rr-surface: #f2f5f9;
         opacity: 1;
     }
 }
+
+/* A change the assistant proposes. It is deliberately louder than the answer
+   around it: pressing the button here alters the product. */
+.assistant-action {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-primary;
+    border-radius: 12px;
+    background: #f5f9ff;
+
+    &_destructive {
+        border-color: #d64545;
+        background: #fff6f6;
+    }
+
+    &__head {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    &__title {
+        font-weight: 600;
+    }
+
+    &__tool {
+        color: $rr-muted;
+        font-size: 12px;
+    }
+
+    &__hint {
+        margin-top: 4px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__arguments {
+        margin: 8px 0 0;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid $rr-line;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 220px;
+        overflow: auto;
+    }
+
+    &__buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    &__confirm,
+    &__decline {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    &__confirm {
+        border: none;
+        background: $rr-primary;
+        color: #fff;
+    }
+
+    &_destructive &__confirm {
+        background: #d64545;
+    }
+
+    &__decline {
+        border: 1px solid $rr-line;
+        background: #fff;
+    }
+
+    &__state {
+        margin-top: 12px;
+        color: $rr-muted;
+        font-size: 13px;
+    }
+}
+
+/* A credential the product will not show again. */
+.assistant-secret {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-line;
+    border-radius: 12px;
+    background: $rr-surface;
+
+    &__label {
+        font-weight: 600;
+    }
+
+    &__value {
+        display: block;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid $rr-line;
+        font-size: 12px;
+        word-break: break-all;
+    }
+
+    &__note {
+        margin-top: 8px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__copy {
+        margin-top: 8px;
+        padding: 6px 14px;
+        border: 1px solid $rr-line;
+        border-radius: 8px;
+        background: #fff;
+        font: inherit;
+        cursor: pointer;
+    }
+}
+
+/* The finished support request, lifted out of the answer so it can be sent. */
+.assistant-support {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-line;
+    border-radius: 12px;
+    background: #fff;
+
+    &__label {
+        color: $rr-muted;
+        font-size: 13px;
+    }
+
+    &__subject {
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    &__body {
+        margin: 8px 0 0;
+        padding: 8px;
+        border-radius: 8px;
+        background: $rr-surface;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 260px;
+        overflow: auto;
+    }
+
+    &__actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    &__send,
+    &__copy {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    &__send {
+        border: none;
+        background: $rr-primary;
+        color: #fff;
+    }
+
+    &__copy {
+        border: 1px solid $rr-line;
+        background: #fff;
+    }
+}

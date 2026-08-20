@@ -1,4 +1,5 @@
-// Package client dials the gRPC services the MCP tools read from. The clients
+// Package client dials the gRPC services the MCP tools read from and write to.
+// The clients
 // carry no credentials of their own: the caller's token travels in the context
 // of every call (see pkg/auth), so that downstream RBAC and audit apply to the
 // human behind the agent.
@@ -10,6 +11,7 @@ import (
 
 	processor_api "github.com/runtime-radar/runtime-radar/event-processor/api"
 	history_api "github.com/runtime-radar/runtime-radar/history-api/api"
+	enf_api "github.com/runtime-radar/runtime-radar/policy-enforcer/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,33 +20,49 @@ import (
 // MaxRecvMsgSize is the maximum size of a gRPC response the service accepts.
 const MaxRecvMsgSize = 10 * 1024 * 1024 // 10MB
 
-// New dials address and returns the History API and Event Processor clients
-// sharing that connection's settings, along with a function closing both.
-func New(historyAddr, processorAddr string, tlsConfig *tls.Config) (*Clients, func() error, error) {
+// New dials the services the tools read from and write to, and returns their
+// clients along with a function closing every connection.
+func New(historyAddr, processorAddr, enforcerAddr string, tlsConfig *tls.Config) (*Clients, func() error, error) {
+	conns := make([]*grpc.ClientConn, 0, 3)
+
+	closeAll := func() error {
+		var err error
+		for _, conn := range conns {
+			if closeErr := conn.Close(); err == nil {
+				err = closeErr
+			}
+		}
+
+		return err
+	}
+
 	historyConn, err := dial(historyAddr, tlsConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't connect to History API: %w", err)
 	}
+	conns = append(conns, historyConn)
 
 	processorConn, err := dial(processorAddr, tlsConfig)
 	if err != nil {
-		_ = historyConn.Close()
+		_ = closeAll()
+
 		return nil, nil, fmt.Errorf("can't connect to Event Processor: %w", err)
 	}
+	conns = append(conns, processorConn)
+
+	enforcerConn, err := dial(enforcerAddr, tlsConfig)
+	if err != nil {
+		_ = closeAll()
+
+		return nil, nil, fmt.Errorf("can't connect to Policy Enforcer: %w", err)
+	}
+	conns = append(conns, enforcerConn)
 
 	clients := &Clients{
 		RuntimeHistory: history_api.NewRuntimeHistoryClient(historyConn),
 		RuntimeStats:   history_api.NewRuntimeStatsClient(historyConn),
 		Detectors:      processor_api.NewDetectorControllerClient(processorConn),
-	}
-
-	closeAll := func() error {
-		err := historyConn.Close()
-		if closeErr := processorConn.Close(); err == nil {
-			err = closeErr
-		}
-
-		return err
+		Rules:          enf_api.NewRuleControllerClient(enforcerConn),
 	}
 
 	return clients, closeAll, nil
@@ -55,6 +73,7 @@ type Clients struct {
 	RuntimeHistory history_api.RuntimeHistoryClient
 	RuntimeStats   history_api.RuntimeStatsClient
 	Detectors      processor_api.DetectorControllerClient
+	Rules          enf_api.RuleControllerClient
 }
 
 func dial(address string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {

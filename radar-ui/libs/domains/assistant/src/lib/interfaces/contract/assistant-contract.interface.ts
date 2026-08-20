@@ -1,4 +1,4 @@
-import { AssistantRole } from '../assistant-message.interface';
+import { AssistantMode, AssistantRole } from '../assistant-message.interface';
 
 /**
  * The conversation is sent whole on every request: the server keeps no chat
@@ -13,6 +13,26 @@ export interface AssistantChatRequest {
     integration_id: string;
     conversation: AssistantChatMessageRequest[];
     event_id?: string;
+    mode?: AssistantMode;
+    /**
+     * Approval of the action the assistant proposed in the previous turn. It is
+     * the only way a tool that changes anything is ever run.
+     */
+    confirm_id?: string;
+}
+
+export interface AssistantConfirmationResponse {
+    id: string;
+    tool: string;
+    title: string;
+    arguments: string;
+    destructive?: boolean;
+}
+
+export interface AssistantSecretResponse {
+    label: string;
+    value: string;
+    note: string;
 }
 
 export interface AssistantToolActivityResponse {
@@ -33,6 +53,8 @@ export interface AssistantDoneResponse {
 export interface AssistantChatChunk {
     delta?: string;
     tool_activity?: AssistantToolActivityResponse;
+    confirmation?: AssistantConfirmationResponse;
+    secret?: AssistantSecretResponse;
     done?: AssistantDoneResponse;
 }
 

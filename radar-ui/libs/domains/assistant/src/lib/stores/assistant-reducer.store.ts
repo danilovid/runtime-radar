@@ -3,9 +3,12 @@ import { createReducer, on } from '@ngrx/store';
 import {
     ADD_ASSISTANT_CONVERSATION_DOC_ACTION,
     ADD_ASSISTANT_MESSAGE_DOC_ACTION,
+    ADD_ASSISTANT_SECRET_DOC_ACTION,
     APPEND_ASSISTANT_DELTA_DOC_ACTION,
     DELETE_ASSISTANT_CONVERSATION_DOC_ACTION,
     FINISH_ASSISTANT_MESSAGE_DOC_ACTION,
+    SET_ASSISTANT_ACTION_DOC_ACTION,
+    SET_ASSISTANT_ACTION_STATE_DOC_ACTION,
     SET_ASSISTANT_ACTIVE_CONVERSATION_DOC_ACTION,
     SET_ASSISTANT_ATTACHMENTS_DOC_ACTION,
     SET_ASSISTANT_INTEGRATION_DOC_ACTION,
@@ -14,6 +17,7 @@ import {
     UPDATE_ASSISTANT_TOOL_DOC_ACTION
 } from './assistant-action.store';
 import {
+    AssistantActionState,
     AssistantConversation,
     AssistantMessage,
     AssistantState,
@@ -120,6 +124,8 @@ export const assistantReducer = createReducer(
             return { ...message, tools };
         })
     ),
+    // An answer that stopped to ask for approval is not an error: the action
+    // card it carries is the thing the user is meant to act on.
     on(FINISH_ASSISTANT_MESSAGE_DOC_ACTION, (state, { stopReason, error }) => ({
         ...updateLastMessage(state, (message) => ({
             ...message,
@@ -134,5 +140,21 @@ export const assistantReducer = createReducer(
     on(SET_ASSISTANT_ATTACHMENTS_DOC_ACTION, (state, { attachments }) => ({
         ...state,
         pendingAttachments: attachments
-    }))
+    })),
+    on(SET_ASSISTANT_ACTION_DOC_ACTION, (state, { action }) =>
+        updateLastMessage(state, (message) => ({ ...message, action }))
+    ),
+    on(SET_ASSISTANT_ACTION_STATE_DOC_ACTION, (state, { messageId, state: actionState }) =>
+        updateActive(state, (conversation) => ({
+            ...conversation,
+            messages: conversation.messages.map((message) =>
+                message.id === messageId && message.action
+                    ? { ...message, action: { ...message.action, state: actionState } }
+                    : message
+            )
+        }))
+    ),
+    on(ADD_ASSISTANT_SECRET_DOC_ACTION, (state, { secret }) =>
+        updateLastMessage(state, (message) => ({ ...message, secrets: [...message.secrets, secret] }))
+    )
 );

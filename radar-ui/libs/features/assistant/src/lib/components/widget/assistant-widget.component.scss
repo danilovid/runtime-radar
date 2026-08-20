@@ -10,40 +10,86 @@ $rr-accent-surface-hover: #e2eeff;
 $rr-label: #808080;
 $rr-offset: 24px;
 
-.assistant-launcher {
+/* Collapsed, the widget is a small chat window rather than a button: the point
+   is that a question can always be typed without opening anything first. */
+.assistant-dock {
     position: fixed;
     right: $rr-offset;
     bottom: $rr-offset;
     z-index: 40;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    height: 48px;
-    padding: 0 20px 0 6px;
-    border: 0;
-    border-radius: 100px;
-    background: $rr-primary;
-    color: #fff;
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 500;
-    box-shadow: 0 4px 16px rgba(19, 79, 180, 0.28);
-    cursor: pointer;
+    width: 340px;
+    max-width: calc(100vw - #{$rr-offset * 2});
+    padding: 10px;
+    border: 1px solid $rr-line;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(19, 79, 180, 0.18);
 
-    &:hover {
-        background: $rr-primary-hover;
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
-    &__badge {
+    &__badge,
+    &__send {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
+        flex: none;
         border-radius: 50%;
-        background: #fff;
+    }
+
+    &__badge {
+        background: $rr-accent-surface;
         color: $rr-primary;
+        font-size: 12px;
         font-weight: 600;
+    }
+
+    &__input {
+        flex: 1;
+        min-width: 0;
+        height: 32px;
+        border: 0;
+        outline: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 14px;
+
+        &::placeholder {
+            color: $rr-muted;
+        }
+    }
+
+    &__send {
+        border: 0;
+        background: $rr-primary;
+        cursor: pointer;
+
+        &:disabled {
+            background: $rr-line;
+            cursor: default;
+        }
+    }
+
+    &__links {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        padding-left: 40px;
+
+        button {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: $rr-muted;
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
     }
 }
 
@@ -275,7 +321,8 @@ $rr-offset: 24px;
         line-height: 16px;
     }
 
-    &__free {
+    &__free,
+    &__support {
         display: block;
         width: 100%;
         margin-top: 20px;
@@ -289,6 +336,16 @@ $rr-offset: 24px;
 
         &:hover {
             background: $rr-surface;
+        }
+    }
+
+    &__support {
+        margin-top: 12px;
+        border-style: solid;
+        background: $rr-accent-surface;
+
+        &:hover {
+            background: $rr-accent-surface-hover;
         }
     }
 }

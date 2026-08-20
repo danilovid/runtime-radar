@@ -11,9 +11,32 @@ export enum AssistantRole {
  * How a finished answer ended.
  */
 export enum AssistantStopReason {
+    CONFIRMATION_REQUIRED = 'confirmation_required',
     END_TURN = 'end_turn',
     ERROR = 'error',
     MAX_ITERATIONS = 'max_iterations'
+}
+
+/**
+ * What the assistant was opened to do. The server gives itself different
+ * instructions per mode; it never gains new powers from one.
+ */
+export enum AssistantMode {
+    CHAT = 'chat',
+    DIGEST = 'digest',
+    EXPLAIN = 'explain',
+    SUPPORT = 'support'
+}
+
+/**
+ * Where a proposed action stands. Nothing is run until the user approves it,
+ * and an approval is spent the moment it is used.
+ */
+export enum AssistantActionState {
+    APPROVED = 'approved',
+    DECLINED = 'declined',
+    FAILED = 'failed',
+    PENDING = 'pending'
 }
 
 /**
@@ -45,6 +68,42 @@ export interface AssistantToolActivity {
 }
 
 /**
+ * A change to the product the assistant wants to make and may not make alone.
+ * It is shown with the arguments the model wrote, verbatim: the user approves
+ * the call that will run, not a description of it.
+ */
+export interface AssistantAction {
+    id: string;
+    tool: string;
+    title: string;
+    /** Pretty-printed JSON the tool would be called with. */
+    arguments: string;
+    /** Set when the call removes something rather than adds it. */
+    isDestructive: boolean;
+    state: AssistantActionState;
+}
+
+/**
+ * A credential an approved action produced. It reaches the browser through the
+ * answer stream and never through the model, and it is shown once: the product
+ * stores only a hash of it.
+ */
+export interface AssistantSecret {
+    label: string;
+    value: string;
+    note: string;
+}
+
+/**
+ * The support request the assistant wrote, pulled out of the answer so that the
+ * interface can offer to send it. See the support mode in notifier/README.md.
+ */
+export interface AssistantSupportRequest {
+    subject: string;
+    body: string;
+}
+
+/**
  * A file the user attached to a question. Files are read in the browser and
  * travel as text inside the message, so nothing is uploaded or stored.
  */
@@ -57,10 +116,6 @@ export interface AssistantAttachment {
 
 /**
  * One turn of the conversation.
- *
- * Extension point: when the assistant grows tools that propose a change — a
- * rule draft, for instance — the proposal belongs here as an `artifacts` field
- * alongside `tools`, rendered as a card the user confirms.
  */
 export interface AssistantMessage {
     id: string;
@@ -68,6 +123,10 @@ export interface AssistantMessage {
     content: string;
     tools: AssistantToolActivity[];
     attachments: AssistantAttachment[];
+    /** The change the assistant is asking to make, when it asked for one. */
+    action?: AssistantAction;
+    /** Credentials the approved action produced, shown once. */
+    secrets: AssistantSecret[];
     /** Set while the answer is still being streamed. */
     isPending: boolean;
     /** Set when the answer could not be produced or was cut short. */
@@ -87,4 +146,6 @@ export interface AssistantConversation {
     messages: AssistantMessage[];
     /** The runtime event this conversation was opened from, if any. */
     eventId: string;
+    /** What this conversation was opened to do. */
+    mode: AssistantMode;
 }

@@ -127,6 +127,8 @@
 			reverse_proxy /api/v1/cluster/* {args[0]}://cluster-manager:9000
 
 			# public-api
+			reverse_proxy /api/v1/mcp-key {args[0]}://public-api:9000
+			reverse_proxy /api/v1/mcp-key/* {args[0]}://public-api:9000
 			reverse_proxy /api/v1/access-token {args[0]}://public-api:9000
 			reverse_proxy /api/v1/access-token/* {args[0]}://public-api:9000
 			reverse_proxy /api/v1/public-api/* {args[0]}://public-api:9000

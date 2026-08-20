@@ -14,6 +14,7 @@ import {
     DELETE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION,
+    LOAD_INTEGRATION_ENTITIES_TODO_ACTION,
     UPDATE_AI_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     UPDATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
@@ -50,6 +51,16 @@ export class IntegrationStoreService {
     readonly loadStatus$: Observable<LoadStatus> = this.store.select(getIntegrationLoadStatus);
 
     constructor(private readonly store: Store<IntegrationState>) {}
+
+    /**
+     * Loads the integrations. The route to the integrations page does this
+     * through its guard; the chat widget lives in the shell and has to ask for
+     * them itself, because whether it appears at all depends on there being an
+     * AI integration.
+     */
+    load() {
+        this.store.dispatch(LOAD_INTEGRATION_ENTITIES_TODO_ACTION());
+    }
 
     createAIIntegration(item: CreateIntegrationRequest<IntegrationAI>) {
         this.store.dispatch(CREATE_AI_INTEGRATION_ENTITY_TODO_ACTION({ item }));

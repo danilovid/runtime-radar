@@ -54,12 +54,24 @@ type ToolCall struct {
 	Arguments json.RawMessage
 }
 
-// Tool is a tool offered to the model.
+// Tool is a tool offered to the model. Name, Description and InputSchema are
+// what the provider is sent; the rest describes what running the tool would do
+// and never leaves this service — it is what the agent loop decides on before
+// making the call.
 type Tool struct {
 	Name        string
 	Description string
 	// InputSchema is a JSON Schema object describing the tool's arguments.
 	InputSchema map[string]any
+	// Title is the tool's human readable name, shown to the user when the loop
+	// asks whether to run it.
+	Title string
+	// ReadOnly is set when the tool only looks things up. A tool that is not
+	// read-only changes the product and is never run without the user's
+	// explicit approval.
+	ReadOnly bool
+	// Destructive is set when the tool removes something rather than adds it.
+	Destructive bool
 }
 
 // Message is one turn of a conversation.

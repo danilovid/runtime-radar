@@ -24,10 +24,43 @@ const (
 // ErrNoToken is returned when auth is enabled but the client sent no token.
 var ErrNoToken = errors.New("no bearer token provided")
 
-// Caller identifies whoever made the tool call, for logging purposes only.
+// Caller identifies whoever made the tool call. It is what the call log names
+// and what the tools writing through Public API act as; it deliberately carries
+// no credential, so that nothing here can end up in a log line.
 type Caller struct {
 	Username string
 	UserID   string
+}
+
+type contextKey struct{ name string }
+
+var (
+	callerContextKey = &contextKey{name: "caller"}
+	tokenContextKey  = &contextKey{name: "token"}
+)
+
+// WithCaller returns a context naming the caller a tool runs for. Authorize
+// does this for every call it lets through; it is exported so that a handler
+// can be exercised without an authorizer.
+func WithCaller(ctx context.Context, caller Caller) context.Context {
+	return context.WithValue(ctx, callerContextKey, caller)
+}
+
+// CallerFromContext returns the caller a tool is running for. It is set by
+// Authorize, so a handler reached through addTool always has one.
+func CallerFromContext(ctx context.Context) Caller {
+	caller, _ := ctx.Value(callerContextKey).(Caller)
+
+	return caller
+}
+
+// BearerFromContext returns the caller's verified token. Only the clients
+// talking to the product's own services may use it: it is the caller's
+// credential, and it is never logged or sent anywhere else.
+func BearerFromContext(ctx context.Context) string {
+	token, _ := ctx.Value(tokenContextKey).(string)
+
+	return token
 }
 
 // Authorizer checks tokens against the product's JWT key. A zero-value
@@ -36,6 +69,18 @@ type Authorizer struct {
 	verifier jwt.Verifier
 	key      []byte
 	enabled  bool
+	// exchanger resolves MCP keys, which are not JWTs, into the short-lived
+	// JWT of the user they were issued to. Nil when Public API is not
+	// configured, in which case only JWTs are accepted.
+	exchanger *KeyExchanger
+}
+
+// WithKeyExchanger lets the authorizer accept MCP keys issued by Public API in
+// addition to the product's own JWTs.
+func (a *Authorizer) WithKeyExchanger(exchanger *KeyExchanger) *Authorizer {
+	a.exchanger = exchanger
+
+	return a
 }
 
 // New builds an Authorizer. When enabled is false tokenKey is not needed and
@@ -66,11 +111,30 @@ func (a *Authorizer) Enabled() bool {
 // product's own gRPC services.
 func (a *Authorizer) Authorize(ctx context.Context, token string, perms ...Permission) (context.Context, Caller, error) {
 	if !a.enabled {
-		return withToken(ctx, token), Caller{Username: AnonymousUser}, nil
+		caller := Caller{Username: AnonymousUser}
+		ctx = WithCaller(withToken(ctx, token), caller)
+
+		return context.WithValue(ctx, tokenContextKey, token), caller, nil
 	}
 
 	if token == "" {
 		return ctx, Caller{}, ErrNoToken
+	}
+
+	// An MCP key is not a JWT and nothing downstream understands it, so it is
+	// exchanged for the JWT of the user it belongs to. From here on the two
+	// kinds of credential are the same thing.
+	if !IsJWT(token) {
+		if a.exchanger == nil {
+			return ctx, Caller{}, fmt.Errorf("%w: mcp keys are not configured", jwt.ErrUnauthenticated)
+		}
+
+		exchanged, err := a.exchanger.Exchange(ctx, token)
+		if err != nil {
+			return ctx, Caller{}, err
+		}
+
+		token = exchanged
 	}
 
 	// The lib verifier reads the token from incoming gRPC metadata, which is
@@ -91,7 +155,10 @@ func (a *Authorizer) Authorize(ctx context.Context, token string, perms ...Permi
 
 	caller := Caller{Username: parsed.Username, UserID: parsed.UserID}
 
-	return withToken(ctx, token), caller, nil
+	ctx = WithCaller(withToken(ctx, token), caller)
+	ctx = context.WithValue(ctx, tokenContextKey, token)
+
+	return ctx, caller, nil
 }
 
 // Permission is a permission a tool requires from the caller's token.
@@ -108,6 +175,36 @@ func ReadEvents() Permission {
 // ReadSystemSettings is the permission required to read the detector list.
 func ReadSystemSettings() Permission {
 	return Permission{Type: jwt.PermissionSystemSettings, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// ReadRules is the permission required to list policy rules.
+func ReadRules() Permission {
+	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// CreateRules is the permission required to add a policy rule.
+func CreateRules() Permission {
+	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionCreate}}
+}
+
+// DeleteRules is the permission required to remove a policy rule.
+func DeleteRules() Permission {
+	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionDelete}}
+}
+
+// ReadAPITokens is the permission required to list the caller's API tokens.
+func ReadAPITokens() Permission {
+	return Permission{Type: jwt.PermissionPublicAccessTokens, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// CreateAPITokens is the permission required to issue an API token.
+func CreateAPITokens() Permission {
+	return Permission{Type: jwt.PermissionPublicAccessTokens, Actions: []jwt.Action{jwt.ActionCreate}}
+}
+
+// DeleteAPITokens is the permission required to revoke an API token.
+func DeleteAPITokens() Permission {
+	return Permission{Type: jwt.PermissionPublicAccessTokens, Actions: []jwt.Action{jwt.ActionDelete}}
 }
 
 // withToken attaches the token to outgoing gRPC metadata, mirroring what

@@ -28,6 +28,14 @@ env:
     value: "history-api:8000"
   - name: "EVENT_PROCESSOR_GRPC_ADDR"
     value: "event-processor:8000"
+  # Where the rule tools create and delete policy rules.
+  - name: "POLICY_ENFORCER_GRPC_ADDR"
+    value: "policy-enforcer:8000"
+  # Where the MCP keys issued in the interface are exchanged for a session of
+  # the user they belong to, and where the API token tools manage tokens. The
+  # scheme follows the deployment's TLS setting.
+  - name: "PUBLIC_API_URL"
+    value: '{{ printf "%s://public-api:9000" (include "common.cs.http-scheme" .) }}'
 serviceAccount:
   create: false
   # Annotations to add to the service account

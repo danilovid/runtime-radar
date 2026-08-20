@@ -16,6 +16,7 @@ import (
 	"github.com/runtime-radar/runtime-radar/lib/logger"
 	libmetrics "github.com/runtime-radar/runtime-radar/lib/metrics"
 	"github.com/runtime-radar/runtime-radar/lib/security"
+	"github.com/runtime-radar/runtime-radar/lib/security/cipher"
 	"github.com/runtime-radar/runtime-radar/lib/server/healthcheck"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/auth"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/build"
@@ -75,7 +76,31 @@ func main() {
 		}
 	}
 
-	clients, closeClients, err := client.New(cfg.HistoryAPIGRPCAddr, cfg.EventProcessorGRPCAddr, tlsConfig)
+	// With Public API configured, an agent may authenticate with an MCP key
+	// issued there instead of a session token; the key is exchanged for the
+	// short-lived JWT of the user it belongs to, and the tools managing API
+	// tokens are offered.
+	var publicAPI *client.PublicAPI
+
+	if cfg.PublicAPIURL != "" {
+		publicAPI = client.NewPublicAPI(cfg.PublicAPIURL, tlsConfig)
+
+		tokenKey, keyErr := cipher.ParseKey(cfg.TokenKey)
+		if keyErr != nil && cfg.Auth {
+			log.Fatal().Msgf("### Failed to parse token key: %v", keyErr)
+		}
+
+		exchanger, keyErr := auth.NewKeyExchanger(cfg.PublicAPIURL, tlsConfig, tokenKey)
+		if keyErr != nil {
+			log.Fatal().Msgf("### Failed to instantiate mcp key exchanger: %v", keyErr)
+		}
+
+		authorizer = authorizer.WithKeyExchanger(exchanger)
+
+		log.Info().Msgf("MCP keys are accepted, exchanged through %s", cfg.PublicAPIURL)
+	}
+
+	clients, closeClients, err := client.New(cfg.HistoryAPIGRPCAddr, cfg.EventProcessorGRPCAddr, cfg.PolicyEnforcerGRPCAddr, tlsConfig)
 	if err != nil {
 		log.Fatal().Msgf("### Failed to connect to gRPC services: %v", err)
 	}
@@ -98,6 +123,7 @@ func main() {
 	tools.Register(mcpServer, &tools.Deps{
 		Clients:     clients,
 		Docs:        index,
+		PublicAPI:   publicAPI,
 		Auth:        authorizer,
 		StaticToken: cfg.AuthToken,
 	})

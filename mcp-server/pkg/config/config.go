@@ -20,6 +20,8 @@ type Config struct {
 	AuthToken              string // jwt token to authenticate outgoing calls with when the client presents none
 	HistoryAPIGRPCAddr     string // History API address in host[:port] format
 	EventProcessorGRPCAddr string // Event Processor address in host[:port] format
+	PolicyEnforcerGRPCAddr string // Policy Enforcer address in host[:port] format
+	PublicAPIURL           string // Public API address in schema://host[:port] format, used to exchange MCP keys
 	DocsDir                string // directory to load product documentation from
 	ClusterName            string // cluster name to label metrics with
 }
@@ -40,6 +42,8 @@ func New() *Config {
 	flag.StringVar(&c.AuthToken, "authToken", config.LookupEnvString("AUTH_TOKEN", ""), "JWT token to authenticate outgoing calls with when a client presents none of its own: every call in stdio mode, and HTTP calls when auth is disabled. With auth enabled the HTTP transport always uses the caller's own token.")
 	flag.StringVar(&c.HistoryAPIGRPCAddr, "historyAPIGRPCAddr", config.LookupEnvString("HISTORY_API_GRPC_ADDR", "127.0.0.1:8000"), "History API gRPC address in host[:port] format.")
 	flag.StringVar(&c.EventProcessorGRPCAddr, "eventProcessorGRPCAddr", config.LookupEnvString("EVENT_PROCESSOR_GRPC_ADDR", "127.0.0.1:8000"), "Event Processor gRPC address in host[:port] format.")
+	flag.StringVar(&c.PolicyEnforcerGRPCAddr, "policyEnforcerGRPCAddr", config.LookupEnvString("POLICY_ENFORCER_GRPC_ADDR", "127.0.0.1:8000"), "Policy Enforcer gRPC address in host[:port] format.")
+	flag.StringVar(&c.PublicAPIURL, "publicAPIURL", config.LookupEnvString("PUBLIC_API_URL", ""), "Public API address in schema://host[:port] format. Set it to accept the MCP keys issued there in addition to the product's own tokens, and to manage API tokens through the tools.")
 	flag.StringVar(&c.DocsDir, "docsDir", config.LookupEnvString("DOCS_DIR", "docs"), "Set directory to load product documentation (*.md) from.")
 	flag.StringVar(&c.ClusterName, "clusterName", config.LookupEnvString("CLUSTER_NAME", ""), "Set cluster name to label metrics with.")
 

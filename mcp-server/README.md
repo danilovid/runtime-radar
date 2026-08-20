@@ -1,9 +1,10 @@
 # MCP Server
 
-MCP Server exposes Runtime Radar's data to AI agents over the
-[Model Context Protocol](https://modelcontextprotocol.io), **read-only**. It is a thin wrapper over the product's own
-gRPC APIs: it never writes anything, never blocks a process and never kills a pod. Whatever a model concludes from it
-is advisory and has to be confirmed by a human.
+MCP Server exposes Runtime Radar to AI agents over the
+[Model Context Protocol](https://modelcontextprotocol.io). It is a thin wrapper over the product's own APIs: most of
+its tools only read, and the few that write are limited to policy rules and API tokens — the server never blocks a
+process and never kills a pod itself. Whatever a model concludes from the data is advisory and has to be confirmed by
+a human, and the write tools are to be called only after the user agreed to the change in their own words.
 
 It is built on the official [Go SDK](https://github.com/modelcontextprotocol/go-sdk) and speaks two transports:
 Streamable HTTP (the one to deploy) and stdio (for local debugging).
@@ -17,7 +18,23 @@ Streamable HTTP (the one to deploy) and stdio (for local debugging).
 | `get_process_context` | Returns what else the same process, its parent and its children did around an event. | `events: read` |
 | `list_detectors` | Lists the detectors installed in Event Processor and what they look for. | `system_settings: read` |
 | `get_runtime_stats` | Counts events in a time window, with a breakdown by event type. | `events: read` |
+| `list_rules` | Lists the policy rules: what they block or notify about, what they whitelist, which workloads they cover. | `rules: read` |
+| `list_api_tokens` | Lists the caller's own API tokens, without their secrets. | `public_access_tokens: read` |
 | `search_docs` | Full-text search over the product documentation shipped inside the image. | a valid token |
+
+These tools change the product. They are annotated `readOnlyHint: false`, their descriptions say so in capitals, and
+an MCP client is expected to ask the user before running them — Runtime Radar's own assistant does, see
+[Write tools](#write-tools).
+
+| Tool | What it does | Permission required |
+| --- | --- | --- |
+| `create_rule` | Creates a policy rule: block and/or notify severity, notification targets, whitelist, scope. | `rules: create` |
+| `delete_rule` | Deletes a policy rule by identifier. | `rules: delete` |
+| `create_api_token` | Issues a public API token for the caller and returns its secret once. | `public_access_tokens: create` |
+| `delete_api_token` | Revokes one of the caller's API tokens. | `public_access_tokens: delete` |
+
+`create_api_token` and `delete_api_token` are only registered when `PUBLIC_API_URL` is set, since Public API is where
+tokens live. A tool that cannot work is worse than a missing one: a model will still try it.
 
 Every response is bounded on purpose:
 
@@ -32,6 +49,24 @@ that leaves the service, the same way `notifier/pkg/ai` masks it before sending 
 `list_detectors` reports no severity: severity is not a property of a detector, it is assigned per detection and comes
 back with every threat in `search_runtime_events` and `get_runtime_event`. MITRE ATT&CK identifiers are listed only
 when a detector's author put them in its description, since the product carries no ATT&CK mapping of its own.
+
+## Write tools
+
+A write tool acts with the permissions of whoever authenticated the session, and Public API and Policy Enforcer record
+the change in their audit log under that person's name. The permissions come from the caller's role intersected with
+those of the credential they used, so an MCP key issued for reading events cannot create a rule no matter what the
+model asks for.
+
+That is authorisation, not consent. Consent is the client's job, and Runtime Radar's own assistant implements it: the
+agent loop in `notifier/pkg/assistant` never runs a tool whose `readOnlyHint` is false. It stops, describes the call
+to the user, and runs it only after they pressed the button — see `notifier/README.md`. A third-party client such as
+Claude Code or OpenCode has its own approval flow; the tool descriptions and the server instructions tell it, in
+capitals, to use it.
+
+`create_api_token` returns the token's secret in a `secret` field of its result, once — Public API stores only a hash,
+so it cannot be shown again. The field carries a note saying that it is to be shown to the user and never repeated;
+Runtime Radar's assistant strips it out before the conversation reaches the model, so that the credential is never
+sent to an LLM provider.
 
 ## Untrusted data
 
@@ -52,6 +87,8 @@ Configuration comes from environment variables and flags, as in every other serv
 | `STDIO` | `-stdio` | `false` | Serve over stdin/stdout instead of HTTP. Local debugging only. |
 | `HISTORY_API_GRPC_ADDR` | `-historyAPIGRPCAddr` | `127.0.0.1:8000` | History API gRPC address. |
 | `EVENT_PROCESSOR_GRPC_ADDR` | `-eventProcessorGRPCAddr` | `127.0.0.1:8000` | Event Processor gRPC address. |
+| `POLICY_ENFORCER_GRPC_ADDR` | `-policyEnforcerGRPCAddr` | `127.0.0.1:8000` | Policy Enforcer gRPC address, used by the rule tools. |
+| `PUBLIC_API_URL` | `-publicAPIURL` | | Public API address, `scheme://host[:port]`. Set it to accept MCP keys and to offer the API token tools. |
 | `AUTH` | `-auth` | `false` | Verify JWT tokens of MCP clients. |
 | `TOKEN_KEY` | `-tokenKey` | | Hex-encoded key the tokens are signed with, the same one the other services use. |
 | `AUTH_TOKEN` | `-authToken` | | Token for outgoing calls when the client presents none of its own: every call in stdio mode, and HTTP calls when auth is disabled. |
@@ -117,6 +154,49 @@ In `claude_desktop_config.json`:
       "headers": {
         "Authorization": "Bearer <access_token>"
       }
+    }
+  }
+}
+```
+
+### OpenCode
+
+In `opencode.json` of a project, or globally in `~/.config/opencode/opencode.jsonc`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "runtime-radar": {
+      "type": "remote",
+      "url": "https://runtime-radar.example/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:RUNTIME_RADAR_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+`oauth: false` matters: this server answers an unauthenticated request with `401` and a
+`WWW-Authenticate: Bearer` header, and without that flag OpenCode would try to discover an OAuth
+provider that does not exist here. `{env:...}` keeps the token out of a file that is committed with
+the project.
+
+OpenCode can also run the server itself over stdio, which is what the local flow below is for:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "runtime-radar": {
+      "type": "local",
+      "command": ["/path/to/mcp-server", "-stdio", "-docsDir", "/path/to/docs",
+                  "-historyAPIGRPCAddr", "localhost:8003",
+                  "-eventProcessorGRPCAddr", "localhost:8002"],
+      "enabled": true
     }
   }
 }

@@ -31,7 +31,7 @@ func (a *AccessTokenLogging) Create(ctx context.Context, req *model.CreateAccess
 	return
 }
 
-func (a *AccessTokenLogging) ListPage(ctx context.Context, pageNum, pageSize int, order string) (ts []*model.AccessTokenResp, total int, err error) {
+func (a *AccessTokenLogging) ListPage(ctx context.Context, pageNum, pageSize int, order string, kind model.TokenKind) (ts []*model.AccessTokenResp, total int, err error) {
 	defer func(t0 time.Time) {
 		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
 
@@ -45,7 +45,7 @@ func (a *AccessTokenLogging) ListPage(ctx context.Context, pageNum, pageSize int
 			Msg("Called AccessToken.ListPage")
 	}(time.Now())
 
-	ts, total, err = a.AccessToken.ListPage(ctx, pageNum, pageSize, order)
+	ts, total, err = a.AccessToken.ListPage(ctx, pageNum, pageSize, order, kind)
 	return
 }
 

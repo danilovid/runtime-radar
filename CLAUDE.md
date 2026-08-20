@@ -36,12 +36,18 @@ Auth: auth-center (JWT). Мультикластер: cluster-manager + cs-manage
   в libs/features/runtime/.../explain-event-modal.
 
 ## MCP-сервер (после PR #2)
-- mcp-server — отдельный сервис: read-only доступ к данным для внешних AI-агентов по
+- mcp-server — отдельный сервис: доступ к данным для внешних AI-агентов по
   Model Context Protocol (github.com/modelcontextprotocol/go-sdk). Транспорты: Streamable
   HTTP (маршрут /mcp* в reverse-proxy) и stdio (флаг -stdio, локальная отладка).
-- Инструменты в mcp-server/pkg/tools: search_runtime_events, get_runtime_event,
-  get_process_context, list_detectors, get_runtime_stats, search_docs. Все обёртки над
-  gRPC history-api/event-processor; ответы компактные и обрезанные (pkg/tools/compact.go).
+- Read-only инструменты в mcp-server/pkg/tools: search_runtime_events, get_runtime_event,
+  get_process_context, list_detectors, get_runtime_stats, list_rules, list_api_tokens,
+  search_docs. Обёртки над gRPC history-api/event-processor/policy-enforcer и REST
+  public-api; ответы компактные и обрезанные (pkg/tools/compact.go).
+- Write-инструменты (annotations.readOnlyHint=false): create_rule, delete_rule,
+  create_api_token, delete_api_token. Права берутся из токена вызывающего, аудит — на
+  стороне policy-enforcer/public-api. Токены регистрируются только при PUBLIC_API_URL.
+- Секрет нового API-токена возвращается в поле secret результата: ассистент вырезает его
+  до отправки модели (см. notifier/README.md).
 - Auth: JWT из заголовка Authorization проверяется и пробрасывается в исходящие gRPC-вызовы
   (mcp-server/pkg/auth), чтобы работали RBAC и аудит вызываемых сервисов.
 - Образ собирается из корня репозитория (в него копируется docs/**/*.md для search_docs).
@@ -60,9 +66,17 @@ Auth: auth-center (JWT). Мультикластер: cluster-manager + cs-manage
   (плавающая панель в app.container, видна только при наличии AI-интеграции),
   «Спросить ассистента» на странице события. Словарь i18n — assistant.json, грузится
   в DEFAULT_TRANSLATION_DICTS.
-- Вне скоупа и намеренно не сделано: write-действия с подтверждением, персист истории,
-  RAG сверх search_docs. Точки расширения помечены комментариями в pkg/assistant/assistant.go
-  (runTool) и в assistant-message.interface.ts.
+- Write-действия: цикл никогда не вызывает инструмент с readOnlyHint=false сам. Он шлёт
+  чанк confirmation (id, tool, аргументы как есть), останавливает ход со stop_reason
+  confirmation_required, и выполняет ровно этот сохранённый вызов, когда клиент пришлёт
+  confirm_id (TTL 10 минут, один раз, только той же сессии). См. pkg/assistant/confirm.go.
+- Режимы (поле mode в ChatReq): chat, explain (объяснение события), digest (сводка за
+  период), support (помощь с обращением в поддержку). Режим меняет только промпт.
+- UI: виджет всегда на экране — свёрнутый это строка ввода (assistant-dock), развёрнутый
+  панель. Кнопки «Объяснить событие» и «Сводка за неделю» открывают панель в своём режиме,
+  «Сообщить о проблеме» — режим support; готовое обращение приходит блоком support-request
+  и превращается в mailto (адрес — SUPPORT_EMAIL из environment).
+- Вне скоупа и намеренно не сделано: персист истории, RAG сверх search_docs.
 
 ## Правила безопасности (обязательны для всего AI-кода)
 - Данные событий (аргументы процессов, пути) — недоверенные, контролируются атакующим:

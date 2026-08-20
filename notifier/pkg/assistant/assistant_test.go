@@ -139,6 +139,8 @@ func searchDocsBox() *fakeToolBox {
 			Name:        toolSearchDocs,
 			Description: "Search the product documentation.",
 			InputSchema: map[string]any{"type": "object"},
+			Title:       "Search the documentation",
+			ReadOnly:    true,
 		}},
 		results: map[string]string{
 			toolSearchDocs: `{"matches":[{"path":"quickstart.md","fragment":"Create a rule in Response rules."}]}`,
@@ -271,7 +273,7 @@ func TestRunEventContext(t *testing.T) {
 	}}
 
 	box := searchDocsBox()
-	box.tools = append(box.tools, ai.Tool{Name: "get_runtime_event", InputSchema: map[string]any{"type": "object"}})
+	box.tools = append(box.tools, ai.Tool{Name: "get_runtime_event", InputSchema: map[string]any{"type": "object"}, ReadOnly: true})
 	box.results["get_runtime_event"] = `{"id":"` + eventID + `","binary":"/bin/sh"}`
 
 	runner := NewRunner(box, DefaultMaxIterations, DefaultTimeout, DefaultMaxConcurrentChats)
@@ -508,7 +510,7 @@ func TestValidateConversation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateConversation(tc.conversation)
+			err := validateConversation(tc.conversation, true)
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("error = %v, wantErr = %v", err, tc.wantErr)
 			}
@@ -525,4 +527,28 @@ func TestRunRejectsAnInvalidConversation(t *testing.T) {
 	if !errors.Is(err, ErrNoUserMessage) {
 		t.Fatalf("error = %v, want ErrNoUserMessage", err)
 	}
+}
+
+// clock is a hand-wound time source for the tests that care about expiry.
+type clock struct {
+	mu      sync.Mutex
+	current time.Time
+}
+
+func testClock() *clock {
+	return &clock{current: time.Date(2026, 8, 20, 12, 0, 0, 0, time.UTC)}
+}
+
+func (c *clock) now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.current
+}
+
+func (c *clock) advance(d time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.current = c.current.Add(d)
 }

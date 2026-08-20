@@ -34,7 +34,16 @@ type ChatReq struct {
 	// Optional identifier of a runtime event the question is about. The event
 	// itself is never taken from the client: the assistant reads it through the
 	// tools, so that what the model sees is what the system recorded.
-	EventId       *string `protobuf:"bytes,3,opt,name=event_id,json=eventId,proto3,oneof" json:"event_id,omitempty"`
+	EventId *string `protobuf:"bytes,3,opt,name=event_id,json=eventId,proto3,oneof" json:"event_id,omitempty"`
+	// What the assistant is being asked to do: "chat" (the default), "explain"
+	// for one runtime event, "digest" for a summary of a period, or "support"
+	// to help the user write a support request. The mode only selects the
+	// instructions the assistant is given; it never widens what it may do.
+	Mode *string `protobuf:"bytes,4,opt,name=mode,proto3,oneof" json:"mode,omitempty"`
+	// Approval of a tool call the assistant asked about in the previous turn,
+	// carrying the identifier from that Confirmation. It is the only way a tool
+	// that changes anything is ever run.
+	ConfirmId     *string `protobuf:"bytes,5,opt,name=confirm_id,json=confirmId,proto3,oneof" json:"confirm_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -86,6 +95,20 @@ func (x *ChatReq) GetConversation() []*ChatMessage {
 func (x *ChatReq) GetEventId() string {
 	if x != nil && x.EventId != nil {
 		return *x.EventId
+	}
+	return ""
+}
+
+func (x *ChatReq) GetMode() string {
+	if x != nil && x.Mode != nil {
+		return *x.Mode
+	}
+	return ""
+}
+
+func (x *ChatReq) GetConfirmId() string {
+	if x != nil && x.ConfirmId != nil {
+		return *x.ConfirmId
 	}
 	return ""
 }
@@ -153,6 +176,8 @@ type ChatChunk struct {
 	//	*ChatChunk_Delta
 	//	*ChatChunk_ToolActivity
 	//	*ChatChunk_Done
+	//	*ChatChunk_Confirmation
+	//	*ChatChunk_Secret
 	Chunk         isChatChunk_Chunk `protobuf_oneof:"chunk"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -222,6 +247,24 @@ func (x *ChatChunk) GetDone() *Done {
 	return nil
 }
 
+func (x *ChatChunk) GetConfirmation() *Confirmation {
+	if x != nil {
+		if x, ok := x.Chunk.(*ChatChunk_Confirmation); ok {
+			return x.Confirmation
+		}
+	}
+	return nil
+}
+
+func (x *ChatChunk) GetSecret() *Secret {
+	if x != nil {
+		if x, ok := x.Chunk.(*ChatChunk_Secret); ok {
+			return x.Secret
+		}
+	}
+	return nil
+}
+
 type isChatChunk_Chunk interface {
 	isChatChunk_Chunk()
 }
@@ -241,11 +284,28 @@ type ChatChunk_Done struct {
 	Done *Done `protobuf:"bytes,3,opt,name=done,proto3,oneof"`
 }
 
+type ChatChunk_Confirmation struct {
+	// confirmation asks the user to approve a tool that would change the
+	// product. The answer stops there until they do.
+	Confirmation *Confirmation `protobuf:"bytes,4,opt,name=confirmation,proto3,oneof"`
+}
+
+type ChatChunk_Secret struct {
+	// secret carries a credential an approved tool produced. It is delivered
+	// to the user and deliberately kept out of the conversation the model
+	// sees, so that it never reaches an LLM provider.
+	Secret *Secret `protobuf:"bytes,5,opt,name=secret,proto3,oneof"`
+}
+
 func (*ChatChunk_Delta) isChatChunk_Chunk() {}
 
 func (*ChatChunk_ToolActivity) isChatChunk_Chunk() {}
 
 func (*ChatChunk_Done) isChatChunk_Chunk() {}
+
+func (*ChatChunk_Confirmation) isChatChunk_Chunk() {}
+
+func (*ChatChunk_Secret) isChatChunk_Chunk() {}
 
 type ToolActivity struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -311,10 +371,161 @@ func (x *ToolActivity) GetError() string {
 	return ""
 }
 
+// Confirmation is a tool call the assistant wants to make and may not make on
+// its own: it would create, change or delete something in the product.
+type Confirmation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Identifier to send back as confirm_id to approve this exact call. It is
+	// valid for a few minutes, once, and only for the user it was issued to.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Name of the tool, for example create_rule.
+	Tool string `protobuf:"bytes,2,opt,name=tool,proto3" json:"tool,omitempty"`
+	// Human readable title of the tool, as the MCP server named it.
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// The arguments the tool would be called with, as pretty-printed JSON. They
+	// come from the model, so the user is shown exactly what would be sent.
+	Arguments string `protobuf:"bytes,4,opt,name=arguments,proto3" json:"arguments,omitempty"`
+	// destructive is set when the call removes something rather than adds it.
+	Destructive   bool `protobuf:"varint,5,opt,name=destructive,proto3" json:"destructive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Confirmation) Reset() {
+	*x = Confirmation{}
+	mi := &file_assistant_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Confirmation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Confirmation) ProtoMessage() {}
+
+func (x *Confirmation) ProtoReflect() protoreflect.Message {
+	mi := &file_assistant_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Confirmation.ProtoReflect.Descriptor instead.
+func (*Confirmation) Descriptor() ([]byte, []int) {
+	return file_assistant_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Confirmation) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Confirmation) GetTool() string {
+	if x != nil {
+		return x.Tool
+	}
+	return ""
+}
+
+func (x *Confirmation) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Confirmation) GetArguments() string {
+	if x != nil {
+		return x.Arguments
+	}
+	return ""
+}
+
+func (x *Confirmation) GetDestructive() bool {
+	if x != nil {
+		return x.Destructive
+	}
+	return false
+}
+
+// Secret is a credential produced by an approved tool call. It is shown once:
+// the product stores only a hash of it.
+type Secret struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What the secret is, for example "API token ci-bot".
+	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	// The secret itself.
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	// How the secret is to be handled.
+	Note          string `protobuf:"bytes,3,opt,name=note,proto3" json:"note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Secret) Reset() {
+	*x = Secret{}
+	mi := &file_assistant_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Secret) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Secret) ProtoMessage() {}
+
+func (x *Secret) ProtoReflect() protoreflect.Message {
+	mi := &file_assistant_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Secret.ProtoReflect.Descriptor instead.
+func (*Secret) Descriptor() ([]byte, []int) {
+	return file_assistant_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Secret) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *Secret) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+func (x *Secret) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
 type Done struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// stop_reason is "end_turn" when the assistant finished on its own,
-	// "max_iterations" when the agent loop ran out of steps, or "error".
+	// "confirmation_required" when it is waiting for the user to approve a tool
+	// call, "max_iterations" when the agent loop ran out of steps, or "error".
 	StopReason string `protobuf:"bytes,1,opt,name=stop_reason,json=stopReason,proto3" json:"stop_reason,omitempty"`
 	// error is set when stop_reason is "error".
 	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
@@ -326,7 +537,7 @@ type Done struct {
 
 func (x *Done) Reset() {
 	*x = Done{}
-	mi := &file_assistant_proto_msgTypes[4]
+	mi := &file_assistant_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -338,7 +549,7 @@ func (x *Done) String() string {
 func (*Done) ProtoMessage() {}
 
 func (x *Done) ProtoReflect() protoreflect.Message {
-	mi := &file_assistant_proto_msgTypes[4]
+	mi := &file_assistant_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -351,7 +562,7 @@ func (x *Done) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Done.ProtoReflect.Descriptor instead.
 func (*Done) Descriptor() ([]byte, []int) {
-	return file_assistant_proto_rawDescGZIP(), []int{4}
+	return file_assistant_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Done) GetStopReason() string {
@@ -379,24 +590,41 @@ var File_assistant_proto protoreflect.FileDescriptor
 
 const file_assistant_proto_rawDesc = "" +
 	"\n" +
-	"\x0fassistant.proto\x12\tassistant\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\x99\x01\n" +
+	"\x0fassistant.proto\x12\tassistant\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xee\x01\n" +
 	"\aChatReq\x12%\n" +
 	"\x0eintegration_id\x18\x01 \x01(\tR\rintegrationId\x12:\n" +
 	"\fconversation\x18\x02 \x03(\v2\x16.assistant.ChatMessageR\fconversation\x12\x1e\n" +
-	"\bevent_id\x18\x03 \x01(\tH\x00R\aeventId\x88\x01\x01B\v\n" +
-	"\t_event_id\";\n" +
+	"\bevent_id\x18\x03 \x01(\tH\x00R\aeventId\x88\x01\x01\x12\x17\n" +
+	"\x04mode\x18\x04 \x01(\tH\x01R\x04mode\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"confirm_id\x18\x05 \x01(\tH\x02R\tconfirmId\x88\x01\x01B\v\n" +
+	"\t_event_idB\a\n" +
+	"\x05_modeB\r\n" +
+	"\v_confirm_id\";\n" +
 	"\vChatMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"\x93\x01\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"\xff\x01\n" +
 	"\tChatChunk\x12\x16\n" +
 	"\x05delta\x18\x01 \x01(\tH\x00R\x05delta\x12>\n" +
 	"\rtool_activity\x18\x02 \x01(\v2\x17.assistant.ToolActivityH\x00R\ftoolActivity\x12%\n" +
-	"\x04done\x18\x03 \x01(\v2\x0f.assistant.DoneH\x00R\x04doneB\a\n" +
+	"\x04done\x18\x03 \x01(\v2\x0f.assistant.DoneH\x00R\x04done\x12=\n" +
+	"\fconfirmation\x18\x04 \x01(\v2\x17.assistant.ConfirmationH\x00R\fconfirmation\x12+\n" +
+	"\x06secret\x18\x05 \x01(\v2\x11.assistant.SecretH\x00R\x06secretB\a\n" +
 	"\x05chunk\"N\n" +
 	"\fToolActivity\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05phase\x18\x02 \x01(\tR\x05phase\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error\"]\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"\x88\x01\n" +
+	"\fConfirmation\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04tool\x18\x02 \x01(\tR\x04tool\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x1c\n" +
+	"\targuments\x18\x04 \x01(\tR\targuments\x12 \n" +
+	"\vdestructive\x18\x05 \x01(\bR\vdestructive\"H\n" +
+	"\x06Secret\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\x12\x12\n" +
+	"\x04note\x18\x03 \x01(\tR\x04note\"]\n" +
 	"\x04Done\x12\x1f\n" +
 	"\vstop_reason\x18\x01 \x01(\tR\n" +
 	"stopReason\x12\x14\n" +
@@ -420,25 +648,29 @@ func file_assistant_proto_rawDescGZIP() []byte {
 	return file_assistant_proto_rawDescData
 }
 
-var file_assistant_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_assistant_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_assistant_proto_goTypes = []any{
 	(*ChatReq)(nil),      // 0: assistant.ChatReq
 	(*ChatMessage)(nil),  // 1: assistant.ChatMessage
 	(*ChatChunk)(nil),    // 2: assistant.ChatChunk
 	(*ToolActivity)(nil), // 3: assistant.ToolActivity
-	(*Done)(nil),         // 4: assistant.Done
+	(*Confirmation)(nil), // 4: assistant.Confirmation
+	(*Secret)(nil),       // 5: assistant.Secret
+	(*Done)(nil),         // 6: assistant.Done
 }
 var file_assistant_proto_depIdxs = []int32{
 	1, // 0: assistant.ChatReq.conversation:type_name -> assistant.ChatMessage
 	3, // 1: assistant.ChatChunk.tool_activity:type_name -> assistant.ToolActivity
-	4, // 2: assistant.ChatChunk.done:type_name -> assistant.Done
-	0, // 3: assistant.AssistantController.Chat:input_type -> assistant.ChatReq
-	2, // 4: assistant.AssistantController.Chat:output_type -> assistant.ChatChunk
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 2: assistant.ChatChunk.done:type_name -> assistant.Done
+	4, // 3: assistant.ChatChunk.confirmation:type_name -> assistant.Confirmation
+	5, // 4: assistant.ChatChunk.secret:type_name -> assistant.Secret
+	0, // 5: assistant.AssistantController.Chat:input_type -> assistant.ChatReq
+	2, // 6: assistant.AssistantController.Chat:output_type -> assistant.ChatChunk
+	6, // [6:7] is the sub-list for method output_type
+	5, // [5:6] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_assistant_proto_init() }
@@ -451,6 +683,8 @@ func file_assistant_proto_init() {
 		(*ChatChunk_Delta)(nil),
 		(*ChatChunk_ToolActivity)(nil),
 		(*ChatChunk_Done)(nil),
+		(*ChatChunk_Confirmation)(nil),
+		(*ChatChunk_Secret)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -458,7 +692,7 @@ func file_assistant_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_assistant_proto_rawDesc), len(file_assistant_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

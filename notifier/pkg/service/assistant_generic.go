@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 
 	"github.com/google/uuid"
@@ -28,7 +29,9 @@ const (
 )
 
 // AssistantGeneric answers chat questions with the model of an AI integration,
-// driving the read-only tools of MCP Server.
+// driving the tools of MCP Server. The tools that change the product are only
+// run once the client sends back the approval identifier the assistant asked
+// for, which is what confirm_id carries.
 type AssistantGeneric struct {
 	api.UnimplementedAssistantControllerServer
 
@@ -58,10 +61,17 @@ func (ag *AssistantGeneric) Chat(req *api.ChatReq, stream api.AssistantControlle
 		return err
 	}
 
+	confirmID, err := validateConfirmID(req.GetConfirmId())
+	if err != nil {
+		return err
+	}
+
 	runErr := ag.Runner.Run(ctx, assistant.Request{
 		Client:        client,
 		Conversation:  conversation,
 		EventID:       eventID,
+		Mode:          assistant.ParseMode(req.GetMode()),
+		ConfirmID:     confirmID,
 		Authorization: authorizationFromContext(ctx),
 	}, func(chunk assistant.Chunk) error {
 		return stream.Send(convertChunk(chunk))
@@ -148,6 +158,21 @@ func convertConversation(messages []*api.ChatMessage) ([]ai.Message, error) {
 	return converted, nil
 }
 
+// validateConfirmID checks the approval identifier before it is looked up. The
+// runner issues hex identifiers, so anything else is a client error rather than
+// a lookup that would fail anyway.
+func validateConfirmID(confirmID string) (string, error) {
+	if confirmID == "" {
+		return "", nil
+	}
+
+	if _, err := hex.DecodeString(confirmID); err != nil {
+		return "", status.Error(codes.InvalidArgument, "can't parse confirmation ID")
+	}
+
+	return confirmID, nil
+}
+
 // validateEventID checks the event reference before it reaches a prompt. It is
 // a UUID or nothing: free text here would be a way to write instructions into
 // the assistant's context.
@@ -165,6 +190,22 @@ func validateEventID(eventID string) (string, error) {
 
 func convertChunk(chunk assistant.Chunk) *api.ChatChunk {
 	switch {
+	case chunk.Confirmation != nil:
+		return &api.ChatChunk{Chunk: &api.ChatChunk_Confirmation{Confirmation: &api.Confirmation{
+			Id:          chunk.Confirmation.ID,
+			Tool:        chunk.Confirmation.Tool,
+			Title:       chunk.Confirmation.Title,
+			Arguments:   chunk.Confirmation.Arguments,
+			Destructive: chunk.Confirmation.Destructive,
+		}}}
+
+	case chunk.Secret != nil:
+		return &api.ChatChunk{Chunk: &api.ChatChunk_Secret{Secret: &api.Secret{
+			Label: chunk.Secret.Label,
+			Value: chunk.Secret.Value,
+			Note:  chunk.Secret.Note,
+		}}}
+
 	case chunk.Tool != nil:
 		return &api.ChatChunk{Chunk: &api.ChatChunk_ToolActivity{ToolActivity: &api.ToolActivity{
 			Name:  chunk.Tool.Name,
