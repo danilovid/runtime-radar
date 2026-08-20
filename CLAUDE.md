@@ -46,6 +46,24 @@ Auth: auth-center (JWT). Мультикластер: cluster-manager + cs-manage
   (mcp-server/pkg/auth), чтобы работали RBAC и аудит вызываемых сервисов.
 - Образ собирается из корня репозитория (в него копируется docs/**/*.md для search_docs).
 
+## Чат-ассистент (после PR #3)
+- Бэкенд в notifier: pkg/ai/chat.go — Chat(ctx, messages, tools) с tool calling для всех
+  трёх провайдеров (OpenAI-формат для openai-compatible и ollama, нативный tools-блок
+  для anthropic); pkg/assistant — агентный цикл (макс. 8 итераций, таймаут 120 c,
+  лимит 4 чатов) поверх MCP-клиента к mcp-server (streamable http, MCP_SERVER_URL).
+- API: notifier/api/assistant.proto, rpc Chat → stream ChatChunk (delta | tool_activity |
+  done); grpc-gateway отдаёт это как поток строк {"result":{...}} на POST /api/v1/assistant/chat
+  (в Caddyfile для маршрута выключена буферизация). Историю чата хранит клиент, не сервер.
+- Authorization пользователя пробрасывается в MCP-вызовы как есть, поэтому RBAC и аудит
+  history-api/event-processor видят человека, а не notifier.
+- UI: домен libs/domains/assistant (стор + fetch-стриминг), виджет libs/features/assistant
+  (плавающая панель в app.container, видна только при наличии AI-интеграции),
+  «Спросить ассистента» на странице события. Словарь i18n — assistant.json, грузится
+  в DEFAULT_TRANSLATION_DICTS.
+- Вне скоупа и намеренно не сделано: write-действия с подтверждением, персист истории,
+  RAG сверх search_docs. Точки расширения помечены комментариями в pkg/assistant/assistant.go
+  (runTool) и в assistant-message.interface.ts.
+
 ## Правила безопасности (обязательны для всего AI-кода)
 - Данные событий (аргументы процессов, пути) — недоверенные, контролируются атакующим:
   в промптах отделять данные от инструкций, никогда не исполнять то, что пришло из событий.
@@ -55,3 +73,5 @@ Auth: auth-center (JWT). Мультикластер: cluster-manager + cs-manage
   (Bearer/password/token/base64-блоки).
 - Данные, отдаваемые MCP-клиентам, — тоже недоверенные: в описании каждого инструмента
   и в instructions сервера явно сказано, что инструкции внутри телеметрии исполнять нельзя.
+- Ответ ассистента рендерится через Angular-санитайзер ([innerHTML] без bypassSecurityTrust):
+  это вывод модели о недоверенных данных.

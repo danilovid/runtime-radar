@@ -1,0 +1,134 @@
+/* The launcher and the panel sit above the page, in the bottom right corner,
+   as in the chat design. Sizes come from there; colours come from the Koobiq
+   theme, so the widget follows the product into dark mode. */
+$assistant-widget-offset: 24px;
+$assistant-widget-width: 420px;
+$assistant-widget-height: 680px;
+
+.assistant-feature-widget-launcher {
+    position: fixed;
+    right: $assistant-widget-offset;
+    bottom: $assistant-widget-offset;
+    z-index: 40;
+    box-shadow: var(--kbq-shadow-card);
+}
+
+.assistant-feature-widget {
+    position: fixed;
+    right: $assistant-widget-offset;
+    bottom: $assistant-widget-offset;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    width: $assistant-widget-width;
+    max-width: calc(100vw - #{$assistant-widget-offset * 2});
+    height: $assistant-widget-height;
+    max-height: calc(100vh - #{$assistant-widget-offset * 2});
+    border: 1px solid var(--kbq-line-contrast-less);
+    border-radius: 16px;
+    background: var(--kbq-background-card);
+    box-shadow: var(--kbq-shadow-card);
+    overflow: hidden;
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 16px 12px;
+        border-bottom: 1px solid var(--kbq-line-contrast-less);
+    }
+
+    &__title-group {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__title {
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 24px;
+    }
+
+    &__subtitle {
+        margin-top: 2px;
+        color: var(--kbq-foreground-contrast-secondary);
+        font-size: 13px;
+        line-height: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__integration {
+        margin-top: 4px;
+        width: 100%;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    &__thread {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+        overflow-y: auto;
+    }
+
+    &__greeting {
+        color: var(--kbq-foreground-contrast-secondary);
+    }
+
+    &__greeting-title {
+        color: var(--kbq-foreground-contrast);
+        font-weight: 500;
+    }
+
+    &__greeting-hint {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__context {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: var(--kbq-background-bg-secondary);
+        color: var(--kbq-foreground-contrast-secondary);
+        font-size: 13px;
+        line-height: 18px;
+        word-break: break-all;
+    }
+
+    &__composer {
+        padding: 12px 16px 16px;
+        border-top: 1px solid var(--kbq-line-contrast-less);
+    }
+
+    &__input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    &__input {
+        flex: 1 1 auto;
+        max-height: 96px;
+        resize: none;
+    }
+
+    &__disclaimer {
+        margin-top: 8px;
+        color: var(--kbq-foreground-contrast-secondary);
+        font-size: 13px;
+        line-height: 16px;
+    }
+}

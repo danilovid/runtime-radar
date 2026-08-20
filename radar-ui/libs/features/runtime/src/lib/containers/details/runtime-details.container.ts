@@ -20,6 +20,7 @@ import { IModalOptionsForService, KbqModalService, ModalSize } from '@koobiq/com
 import { KbqSidepanelConfig, KbqSidepanelPosition, KbqSidepanelService } from '@koobiq/components/sidepanel';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
+import { AssistantStoreService } from '@cs/domains/assistant';
 import { I18nService } from '@cs/i18n';
 import {
     GetRuntimeEventsResponse,
@@ -176,6 +177,7 @@ export class RuntimeFeatureDetailsContainer {
     expandErrorsLimit: number | undefined = RUNTIME_DETAILS_LIST_ITEMS_LIMIT;
 
     constructor(
+        private readonly assistantStoreService: AssistantStoreService,
         private readonly modalService: KbqModalService,
         private readonly sidepanelService: KbqSidepanelService,
         private readonly dateAdapter: DateAdapter<DateTime>,
@@ -268,6 +270,15 @@ export class RuntimeFeatureDetailsContainer {
         };
 
         this.modalService.open(config);
+    }
+
+    /**
+     * Opens the chat assistant with this event attached and asks about it. The
+     * event itself is not handed over: the assistant reads it through its own
+     * read-only tools, so the model sees what the system recorded.
+     */
+    askAssistant(event: RuntimeEvent) {
+        this.assistantStoreService.open(event.id, this.i18nService.translate('Runtime.DetailsPage.Text.AskAssistant'));
     }
 
     expandThreats() {

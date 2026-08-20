@@ -141,7 +141,7 @@ services:
         condition: service_healthy
     environment:
       - ENCRYPTION_KEY=f5f3c6ac672c0e4ba49a41c96fad2cb4cb4fa2464836cada5a331847099181de
-    command: --postgresAddr=postgres --policyEnforcerGRPCAddr=policy-enforcer:8000 --historyAPIGRPCAddr=history-api:8000 --logLevel=INFO
+    command: --postgresAddr=postgres --policyEnforcerGRPCAddr=policy-enforcer:8000 --historyAPIGRPCAddr=history-api:8000 --mcpServerURL=http://mcp-server:9000/mcp --logLevel=INFO
     networks:
       - local
 

@@ -175,6 +175,8 @@
 
     "Runtime.DetailsPage.Header.Title": "Event",
     "Runtime.DetailsPage.Button.ExplainEvent": "Explain event",
+    "Runtime.DetailsPage.Button.AskAssistant": "Ask the assistant",
+    "Runtime.DetailsPage.Text.AskAssistant": "What happened in this event, and how serious is it?",
     "Runtime.DetailsPage.Label.Id": "ID",
     "Runtime.DetailsPage.Label.Date": "Event date",
     "Runtime.DetailsPage.SubTitle.Sibling": "Same parent",

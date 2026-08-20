@@ -1,0 +1,16 @@
+{
+    "Assistant.Widget.Title": "Assistant",
+    "Assistant.Widget.Button.Open": "Assistant",
+    "Assistant.Widget.Button.Clear": "New chat",
+    "Assistant.Widget.Label.Assistant": "Assistant",
+    "Assistant.Widget.Label.Integration": "AI connection: <<<name>>>",
+    "Assistant.Widget.Placeholder.Input": "Ask a question about the product or an event…",
+    "Assistant.Widget.Text.GreetingTitle": "Ask anything about Runtime Radar",
+    "Assistant.Widget.Text.GreetingHint": "For example: how do I create a notification rule? Or: what was suspicious in namespace prod today?",
+    "Assistant.Widget.Text.EventContext": "Runtime event <<<id>>> is attached to this conversation",
+    "Assistant.Widget.Text.ToolRunning": "the assistant is calling <<<tool>>>…",
+    "Assistant.Widget.Text.ToolFailed": "<<<tool>>> failed",
+    "Assistant.Widget.Text.AnswerFailed": "The assistant could not finish the answer. Try again shortly.",
+    "Assistant.Widget.Text.Disclaimer": "Assistant answers are advice based on read-only data. Nothing is changed in the cluster.",
+    "Assistant.Pseudo.Notification.ChatFailed": "Failed to get an answer from the assistant. Try again shortly."
+}

@@ -1,0 +1,159 @@
+/* Message layout follows the chat design: the question sits in a bubble on the
+   right, the answer runs full width under a quiet author line. */
+.assistant-feature-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &_user {
+        align-items: flex-end;
+    }
+
+    &__bubble {
+        max-width: 85%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: var(--kbq-background-contrast-fade);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    &__meta {
+        color: var(--kbq-foreground-contrast-secondary);
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    &__tool {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border: 1px solid var(--kbq-line-contrast-less);
+        border-radius: 100px;
+        color: var(--kbq-foreground-contrast-secondary);
+        font-size: 13px;
+        line-height: 18px;
+
+        &_running {
+            border-color: var(--kbq-line-theme);
+            color: var(--kbq-foreground-contrast);
+        }
+
+        &_failed {
+            border-color: var(--kbq-line-error);
+            color: var(--kbq-foreground-error);
+        }
+    }
+
+    &__tool-spinner {
+        width: 14px;
+        height: 14px;
+    }
+
+    &__markdown {
+        word-break: break-word;
+
+        /* The answer is Markdown, so it arrives with block elements of its own
+           that would otherwise carry the browser's default margins. */
+        :first-child {
+            margin-top: 0;
+        }
+
+        :last-child {
+            margin-bottom: 0;
+        }
+
+        p,
+        ul,
+        ol,
+        pre,
+        table {
+            margin: 0 0 8px;
+        }
+
+        ul,
+        ol {
+            padding-left: 20px;
+        }
+
+        code {
+            padding: 0 4px;
+            border-radius: 4px;
+            background: var(--kbq-background-bg-secondary);
+            font-family: var(--kbq-typography-code-mono-font-family, monospace);
+            font-size: 12px;
+        }
+
+        pre {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: var(--kbq-background-bg-secondary);
+            overflow-x: auto;
+
+            code {
+                padding: 0;
+                background: none;
+            }
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 4px 8px;
+            border: 1px solid var(--kbq-line-contrast-less);
+            text-align: left;
+        }
+    }
+
+    &__typing {
+        display: flex;
+        gap: 4px;
+        padding: 6px 0;
+
+        span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--kbq-foreground-contrast-secondary);
+            animation: assistant-typing 1.2s infinite;
+
+            &:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            &:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+        }
+    }
+
+    &__error {
+        color: var(--kbq-foreground-error);
+        font-size: 13px;
+        line-height: 18px;
+    }
+}
+
+@keyframes assistant-typing {
+    0%,
+    60%,
+    100% {
+        opacity: 0.25;
+    }
+
+    30% {
+        opacity: 1;
+    }
+}

@@ -30,10 +30,7 @@ const selectIntegrationEmailEntityState = createSelector(
     selectIntegrationState,
     (state: IntegrationState) => state.email
 );
-const selectIntegrationAIEntityState = createSelector(
-    selectIntegrationState,
-    (state: IntegrationState) => state.ai
-);
+const selectIntegrationAIEntityState = createSelector(selectIntegrationState, (state: IntegrationState) => state.ai);
 const selectIntegrationSyslogEntityState = createSelector(
     selectIntegrationState,
     (state: IntegrationState) => state.syslog
@@ -58,9 +55,8 @@ export const getIntegrationLastUpdate = createSelector(
     (state: IntegrationState) => state.lastUpdate
 );
 
-export const getAIIntegrations = createSelector(
-    selectIntegrationAIEntityState,
-    (state: IntegrationAIEntityState) => integrationAIEntitySelector.selectAll(state)
+export const getAIIntegrations = createSelector(selectIntegrationAIEntityState, (state: IntegrationAIEntityState) =>
+    integrationAIEntitySelector.selectAll(state)
 );
 
 export const getEmailIntegrations = createSelector(

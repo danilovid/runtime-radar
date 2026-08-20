@@ -1,0 +1,178 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Assistant API",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AssistantController"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/assistant/chat": {
+      "post": {
+        "summary": "Chat answers one user turn. The answer arrives as a stream, so that the UI\ncan show which tool the assistant is running while it is still working.\ngrpc-gateway serves this as an HTTP stream of newline-delimited JSON.",
+        "operationId": "AssistantController_Chat",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/assistantChatChunk"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of assistantChatChunk"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/assistantChatReq"
+            }
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "assistantChatChunk": {
+      "type": "object",
+      "properties": {
+        "delta": {
+          "type": "string",
+          "description": "delta is a piece of the answer's text, to be appended as it arrives."
+        },
+        "toolActivity": {
+          "$ref": "#/definitions/assistantToolActivity",
+          "description": "tool_activity reports that the assistant started or finished a tool."
+        },
+        "done": {
+          "$ref": "#/definitions/assistantDone",
+          "description": "done ends the answer."
+        }
+      },
+      "description": "ChatChunk is one piece of the answer. Exactly one field is set."
+    },
+    "assistantChatMessage": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Role of the author: \"user\" or \"assistant\". Any other value is rejected;\ntool traffic belongs to the server side of the loop and is not replayed\nby clients."
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "assistantChatReq": {
+      "type": "object",
+      "properties": {
+        "integrationId": {
+          "type": "string",
+          "description": "Identifier of the AI integration whose model answers."
+        },
+        "conversation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChatMessage"
+          },
+          "description": "The conversation so far, oldest first, ending with the user's new message.\nNo conversation state is kept on the server: the client sends the whole\nhistory it wants the model to see."
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Optional identifier of a runtime event the question is about. The event\nitself is never taken from the client: the assistant reads it through the\ntools, so that what the model sees is what the system recorded."
+        }
+      }
+    },
+    "assistantDone": {
+      "type": "object",
+      "properties": {
+        "stopReason": {
+          "type": "string",
+          "description": "stop_reason is \"end_turn\" when the assistant finished on its own,\n\"max_iterations\" when the agent loop ran out of steps, or \"error\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set when stop_reason is \"error\"."
+        },
+        "iterations": {
+          "type": "integer",
+          "format": "int64",
+          "description": "iterations is how many model turns the answer took."
+        }
+      }
+    },
+    "assistantToolActivity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the tool, for example search_docs."
+        },
+        "phase": {
+          "type": "string",
+          "description": "Phase is \"started\" or \"finished\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set on a finished phase when the tool failed. The assistant\ncarries on: a failed tool is an answer the model has to account for."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

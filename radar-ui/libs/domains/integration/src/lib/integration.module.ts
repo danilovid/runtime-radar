@@ -4,8 +4,8 @@ import { StoreModule } from '@ngrx/store';
 
 import { ApiModule } from '@cs/api';
 
-import { IntegrationEffectStore } from './stores/integration-effect.store';
 import { IntegrationAIProviderTypeLocalizationPipe } from './pipes/integration-ai-provider-type.pipe';
+import { IntegrationEffectStore } from './stores/integration-effect.store';
 import { IntegrationTypeLocalizationPipe } from './pipes/integration-type.pipe';
 import { INTEGRATION_DOMAIN_KEY, integrationDomainReducer } from './stores/integration-selector.store';
 

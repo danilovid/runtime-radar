@@ -13,9 +13,9 @@ import { LoadStatus } from '@cs/core';
 import { SWITCH_CLUSTER_EVENT_ACTION } from '@cs/domains/cluster';
 import { ApiErrorCode, ApiUtilsService as apiUtils } from '@cs/api';
 
+import { IntegrationAIRequestService } from '../services/integration-ai-request.service';
 import { IntegrationEmailRequestService } from '../services/integration-email-request.service';
 import { IntegrationState } from '../interfaces/state/integration-state.interface';
-import { IntegrationAIRequestService } from '../services/integration-ai-request.service';
 import { IntegrationSyslogRequestService } from '../services/integration-syslog-request.service';
 import { IntegrationWebhookRequestService } from '../services/integration-webhook-request.service';
 import { getIntegrationLoadStatus } from './integration-selector.store';
@@ -25,8 +25,8 @@ import {
     CREATE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,
     CREATE_WEBHOOK_INTEGRATION_ENTITY_TODO_ACTION,
-    DELETE_CONNECTED_INTEGRATION_EVENT_ACTION,
     DELETE_AI_INTEGRATION_ENTITY_TODO_ACTION,
+    DELETE_CONNECTED_INTEGRATION_EVENT_ACTION,
     DELETE_EMAIL_INTEGRATION_ENTITY_TODO_ACTION,
     DELETE_INTEGRATION_ENTITY_DOC_ACTION,
     DELETE_SYSLOG_INTEGRATION_ENTITY_TODO_ACTION,

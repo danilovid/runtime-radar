@@ -30,6 +30,9 @@ env:
     value: "policy-enforcer:8000"
   - name: "HISTORY_API_GRPC_ADDR"
     value: "history-api:8000"
+  # The chat assistant runs its read-only tools through MCP Server.
+  - name: "MCP_SERVER_URL"
+    value: "http://mcp-server:9000/mcp"
 encryption:
   enabled: true
 postgresql:

@@ -2,35 +2,42 @@ package config
 
 import (
 	"flag"
+	"time"
 
 	"github.com/runtime-radar/runtime-radar/lib/config"
+	"github.com/runtime-radar/runtime-radar/notifier/pkg/assistant"
 )
 
 // Config represents system configuration.
 type Config struct {
-	NewDB                  bool   // forces recreation of DB
-	PostgresAddr           string // Postgres address in host[:port] format
-	PostgresDB             string // Postgres db name
-	PostgresUser           string // Postgres user
-	PostgresPassword       string // Postgres password
-	PostgresSSLMode        bool   // Postgres SSL mode
-	PostgresSSLCheckCert   bool   // Check postgres SSL cert
-	LogLevel               string // log level can be INFO, WARN, ERROR, FATAL, DEBUG or ALL
-	LogFile                string // path to log file
-	ListenGRPCAddr         string // address "[host]:port" that server should be listening on
-	ListenHTTPAddr         string // address "[host]:port" that server should be listening for health checks
-	InstrumentationAddr    string // address "[host]:port" that instrumentation server should be listening for health checks and metrics
-	TLS                    bool   // is TLS enabled?
-	PolicyEnforcerGRPCAddr string // Policy Enforcer address in host[:port] format
-	HistoryAPIGRPCAddr     string // History API address in host[:port] format
-	EncryptionKey          string // key for encryption
-	TokenKey               string // key for jwt token
-	Auth                   bool   // is auth enabled?
-	CSVersion              string // CS version
-	TemplatesTextFolder    string // Relative path to the text templates folder
-	TemplatesHTMLFolder    string // Relative path to the HTML templates folder
-	GopsAddr               string // gops listen address
-	OwnCSURL               string // URL of current CS (http(s)://host[:port]).
+	NewDB                  bool          // forces recreation of DB
+	PostgresAddr           string        // Postgres address in host[:port] format
+	PostgresDB             string        // Postgres db name
+	PostgresUser           string        // Postgres user
+	PostgresPassword       string        // Postgres password
+	PostgresSSLMode        bool          // Postgres SSL mode
+	PostgresSSLCheckCert   bool          // Check postgres SSL cert
+	LogLevel               string        // log level can be INFO, WARN, ERROR, FATAL, DEBUG or ALL
+	LogFile                string        // path to log file
+	ListenGRPCAddr         string        // address "[host]:port" that server should be listening on
+	ListenHTTPAddr         string        // address "[host]:port" that server should be listening for health checks
+	InstrumentationAddr    string        // address "[host]:port" that instrumentation server should be listening for health checks and metrics
+	TLS                    bool          // is TLS enabled?
+	PolicyEnforcerGRPCAddr string        // Policy Enforcer address in host[:port] format
+	HistoryAPIGRPCAddr     string        // History API address in host[:port] format
+	MCPServerURL           string        // MCP Server Streamable HTTP endpoint the assistant runs its tools through
+	AssistantMaxIterations int           // how many model turns one assistant chat may take
+	AssistantTimeout       time.Duration // deadline for a whole assistant chat, model calls and tools included
+	AssistantMaxChats      int           // how many assistant chats one instance runs at once
+	ClusterName            string        // cluster name to label metrics with
+	EncryptionKey          string        // key for encryption
+	TokenKey               string        // key for jwt token
+	Auth                   bool          // is auth enabled?
+	CSVersion              string        // CS version
+	TemplatesTextFolder    string        // Relative path to the text templates folder
+	TemplatesHTMLFolder    string        // Relative path to the HTML templates folder
+	GopsAddr               string        // gops listen address
+	OwnCSURL               string        // URL of current CS (http(s)://host[:port]).
 
 	// For tests only
 	TestMailpitHTTPAddr string // Mailpit HTTP API address
@@ -56,6 +63,11 @@ func New() *Config {
 	flag.StringVar(&c.ListenHTTPAddr, "listenHTTPAddr", config.LookupEnvString("LISTEN_HTTP_ADDR", ":9000"), `Address in form of "[host]:port" that HTTP server should be listening on.`)
 	flag.StringVar(&c.PolicyEnforcerGRPCAddr, "policyEnforcerGRPCAddr", config.LookupEnvString("POLICY_ENFORCER_GRPC_ADDR", "127.0.0.1:10000"), "Policy Enforcer gRPC address in host[:port] format.")
 	flag.StringVar(&c.HistoryAPIGRPCAddr, "historyAPIGRPCAddr", config.LookupEnvString("HISTORY_API_GRPC_ADDR", "127.0.0.1:10000"), "History API gRPC address in host[:port] format.")
+	flag.StringVar(&c.MCPServerURL, "mcpServerURL", config.LookupEnvString("MCP_SERVER_URL", "http://mcp-server:9000/mcp"), "MCP Server Streamable HTTP endpoint the chat assistant runs its read-only tools through.")
+	flag.IntVar(&c.AssistantMaxIterations, "assistantMaxIterations", config.LookupEnvInt("ASSISTANT_MAX_ITERATIONS", assistant.DefaultMaxIterations), "Set how many model turns one assistant chat may take.")
+	flag.DurationVar(&c.AssistantTimeout, "assistantTimeout", config.LookupEnvDuration("ASSISTANT_TIMEOUT", assistant.DefaultTimeout), "Set the deadline for a whole assistant chat, model calls and tool calls included.")
+	flag.IntVar(&c.AssistantMaxChats, "assistantMaxChats", config.LookupEnvInt("ASSISTANT_MAX_CHATS", assistant.DefaultMaxConcurrentChats), "Set how many assistant chats one instance runs at once. Further requests are rejected until a slot frees up.")
+	flag.StringVar(&c.ClusterName, "clusterName", config.LookupEnvString("CLUSTER_NAME", ""), "Set cluster name to label metrics with.")
 	flag.BoolVar(&c.TLS, "tls", config.LookupEnvBool("TLS", false), "Set to enable TLS.")
 	flag.StringVar(&c.EncryptionKey, "encryptionKey", config.LookupEnvString("ENCRYPTION_KEY", ""), "Hex encoded encryption key to store passwords in database. Supported key sizes are 16, 24 and 32 bytes.")
 	flag.StringVar(&c.TokenKey, "tokenKey", config.LookupEnvString("TOKEN_KEY", ""), "Hex encoded token key to verify jwt token. Supported key sizes are 16, 24 and 32 bytes.")

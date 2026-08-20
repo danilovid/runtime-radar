@@ -1,0 +1,124 @@
+<ng-container *transloco="let tAssistant; prefix: 'assistant'">
+    <ng-container *ngrxLet="{
+        isAvailable: (isAvailable$ | async),
+        isOpen: (isOpen$ | async),
+        isStreaming: (isStreaming$ | async),
+        integrations: (integrations$ | async)!,
+        integrationId: (integrationId$ | async)!,
+        messages: (messages$ | async)!,
+        eventId: (eventId$ | async)
+    } as rxlet">
+        @if (rxlet.isAvailable) {
+            @if (!rxlet.isOpen) {
+                <button kbq-button
+                        kbqStyle="contrast"
+                        color="theme"
+                        type="button"
+                        class="assistant-feature-widget-launcher"
+                        (click)="open()"
+                        data-testid="assistant-launcher-button">
+                    <i kbq-icon="kbq-message-square_16"></i>
+                    {{ tAssistant('Assistant.Widget.Button.Open') }}
+                </button>
+            } @else {
+                <section class="assistant-feature-widget" data-testid="assistant-widget">
+                    <header class="assistant-feature-widget__header">
+                        <div class="assistant-feature-widget__title-group">
+                            <div class="assistant-feature-widget__title">
+                                {{ tAssistant('Assistant.Widget.Title') }}
+                            </div>
+
+                            @if (rxlet.integrations.length > 1) {
+                                <kbq-form-field class="assistant-feature-widget__integration">
+                                    <kbq-select [value]="rxlet.integrationId"
+                                                (valueChange)="selectIntegration($event)"
+                                                data-testid="assistant-integration-select">
+                                        @for (integration of rxlet.integrations; track integration.id) {
+                                            <kbq-option [value]="integration.id">{{ integration.name }}</kbq-option>
+                                        }
+                                    </kbq-select>
+                                </kbq-form-field>
+                            } @else {
+                                <div class="assistant-feature-widget__subtitle">
+                                    {{ tAssistant('Assistant.Widget.Label.Integration', { name: rxlet.integrations[0].name }) }}
+                                </div>
+                            }
+                        </div>
+
+                        <div class="assistant-feature-widget__actions">
+                            <button kbq-button
+                                    kbqStyle="transparent"
+                                    color="contrast"
+                                    type="button"
+                                    class="kbq-button-icon"
+                                    [disabled]="!rxlet.messages.length || !!rxlet.isStreaming"
+                                    [kbqTooltip]="tAssistant('Assistant.Widget.Button.Clear')"
+                                    (click)="clear()"
+                                    data-testid="assistant-clear-button">
+                                <i kbq-icon="kbq-trash_16"></i>
+                            </button>
+                            <button kbq-button
+                                    kbqStyle="transparent"
+                                    color="contrast"
+                                    type="button"
+                                    class="kbq-button-icon"
+                                    (click)="close()"
+                                    data-testid="assistant-close-button">
+                                <i kbq-icon="kbq-xmark_16"></i>
+                            </button>
+                        </div>
+                    </header>
+
+                    <div #thread class="assistant-feature-widget__thread" data-testid="assistant-thread">
+                        @if (!rxlet.messages.length) {
+                            <div class="assistant-feature-widget__greeting">
+                                <div class="assistant-feature-widget__greeting-title">
+                                    {{ tAssistant('Assistant.Widget.Text.GreetingTitle') }}
+                                </div>
+                                <div class="assistant-feature-widget__greeting-hint">
+                                    {{ tAssistant('Assistant.Widget.Text.GreetingHint') }}
+                                </div>
+                            </div>
+                        }
+
+                        @if (rxlet.eventId) {
+                            <div class="assistant-feature-widget__context" data-testid="assistant-event-context">
+                                <i kbq-icon="kbq-link_16"></i>
+                                {{ tAssistant('Assistant.Widget.Text.EventContext', { id: rxlet.eventId }) }}
+                            </div>
+                        }
+
+                        @for (message of rxlet.messages; track trackMessage($index, message)) {
+                            <cs-assistant-message [message]="message"></cs-assistant-message>
+                        }
+                    </div>
+
+                    <footer class="assistant-feature-widget__composer">
+                        <div class="assistant-feature-widget__input-row">
+                            <textarea kbqTextarea
+                                      rows="1"
+                                      class="assistant-feature-widget__input"
+                                      [(ngModel)]="input"
+                                      [placeholder]="tAssistant('Assistant.Widget.Placeholder.Input')"
+                                      (keydown)="onKeyDown($event)"
+                                      data-testid="assistant-input"></textarea>
+                            <button kbq-button
+                                    kbqStyle="contrast"
+                                    color="theme"
+                                    type="button"
+                                    class="kbq-button-icon"
+                                    [disabled]="!input.trim() || !!rxlet.isStreaming"
+                                    (click)="send()"
+                                    data-testid="assistant-send-button">
+                                <i kbq-icon="kbq-arrow-up_16"></i>
+                            </button>
+                        </div>
+                        <div class="assistant-feature-widget__disclaimer">
+                            {{ tAssistant('Assistant.Widget.Text.Disclaimer') }}
+                        </div>
+                    </footer>
+                </section>
+            }
+        }
+    </ng-container>
+</ng-container>

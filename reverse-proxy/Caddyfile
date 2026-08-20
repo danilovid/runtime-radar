@@ -94,6 +94,11 @@
 			reverse_proxy /api/v1/remote_malware_scan {args[0]}://av-scanner:9000
 
 			# notifier
+			# The assistant answers as a stream of chunks, so this one route
+			# must not buffer: the widget shows the answer while it is written.
+			reverse_proxy /api/v1/assistant/* {args[0]}://notifier:9000 {
+				flush_interval -1
+			}
 			reverse_proxy /api/v1/integration {args[0]}://notifier:9000
 			reverse_proxy /api/v1/integration/* {args[0]}://notifier:9000
 			reverse_proxy /api/v1/notification {args[0]}://notifier:9000

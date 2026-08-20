@@ -88,6 +88,15 @@
                                 {{ tRuntime('Runtime.DetailsPage.Button.ExplainEvent') }}
                             </button>
                             <button kbq-button
+                                    kbqStyle="outline"
+                                    color="theme-fade"
+                                    type="button"
+                                    class="layout-margin-right-s"
+                                    (click)="askAssistant(event)"
+                                    data-testid="event-details-ask-assistant-button">
+                                {{ tRuntime('Runtime.DetailsPage.Button.AskAssistant') }}
+                            </button>
+                            <button kbq-button
                                     kbqStyle="transparent"
                                     color="contrast"
                                     type="button"

@@ -4,9 +4,9 @@ import { LoadStatus } from '@cs/core';
 
 import {
     IntegrationAI,
-    IntegrationType,
     IntegrationEmail,
     IntegrationSyslog,
+    IntegrationType,
     IntegrationWebhook
 } from '../contract/integration-contract.interface';
 

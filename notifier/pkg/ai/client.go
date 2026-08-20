@@ -68,6 +68,9 @@ const (
 type Client interface {
 	Test(context.Context) error
 	ExplainRuntimeEvent(ctx context.Context, eventID, eventJSON string) (*Result, error)
+	// Chat answers one turn of a conversation, optionally asking for tools to
+	// be run. The caller keeps the conversation; this client keeps no state.
+	Chat(ctx context.Context, messages []Message, tools []Tool) (*ChatResult, error)
 }
 
 type Result struct {
@@ -568,11 +571,11 @@ func (c *anthropicClient) complete(ctx context.Context, userPrompts []string, ma
 	for _, item := range payload.Content {
 		// The forced tool call carries the analysis as its arguments; handing
 		// them on as JSON text keeps one parsing path for every provider.
-		if item.Type == "tool_use" && item.Name == analysisToolName && len(item.Input) > 0 {
+		if item.Type == anthropicBlockToolUse && item.Name == analysisToolName && len(item.Input) > 0 {
 			return string(item.Input), nil
 		}
 
-		if item.Type == "text" {
+		if item.Type == anthropicBlockText {
 			parts = append(parts, item.Text)
 		}
 	}

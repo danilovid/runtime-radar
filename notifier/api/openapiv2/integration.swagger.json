@@ -356,10 +356,12 @@
           "type": "string"
         },
         "eventId": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of the event to explain. The event itself is read from History API."
         },
         "eventJson": {
-          "type": "string"
+          "type": "string",
+          "description": "Deprecated: kept only as a fallback for clients that can't be read back from\nHistory API. Client-supplied event data is never trusted when event_id is set."
         }
       }
     },

@@ -47,4 +47,11 @@ export class CoreWindowService {
     btoa(data: string): string {
         return this.window.btoa(data);
     }
+
+    // Streaming responses can't be read through HttpClient, which only hands
+    // the body over once it is complete. Wrapping fetch here keeps the window
+    // out of the services that need it.
+    fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+        return this.window.fetch(input, init);
+    }
 }

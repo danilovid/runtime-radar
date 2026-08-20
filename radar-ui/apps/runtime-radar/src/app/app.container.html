@@ -16,6 +16,10 @@
             <router-outlet></router-outlet>
         </section>
 
+        @if (rxlet.loadStatus === loadStatus.LOADED) {
+            <cs-assistant-widget></cs-assistant-widget>
+        }
+
         @if (rxlet.loadStatus === loadStatus.INIT) {
             <kbq-progress-bar [mode]="'indeterminate'" class="app-loader"></kbq-progress-bar>
             <img ngSrc="/assets/logotypes/logo.svg" width="48" height="48" class="app-skeleton" priority>
