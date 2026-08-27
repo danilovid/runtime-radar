@@ -1,0 +1,177 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Admission Monitor Config API",
+    "description": "Package is called \"admission_config\" in order to distinguish it from \"runtime_config\"\nexposed by runtime-monitor and event-processor.",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "ConfigController"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/config/admission-monitor": {
+      "get": {
+        "operationId": "ConfigController_Read",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/admission_configConfig"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ConfigController"
+        ]
+      },
+      "post": {
+        "operationId": "ConfigController_Add",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/admission_configConfig"
+            }
+          }
+        ],
+        "tags": [
+          "ConfigController"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ConfigConfigJSON": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "policies": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/admission_configKyvernoPolicy"
+          },
+          "description": "policies maps a policy key to the Kyverno policy which admission-monitor keeps applied in cluster.\nIt is an exact analogue of runtime-monitor's tracing_policies: the key is stable and is used\nas an identifier of the source, the value is fully editable in expert mode."
+        },
+        "historyControl": {
+          "$ref": "#/definitions/ConfigJSONHistoryControl"
+        }
+      }
+    },
+    "ConfigJSONHistoryControl": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "WITH_THREATS",
+        "ALL"
+      ],
+      "default": "NONE",
+      "title": "- NONE: Do not save processed events\n - WITH_THREATS: Save only events with at least one threat detected\n - ALL: Save all events after processing"
+    },
+    "KyvernoPolicyAction": {
+      "type": "string",
+      "enum": [
+        "AUDIT",
+        "ENFORCE"
+      ],
+      "default": "AUDIT",
+      "description": "action defines what Kyverno does with a request violating the policy.\n\n - AUDIT: AUDIT only records the violation in a policy report, the request is allowed.\n - ENFORCE: ENFORCE denies the request. Kyverno reports blocked requests via Kubernetes events only,\nsee https://kyverno.io/docs/guides/reports/."
+    },
+    "admission_configConfig": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "#/definitions/ConfigConfigJSON"
+        }
+      }
+    },
+    "admission_configKyvernoPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "yaml": {
+          "type": "string",
+          "description": "yaml is a manifest of a Kyverno policy (ValidatingPolicy or ImageValidatingPolicy).\nIts spec.validationActions is always overwritten from action before applying, so that\nenabling enforcement never requires editing the manifest itself."
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "action": {
+          "$ref": "#/definitions/KyvernoPolicyAction"
+        },
+        "severity": {
+          "type": "string",
+          "description": "severity is assigned to every threat produced by this policy. Kyverno puts severity into\npolicy reports as a free-form annotation only, so we keep the authoritative value here."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

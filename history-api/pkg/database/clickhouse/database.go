@@ -80,6 +80,7 @@ func Migrate(db *gorm.DB, newDB bool, populateNum int) error {
 	if newDB {
 		if err := db.Migrator().DropTable(
 			&model.RuntimeEvent{},
+			&model.AdmissionEvent{},
 		); err != nil {
 			return err
 		}
@@ -91,7 +92,16 @@ func Migrate(db *gorm.DB, newDB bool, populateNum int) error {
 		return err
 	}
 
-	const tableName = "runtime_events"
+	if err := db.
+		Set("gorm:table_options", "ENGINE = MergeTree() PARTITION BY (toYYYYMM(registered_at)) ORDER BY (registered_at) SETTINGS index_granularity = 8192;").
+		AutoMigrate(&model.AdmissionEvent{}); err != nil {
+		return err
+	}
+
+	const (
+		tableName          = "runtime_events"
+		admissionTableName = "admission_events"
+	)
 
 	errs := []error{}
 
@@ -101,6 +111,9 @@ func Migrate(db *gorm.DB, newDB bool, populateNum int) error {
 	}{
 		{tableName, []string{"threats_detectors"}},
 		{tableName, []string{"block_by", "notify_by"}}, // the exact order doesn't matter
+		{admissionTableName, []string{"threats_policies"}},
+		{admissionTableName, []string{"block_by", "notify_by"}},
+		{admissionTableName, []string{"image_names"}},
 	}
 	for _, v := range toIndexBloomFilter {
 		if err := ensureBloomFilterIndex(db, v.table, v.fields...); err != nil {
@@ -111,6 +124,8 @@ func Migrate(db *gorm.DB, newDB bool, populateNum int) error {
 	toIndexTokenbf := []struct{ table, field string }{
 		{tableName, "process_pod_name"},
 		{tableName, "process_pod_namespace"},
+		{admissionTableName, "resource_name"},
+		{admissionTableName, "resource_namespace"},
 	}
 	for _, v := range toIndexTokenbf {
 		if err := ensureTokenbfv1Index(db, v.table, v.field); err != nil {
@@ -120,6 +135,8 @@ func Migrate(db *gorm.DB, newDB bool, populateNum int) error {
 
 	toIndexSet := []struct{ table, field string }{
 		{tableName, "is_incident"},
+		{admissionTableName, "is_incident"},
+		{admissionTableName, "resource_kind"},
 	}
 	for _, v := range toIndexSet {
 		if err := ensureSetIndex(db, v.table, v.field); err != nil {

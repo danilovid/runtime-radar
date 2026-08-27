@@ -17,6 +17,39 @@
     "application/json"
   ],
   "paths": {
+    "/api/v1/evaluate-policy/admission": {
+      "post": {
+        "summary": "EvaluatePolicyAdmission returns EvaluatePolicyAdmissionReq enriched with evaluated policies.",
+        "operationId": "Enforcer_EvaluatePolicyAdmission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReq"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReq"
+            }
+          }
+        ],
+        "tags": [
+          "Enforcer"
+        ]
+      }
+    },
     "/api/v1/evaluate-policy/runtime": {
       "post": {
         "summary": "EvaluatePolicyRuntimeEvent returns EvaluatePolicyRuntimeEventReq enriched with evaluated policies.",
@@ -52,22 +85,10 @@
     }
   },
   "definitions": {
-    "ActionArgs": {
+    "ArgsContainer": {
       "type": "object",
       "properties": {
-        "namespace": {
-          "type": "string"
-        },
-        "pod": {
-          "type": "string"
-        },
-        "container": {
-          "type": "string"
-        },
-        "binary": {
-          "type": "string"
-        },
-        "node": {
+        "name": {
           "type": "string"
         },
         "imageName": {
@@ -76,52 +97,8 @@
         "registry": {
           "type": "string"
         }
-      }
-    },
-    "EvaluatePolicyRuntimeEventReqAction": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string"
-        },
-        "args": {
-          "$ref": "#/definitions/ActionArgs"
-        }
-      }
-    },
-    "EvaluatePolicyRuntimeEventReqResult": {
-      "type": "object",
-      "properties": {
-        "events": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/ResultEvent"
-          }
-        }
-      }
-    },
-    "ResultEvent": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "title": "name and version are not used at the moment and are added for consistency reasons and future purposes"
-        },
-        "version": {
-          "type": "string"
-        },
-        "detectorId": {
-          "type": "string",
-          "title": "detector_id is identifier of detector which processes events within event-processor"
-        },
-        "severity": {
-          "type": "string"
-        },
-        "policy": {
-          "$ref": "#/definitions/enforcerPolicy"
-        }
-      }
+      },
+      "description": "A single admission event covers the whole resource, so unlike a runtime event it can carry\nmore than one container. A rule matches the event if it matches at least one of them."
     },
     "RuleJSONBlock": {
       "type": "object",
@@ -229,6 +206,80 @@
         }
       }
     },
+    "enforcerEvaluatePolicyAdmissionReq": {
+      "type": "object",
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReqAction"
+        },
+        "result": {
+          "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReqResult"
+        }
+      }
+    },
+    "enforcerEvaluatePolicyAdmissionReqAction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "args": {
+          "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReqActionArgs"
+        }
+      }
+    },
+    "enforcerEvaluatePolicyAdmissionReqActionArgs": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "pod": {
+          "type": "string",
+          "description": "pod holds the name of the resource the finding is about, which is not necessarily a pod."
+        },
+        "node": {
+          "type": "string"
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ArgsContainer"
+          }
+        }
+      }
+    },
+    "enforcerEvaluatePolicyAdmissionReqResult": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/enforcerEvaluatePolicyAdmissionReqResultEvent"
+          }
+        }
+      }
+    },
+    "enforcerEvaluatePolicyAdmissionReqResultEvent": {
+      "type": "object",
+      "properties": {
+        "policyId": {
+          "type": "string",
+          "description": "policy_id is \"\u003cpolicy name\u003e/\u003crule name\u003e\" of the Kyverno policy which produced the finding.\nIt is the admission counterpart of detector_id and is whitelisted the same way."
+        },
+        "severity": {
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/definitions/enforcerPolicy"
+        }
+      }
+    },
     "enforcerEvaluatePolicyRuntimeEventReq": {
       "type": "object",
       "properties": {
@@ -236,10 +287,81 @@
           "type": "string"
         },
         "action": {
-          "$ref": "#/definitions/EvaluatePolicyRuntimeEventReqAction"
+          "$ref": "#/definitions/enforcerEvaluatePolicyRuntimeEventReqAction"
         },
         "result": {
-          "$ref": "#/definitions/EvaluatePolicyRuntimeEventReqResult"
+          "$ref": "#/definitions/enforcerEvaluatePolicyRuntimeEventReqResult"
+        }
+      }
+    },
+    "enforcerEvaluatePolicyRuntimeEventReqAction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "args": {
+          "$ref": "#/definitions/enforcerEvaluatePolicyRuntimeEventReqActionArgs"
+        }
+      }
+    },
+    "enforcerEvaluatePolicyRuntimeEventReqActionArgs": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "pod": {
+          "type": "string"
+        },
+        "container": {
+          "type": "string"
+        },
+        "binary": {
+          "type": "string"
+        },
+        "node": {
+          "type": "string"
+        },
+        "imageName": {
+          "type": "string"
+        },
+        "registry": {
+          "type": "string"
+        }
+      }
+    },
+    "enforcerEvaluatePolicyRuntimeEventReqResult": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/enforcerEvaluatePolicyRuntimeEventReqResultEvent"
+          }
+        }
+      }
+    },
+    "enforcerEvaluatePolicyRuntimeEventReqResultEvent": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "name and version are not used at the moment and are added for consistency reasons and future purposes"
+        },
+        "version": {
+          "type": "string"
+        },
+        "detectorId": {
+          "type": "string",
+          "title": "detector_id is identifier of detector which processes events within event-processor"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/definitions/enforcerPolicy"
         }
       }
     },
@@ -304,7 +426,7 @@
         },
         "type": {
           "$ref": "#/definitions/ruleRuleType",
-          "title": "type indicates what type of enforcement rule is used for (now support just runtime.)"
+          "title": "type indicates what type of enforcement rule is used for (runtime or admission)"
         },
         "scope": {
           "$ref": "#/definitions/RuleScope"
@@ -314,7 +436,8 @@
     "ruleRuleType": {
       "type": "string",
       "enum": [
-        "TYPE_RUNTIME"
+        "TYPE_RUNTIME",
+        "TYPE_ADMISSION"
       ],
       "default": "TYPE_RUNTIME"
     }

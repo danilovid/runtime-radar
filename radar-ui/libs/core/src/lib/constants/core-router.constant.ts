@@ -1,5 +1,6 @@
 export enum RouterName {
     DEFAULT = '',
+    ADMISSION = 'admission',
     CLUSTERS = 'clusters',
     FORBIDDEN = 'forbidden',
     ERROR = 'error',
@@ -14,6 +15,7 @@ export enum RouterName {
 }
 
 export enum TranslationDict {
+    ADMISSION = 'admission',
     AUTH = 'auth',
     COMMON = 'common',
     CLUSTER = 'cluster',

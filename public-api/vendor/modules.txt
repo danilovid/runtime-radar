@@ -1434,6 +1434,7 @@ mvdan.cc/unparam/check
 # rsc.io/goversion v1.2.0
 ## explicit
 rsc.io/goversion/version
+# github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 # github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 # github.com/runtime-radar/runtime-radar/history-api => ../history-api
 # github.com/runtime-radar/runtime-radar/lib => ../lib

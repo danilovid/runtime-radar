@@ -1,0 +1,66 @@
+{{- if .Values.serviceAccount.create }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "common.fullname" . }}
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+rules:
+  # Sources are Kyverno policies, admission-monitor keeps the set of them in sync with its config.
+  # Only policies labeled with app.kubernetes.io/managed-by=admission-monitor are ever modified.
+  - apiGroups:
+      - policies.kyverno.io
+    resources:
+      - validatingpolicies
+      - imagevalidatingpolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+  # Policy reports are the event stream of admission-monitor.
+  - apiGroups:
+      - wgpolicyk8s.io
+    resources:
+      - policyreports
+      - clusterpolicyreports
+    verbs:
+      - get
+      - list
+      - watch
+  # A denied request produces no policy report, Kyverno reports it as a Kubernetes event instead.
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+  # Resources a report is scoped to are read to enrich an event with container images, so that
+  # image and registry scopes of policy-enforcer rules can be matched.
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - replicationcontrollers
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs:
+      - get
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+{{- end }}

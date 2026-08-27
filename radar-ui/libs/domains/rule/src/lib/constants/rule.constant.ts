@@ -73,5 +73,9 @@ export const RULE_TYPE: RuleTypeOption[] = [
     {
         id: RuleType.TYPE_RUNTIME,
         localizationKey: 'Common.Pseudo.ScanType.Runtime'
+    },
+    {
+        id: RuleType.TYPE_ADMISSION,
+        localizationKey: 'Common.Pseudo.ScanType.Admission'
     }
 ];

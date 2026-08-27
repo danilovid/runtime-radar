@@ -1,0 +1,76 @@
+image:
+  registry: ghcr.io/runtime-radar
+  repository: admission-monitor
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+containerPorts:
+  grpc: 8000
+  http: 9000
+  instrumentation: 9090
+service:
+  ports:
+    grpc: 8000
+    http: 9000
+configUpdateInterval: ""
+# Namespace Kyverno is installed in. Policy reports of this namespace are never reported,
+# admission-monitor also reads the version of Kyverno from the deployment in it.
+kyvernoNamespace: kyverno
+env:
+  - name: CONFIG_UPDATE_INTERVAL
+    value: "{{ .Values.configUpdateInterval }}"
+  - name: KYVERNO_NAMESPACE
+    value: "{{ .Values.kyvernoNamespace }}"
+  - name: POLICY_ENFORCER_GRPC_ADDR
+    value: "policy-enforcer:8000"
+  - name: NOTIFIER_GRPC_ADDR
+    value: "notifier:8000"
+postgresql:
+  enabled: true
+rabbitmq:
+  enabled: true
+  admissionEventsQueue: admission_events
+serviceAccount:
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: admission-monitor
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+    ephemeral-storage: 250Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 1Mi
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /live
+    scheme: HTTP
+    port: instrumentation
+  periodSeconds: 600
+  successThreshold: 1
+  failureThreshold: 2
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    scheme: HTTP
+    port: instrumentation
+  periodSeconds: 360
+  successThreshold: 1
+  failureThreshold: 3
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    scheme: HTTP
+    port: instrumentation
+  initialDelaySeconds: 1
+  periodSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3

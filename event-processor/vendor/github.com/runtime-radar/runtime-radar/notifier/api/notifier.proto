@@ -30,6 +30,7 @@ message Message {
   string notification_id = 1;
   oneof event {
     RuntimeEvent runtime_event = 5;
+    AdmissionEvent admission_event = 6;
   }
 }
 
@@ -82,6 +83,39 @@ message RuntimeEvent {
   string severity = 2;
   google.protobuf.Timestamp registered_at = 3;
   string rule_name = 4;
+  bool block = 5;
+  // id of event in history-api
+  string event_id = 6;
+}
+
+// AdmissionEvent is a finding reported by Kyverno and collected by admission-monitor.
+message AdmissionEvent {
+  message Event {
+    message Threat {
+      // policy_id is "<policy name>/<rule name>" of the Kyverno policy which produced the finding.
+      string policy_id = 1;
+      string policy_name = 2;
+      string policy_rule = 3;
+      string policy_description = 4;
+      string severity = 5;
+    }
+
+    repeated Threat threats = 1;
+
+    string resource_api_version = 2;
+    string resource_kind = 3;
+    string resource_namespace = 4;
+    string resource_name = 5;
+    string node_name = 6;
+    repeated string images = 7;
+  }
+
+  Event event = 1;
+  string severity = 2;
+  google.protobuf.Timestamp registered_at = 3;
+  string rule_name = 4;
+  // block is true when the request was denied, that is the source which produced the threat is in
+  // the enforce mode.
   bool block = 5;
   // id of event in history-api
   string event_id = 6;

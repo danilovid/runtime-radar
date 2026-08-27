@@ -1,0 +1,37 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: privileged-containers
+spec:
+  validationActions:
+    - Audit
+  autogen:
+    podControllers:
+      controllers:
+        - deployments
+        - statefulsets
+        - daemonsets
+        - replicasets
+        - jobs
+        - cronjobs
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  variables:
+    - name: allContainers
+      expression: >-
+        object.spec.containers +
+        object.spec.?initContainers.orValue([]) +
+        object.spec.?ephemeralContainers.orValue([])
+  validations:
+    - expression: >-
+        !variables.allContainers.exists(c, c.?securityContext.?privileged.orValue(false))
+      message: >-
+        Privileged containers are not allowed.
+    - expression: >-
+        !variables.allContainers.exists(c, c.?securityContext.?allowPrivilegeEscalation.orValue(true))
+      message: >-
+        Containers must set securityContext.allowPrivilegeEscalation to false.

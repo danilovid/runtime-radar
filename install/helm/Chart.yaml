@@ -40,6 +40,18 @@ dependencies:
     version: v0.x.x
     repository: file://../../runtime-monitor/.helm
     tags: [cs-app, runtime-monitor, 3rd-party, runtime]
+  - name: admission-monitor
+    version: v0.x.x
+    repository: file://../../admission-monitor/.helm
+    tags: [cs-app, admission-monitor, admission]
+  # Kyverno is the admission engine admission-monitor configures and reads reports from.
+  # It can be vendored under install/helm/charts/kyverno the same way postgresql or rabbitmq are,
+  # this is required for an air-gapped installation.
+  - name: kyverno
+    version: 3.x.x
+    repository: https://kyverno.github.io/kyverno/
+    condition: kyverno.deploy
+    tags: [3rd-party, kyverno, admission]
   - name: public-api
     version: v0.x.x
     repository: file://../../public-api/.helm

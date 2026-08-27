@@ -1,0 +1,47 @@
+.admission-feature-details {
+    padding: 32px;
+
+    &-title {
+        margin: 0;
+    }
+
+    &-card {
+        margin-top: 24px;
+        padding: 24px;
+        border: 1px solid #d7dee4; // @todo: replace to koobiq token
+        border-radius: 16px;
+    }
+
+    &-row {
+        gap: 16px;
+        margin-bottom: 16px;
+
+        &-label {
+            width: 180px;
+            min-width: 180px;
+            line-height: 24px;
+        }
+    }
+
+    &-threat {
+        gap: 12px;
+        padding: 16px 0;
+
+        &:not(:last-child) {
+            border-bottom: 1px solid #d7dee4; // @todo: replace to koobiq token
+        }
+
+        &-description {
+            margin: 4px 0 0 0;
+        }
+    }
+
+    &-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+}

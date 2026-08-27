@@ -91,6 +91,10 @@
 - name: RABBIT_HISTORY_EVENTS_QUEUE
   value: {{. | quote }}
 {{- end }}
+{{- with (.Values.rabbitmq).admissionEventsQueue }}
+- name: RABBIT_ADMISSION_EVENTS_QUEUE
+  value: {{. | quote }}
+{{- end }}
 {{- end }}
 {{- with .Values.env }}
 {{ tpl (toYaml .) $ }}

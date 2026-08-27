@@ -25,6 +25,14 @@ service Enforcer {
             body: "*"
         };
     }
+
+    // EvaluatePolicyAdmission returns EvaluatePolicyAdmissionReq enriched with evaluated policies.
+    rpc EvaluatePolicyAdmission(EvaluatePolicyAdmissionReq) returns (EvaluatePolicyAdmissionReq) {
+        option (google.api.http) = {
+            post: "/api/v1/evaluate-policy/admission"
+            body: "*"
+        };
+    }
 }
 
 message EvaluatePolicyRuntimeEventReq {
@@ -56,6 +64,49 @@ message EvaluatePolicyRuntimeEventReq {
       string severity = 4;
 
       optional Policy policy = 5;
+    }
+
+    repeated Event events = 1;
+  }
+
+  Action action = 2;
+  Result result = 3;
+}
+
+
+message EvaluatePolicyAdmissionReq {
+  string actor = 1;
+
+  message Action {
+    string type = 1;
+
+    message Args {
+      // A single admission event covers the whole resource, so unlike a runtime event it can carry
+      // more than one container. A rule matches the event if it matches at least one of them.
+      message Container {
+        string name = 1;
+        string image_name = 2;
+        string registry = 3;
+      }
+
+      string namespace = 1;
+      // pod holds the name of the resource the finding is about, which is not necessarily a pod.
+      string pod = 2;
+      string node = 3;
+      repeated Container containers = 4;
+    }
+
+    Args args = 2;
+  }
+
+  message Result {
+    message Event {
+      // policy_id is "<policy name>/<rule name>" of the Kyverno policy which produced the finding.
+      // It is the admission counterpart of detector_id and is whitelisted the same way.
+      string policy_id = 1;
+      string severity = 2;
+
+      optional Policy policy = 3;
     }
 
     repeated Event events = 1;

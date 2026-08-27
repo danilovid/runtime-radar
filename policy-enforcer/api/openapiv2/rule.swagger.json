@@ -237,7 +237,7 @@
         },
         "type": {
           "$ref": "#/definitions/ruleRuleType",
-          "title": "type indicates what type of enforcement rule is used for (now support just runtime.)"
+          "title": "type indicates what type of enforcement rule is used for (runtime or admission)"
         },
         "scope": {
           "$ref": "#/definitions/RuleScope"
@@ -435,7 +435,7 @@
         },
         "type": {
           "$ref": "#/definitions/ruleRuleType",
-          "title": "type indicates what type of enforcement rule is used for (now support just runtime.)"
+          "title": "type indicates what type of enforcement rule is used for (runtime or admission)"
         },
         "scope": {
           "$ref": "#/definitions/RuleScope"
@@ -445,7 +445,8 @@
     "ruleRuleType": {
       "type": "string",
       "enum": [
-        "TYPE_RUNTIME"
+        "TYPE_RUNTIME",
+        "TYPE_ADMISSION"
       ],
       "default": "TYPE_RUNTIME"
     }

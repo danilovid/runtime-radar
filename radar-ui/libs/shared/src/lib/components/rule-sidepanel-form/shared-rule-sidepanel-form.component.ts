@@ -16,7 +16,7 @@ import {
     CoreUtilsService as utils
 } from '@cs/core';
 import { Notification, NotificationStoreService } from '@cs/domains/notification';
-import { RuleSeverity, RuleType } from '@cs/domains/rule';
+import { RULE_TYPE, RuleSeverity, RuleType } from '@cs/domains/rule';
 
 import { RuleForm, SharedRuleSidepanelFormProps } from './shared-rule-sidepanel-form.interface';
 
@@ -30,10 +30,11 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
         FormScheme<
             RuleForm,
             never,
-            'imageNames' | 'registries' | 'namespaces' | 'pods' | 'containers' | 'nodes' | 'binaries'
+            'imageNames' | 'registries' | 'namespaces' | 'pods' | 'containers' | 'nodes' | 'binaries' | 'policies'
         >
     > = this.formBuilder.group({
         name: ['', Validators.required],
+        type: [this.props.type || RuleType.TYPE_RUNTIME],
         namespaces: this.formBuilder.array<string>([], Validators.required),
         pods: this.formBuilder.array<string>([], Validators.required),
         containers: this.formBuilder.array<string>([], Validators.required),
@@ -41,13 +42,20 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
         imageNames: this.formBuilder.array<string>([], Validators.required),
         registries: this.formBuilder.array<string>([], Validators.required),
         binaries: this.formBuilder.array<string>([]),
+        policies: this.formBuilder.array<string>([]),
         notifySeverity: [RuleSeverity.NONE],
         mailIds: [[] as string[]],
         detectors: [[] as string[]]
     });
 
-    readonly notifications$: Observable<Notification[]> = this.notificationStoreService.notificationsByEventType$(
-        RuleType.TYPE_RUNTIME
+    readonly ruleType$: Observable<RuleType> = this.form.controls.type.valueChanges.pipe(
+        startWith(this.form.controls.type.value),
+        map((type) => type || RuleType.TYPE_RUNTIME),
+        distinctUntilChanged()
+    );
+
+    readonly notifications$: Observable<Notification[]> = this.ruleType$.pipe(
+        switchMap((type) => this.notificationStoreService.notificationsByEventType$(type))
     );
 
     readonly isFormValid$: Observable<boolean> = this.form.valueChanges.pipe(
@@ -69,7 +77,7 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
         distinctUntilChanged(),
         map(() => utils.getFormValues<RuleForm>(this.form.controls)),
         switchMap((form) =>
-            this.notificationStoreService.notificationsByEventType$(RuleType.TYPE_RUNTIME).pipe(
+            this.notifications$.pipe(
                 map((notifications) => {
                     const mailIdsControlCondition = !!notifications.length && form.notifySeverity !== RuleSeverity.NONE;
                     utils.toggleControlEnable(this.form.get('mailIds'), mailIdsControlCondition, []);
@@ -79,6 +87,10 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
     );
 
     readonly detectors$: Observable<DetectorExtended[]> = this.detectorStoreService.detectors$([DetectorType.RUNTIME]);
+
+    readonly ruleTypeOptions = RULE_TYPE;
+
+    readonly ruleTypes = RuleType;
 
     readonly tooltipPlacements = PopUpPlacements;
 
@@ -112,6 +124,15 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
         return this.form.get('binaries') as FormArray;
     }
 
+    get policiesControl(): FormArray {
+        return this.form.get('policies') as FormArray;
+    }
+
+    /** isTypeFixed is true when the form was opened from a page dedicated to a single kind of rule. */
+    get isTypeFixed(): boolean {
+        return !!this.props.type;
+    }
+
     constructor(
         private readonly destroyRef: DestroyRef,
         private readonly formBuilder: FormBuilder,
@@ -127,13 +148,23 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
     }
 
     ngAfterViewInit() {
+        const type = this.props.rule?.type || this.props.type || RuleType.TYPE_RUNTIME;
+        const threats = this.props.rule?.rule?.whitelist.threats || [];
+
         if (this.props.rule) {
             this.form.patchValue({
                 name: this.props.rule.name || '',
+                type,
                 notifySeverity: this.props.rule.rule?.notify?.severity || RuleSeverity.NONE,
                 mailIds: this.props.rule.rule?.notify?.targets || [],
-                detectors: this.props.rule.rule?.whitelist.threats || []
+                // Both kinds of rule keep the whitelist in threats, but a runtime one lists WASM
+                // detectors picked from a tree, while an admission one lists Kyverno policies typed in.
+                detectors: type === RuleType.TYPE_RUNTIME ? threats : []
             });
+
+            if (type !== RuleType.TYPE_RUNTIME) {
+                utils.setArrayControlValue(this.policiesControl, threats, this.formBuilder);
+            }
         }
 
         utils.setArrayControlValue(this.imageNamesControl, this.props.rule?.scope?.image_names, this.formBuilder);
@@ -145,6 +176,7 @@ export class SharedRuleSidepanelFormComponent implements AfterViewInit, OnInit {
         utils.setArrayControlValue(this.binariesControl, this.props.rule?.rule?.whitelist?.binaries, this.formBuilder);
 
         if (this.props.isEdit) {
+            this.form.get('type')?.disable({ onlySelf: true });
             this.form.get('blockSeverity')?.disable({ onlySelf: true });
             utils.toggleArrayControlEnable(this.nodesControl, true);
             utils.toggleArrayControlEnable(this.imageNamesControl, true);

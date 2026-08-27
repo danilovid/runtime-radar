@@ -79,6 +79,8 @@ func renderJSON(n *model.Notification, event any) ([]byte, error) {
 	switch ev := event.(type) {
 	case *api.Message_RuntimeEvent:
 		unwrappedEvent = ev.RuntimeEvent
+	case *api.Message_AdmissionEvent:
+		unwrappedEvent = ev.AdmissionEvent
 	default:
 		return nil, fmt.Errorf("invalid event type given: %T", ev)
 	}
@@ -123,6 +125,8 @@ func mapEventPriorityToSyslog(event any) syslog.Priority {
 	switch ev := event.(type) {
 	case *api.Message_RuntimeEvent:
 		return mapSeverityToSyslog(ev.RuntimeEvent.Severity)
+	case *api.Message_AdmissionEvent:
+		return mapSeverityToSyslog(ev.AdmissionEvent.Severity)
 	}
 	return syslog.LOG_DEBUG
 }

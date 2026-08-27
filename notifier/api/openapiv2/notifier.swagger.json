@@ -52,20 +52,80 @@
     }
   },
   "definitions": {
-    "EventThreat": {
+    "notifierAdmissionEvent": {
       "type": "object",
       "properties": {
-        "detectorId": {
+        "event": {
+          "$ref": "#/definitions/notifierAdmissionEventEvent"
+        },
+        "severity": {
           "type": "string"
         },
-        "detectorName": {
+        "registeredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ruleName": {
           "type": "string"
         },
-        "detectorVersion": {
-          "type": "integer",
-          "format": "int64"
+        "block": {
+          "type": "boolean",
+          "description": "block is true when the request was denied, that is the source which produced the threat is in\nthe enforce mode."
         },
-        "detectorDescription": {
+        "eventId": {
+          "type": "string",
+          "title": "id of event in history-api"
+        }
+      },
+      "description": "AdmissionEvent is a finding reported by Kyverno and collected by admission-monitor."
+    },
+    "notifierAdmissionEventEvent": {
+      "type": "object",
+      "properties": {
+        "threats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/notifierAdmissionEventEventThreat"
+          }
+        },
+        "resourceApiVersion": {
+          "type": "string"
+        },
+        "resourceKind": {
+          "type": "string"
+        },
+        "resourceNamespace": {
+          "type": "string"
+        },
+        "resourceName": {
+          "type": "string"
+        },
+        "nodeName": {
+          "type": "string"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notifierAdmissionEventEventThreat": {
+      "type": "object",
+      "properties": {
+        "policyId": {
+          "type": "string",
+          "description": "policy_id is \"\u003cpolicy name\u003e/\u003crule name\u003e\" of the Kyverno policy which produced the finding."
+        },
+        "policyName": {
+          "type": "string"
+        },
+        "policyRule": {
+          "type": "string"
+        },
+        "policyDescription": {
           "type": "string"
         },
         "severity": {
@@ -73,14 +133,66 @@
         }
       }
     },
-    "RuntimeEventEvent": {
+    "notifierMessage": {
+      "type": "object",
+      "properties": {
+        "notificationId": {
+          "type": "string"
+        },
+        "runtimeEvent": {
+          "$ref": "#/definitions/notifierRuntimeEvent"
+        },
+        "admissionEvent": {
+          "$ref": "#/definitions/notifierAdmissionEvent"
+        }
+      },
+      "description": "The request message containing notification's id and event to notify about."
+    },
+    "notifierNotifyReq": {
+      "type": "object",
+      "properties": {
+        "notifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/notifierMessage"
+          }
+        }
+      }
+    },
+    "notifierRuntimeEvent": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/notifierRuntimeEventEvent"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "registeredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ruleName": {
+          "type": "string"
+        },
+        "block": {
+          "type": "boolean"
+        },
+        "eventId": {
+          "type": "string",
+          "title": "id of event in history-api"
+        }
+      }
+    },
+    "notifierRuntimeEventEvent": {
       "type": "object",
       "properties": {
         "threats": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/EventThreat"
+            "$ref": "#/definitions/notifierRuntimeEventEventThreat"
           }
         },
         "eventType": {
@@ -165,52 +277,24 @@
         }
       }
     },
-    "notifierMessage": {
+    "notifierRuntimeEventEventThreat": {
       "type": "object",
       "properties": {
-        "notificationId": {
+        "detectorId": {
           "type": "string"
         },
-        "runtimeEvent": {
-          "$ref": "#/definitions/notifierRuntimeEvent"
-        }
-      },
-      "description": "The request message containing notification's id and event to notify about."
-    },
-    "notifierNotifyReq": {
-      "type": "object",
-      "properties": {
-        "notifications": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/notifierMessage"
-          }
-        }
-      }
-    },
-    "notifierRuntimeEvent": {
-      "type": "object",
-      "properties": {
-        "event": {
-          "$ref": "#/definitions/RuntimeEventEvent"
+        "detectorName": {
+          "type": "string"
+        },
+        "detectorVersion": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "detectorDescription": {
+          "type": "string"
         },
         "severity": {
           "type": "string"
-        },
-        "registeredAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "ruleName": {
-          "type": "string"
-        },
-        "block": {
-          "type": "boolean"
-        },
-        "eventId": {
-          "type": "string",
-          "title": "id of event in history-api"
         }
       }
     },

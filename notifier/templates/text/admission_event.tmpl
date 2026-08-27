@@ -1,0 +1,49 @@
+{
+    {{$event := .event.GetEvent}}
+    "threats": [
+        {{$threats := $event.GetThreats}}
+        {{range $i, $t := $threats}}
+            {
+                "policy_id": "{{$t.GetPolicyId}}",
+                "policy_name": "{{$t.GetPolicyName}}",
+                "policy_rule": "{{$t.GetPolicyRule}}",
+                "policy_description": {{$t.GetPolicyDescription | printf "%q"}},
+                "severity": "{{$t.GetSeverity}}"
+            }{{if not (eq $i (sub (len $threats) 1))}},{{end}}
+        {{end}}
+    ],
+    "resource_api_version": "{{$event.GetResourceApiVersion}}",
+    "resource_kind": "{{$event.GetResourceKind}}",
+    "resource_namespace": "{{$event.GetResourceNamespace}}",
+    "resource_name": "{{$event.GetResourceName}}",
+    "node_name": "{{$event.GetNodeName}}",
+    "images": [
+        {{$images := $event.GetImages}}
+        {{range $i, $img := $images}}
+            "{{$img}}"{{if not (eq $i (sub (len $images) 1))}},{{end}}
+        {{end}}
+    ],
+    "severity": "{{.event.GetSeverity}}",
+    "registered_at": {
+        "seconds": {{.event.GetRegisteredAt.GetSeconds}},
+        "nanos": {{.event.GetRegisteredAt.GetNanos}}
+    },
+    "rule_name": "{{.event.GetRuleName}}",
+    "block": {{.event.GetBlock}},
+    {{if .centralCSURL}}
+        "central_cs_url": "{{.centralCSURL}}",
+    {{end}}
+    {{if .csClusterID}}
+        "cs_cluster_id": "{{.csClusterID}}",
+    {{end}}
+    {{if .csClusterName}}
+        "cs_cluster_name": "{{.csClusterName}}",
+    {{end}}
+    {{if .ownCSURL}}
+        "own_cs_url": "{{.ownCSURL}}",
+    {{end}}
+    {{if and .centralCSURL .event.GetEventId}}
+        "event_url": "{{.centralCSURL}}/admission/events/{{.event.GetEventId}}{{if ne .ownCSURL .centralCSURL}}?clusterUrl={{.ownCSURL}}{{end}}",
+    {{end}}
+    "event_id": "{{.event.GetEventId}}"
+}

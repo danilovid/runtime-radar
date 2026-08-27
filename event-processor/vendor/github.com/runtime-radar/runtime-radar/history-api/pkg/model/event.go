@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	EventTypeRuntimeEvent = "runtime_event"
+	EventTypeRuntimeEvent   = "runtime_event"
+	EventTypeAdmissionEvent = "admission_event"
 )
 
 // Event represents a struct that can be extended and used for storing event info.

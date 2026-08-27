@@ -1,0 +1,11 @@
+# .vscode
+.idea
+# .task
+/.task/checksum/tools
+*.exe
+/bin
+/cmd/admission-monitor/admission-monitor
+
+# helm dependencies
+.helm/charts
+.helm/Chart.lock

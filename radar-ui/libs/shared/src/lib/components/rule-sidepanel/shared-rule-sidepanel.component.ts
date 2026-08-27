@@ -6,7 +6,7 @@ import { Observable, map } from 'rxjs';
 
 import { PermissionType } from '@cs/domains/role';
 import { DetectorExtended, DetectorType } from '@cs/domains/detector';
-import { Rule, RuleWhiteList } from '@cs/domains/rule';
+import { Rule, RuleType, RuleWhiteList } from '@cs/domains/rule';
 
 import { SharedRuleSidepanelProps } from './shared-rule-sidepanel.interface';
 
@@ -21,6 +21,8 @@ export class SharedRuleSidepanelComponent {
     readonly badgeColors = KbqBadgeColors;
 
     readonly permissionType = PermissionType;
+
+    readonly ruleTypes = RuleType;
 
     readonly detectors$ = (whiteList: RuleWhiteList): Observable<DetectorExtended[]> =>
         this.props.detectors$.pipe(

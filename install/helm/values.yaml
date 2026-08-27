@@ -151,6 +151,8 @@ history-api:
   rabbitmq:
     # -- RabbitMQ queue name
     queue: history_events
+    # -- RabbitMQ admission events queue name
+    admissionEventsQueue: admission_events
 
 # @section Container-registry-integrator component parameters
 cluster-manager:
@@ -270,6 +272,32 @@ runtime-monitor:
       cpu: 100m
       ephemeral-storage: 1Mi
       memory: 128Mi
+
+# @section Admission-monitor component parameters
+admission-monitor:
+  # -- Template to specify the labels of nodes for pod assignment
+  nodeSelector: {}
+  # -- Number of replicas for the admission-monitor component. Kyverno policies are applied and
+  # policy reports are consumed by every instance, so more than one replica means duplicated events
+  replicas: 1
+  # -- Interval to update the stored configuration
+  configUpdateInterval: 30s
+  # -- Namespace Kyverno is installed in
+  kyvernoNamespace: kyverno
+  # RabbitMQ connection parameters
+  rabbitmq:
+    # -- RabbitMQ admission events queue name
+    admissionEventsQueue: admission_events
+
+# @section Kyverno parameters
+kyverno:
+  # -- Deploy Kyverno together with Runtime Radar. Set to false to use an already installed one
+  deploy: true
+  # Kyverno must not review Runtime Radar's own workloads, otherwise a simultaneous restart of both
+  # leaves the cluster unable to schedule either of them.
+  config:
+    resourceFilters:
+      - "[*/*,{{ .Release.Namespace }},*]"
 
 # @section Event-processor component parameters
 event-processor:
