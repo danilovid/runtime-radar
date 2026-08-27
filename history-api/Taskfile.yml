@@ -34,6 +34,8 @@ tasks:
         --go_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --go_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --go_opt=Mevent-processor/runtime_event.proto="github.com/runtime-radar/runtime-radar/event-processor/api" \
+        --go_opt=Madmission-monitor/admission_event.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
+        --go_opt=Madmission-monitor/admission_config.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
         \
         --go-grpc_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --go-grpc_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
@@ -41,12 +43,17 @@ tasks:
         --go-grpc_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --go-grpc_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --go-grpc_opt=Mevent-processor/runtime_event.proto="github.com/runtime-radar/runtime-radar/event-processor/api" \
+        --go-grpc_opt=Madmission-monitor/admission_event.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
+        --go-grpc_opt=Madmission-monitor/admission_config.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
         \
         --grpc-gateway_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --grpc-gateway_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --grpc-gateway_opt=Mtetragon/sensors.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --grpc-gateway_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --grpc-gateway_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
+        --grpc-gateway_opt=Mevent-processor/runtime_event.proto="github.com/runtime-radar/runtime-radar/event-processor/api" \
+        --grpc-gateway_opt=Madmission-monitor/admission_event.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
+        --grpc-gateway_opt=Madmission-monitor/admission_config.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
         \
         --openapiv2_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --openapiv2_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
@@ -54,6 +61,8 @@ tasks:
         --openapiv2_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --openapiv2_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
         --openapiv2_opt=Mevent-processor/runtime_event.proto="github.com/runtime-radar/runtime-radar/event-processor/api" \
+        --openapiv2_opt=Madmission-monitor/admission_event.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
+        --openapiv2_opt=Madmission-monitor/admission_config.proto="github.com/runtime-radar/runtime-radar/admission-monitor/api" \
         \
         {{.PROTO_DIR}}/*.proto
     sources:

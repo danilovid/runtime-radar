@@ -76,6 +76,7 @@
 			reverse_proxy /api/v1/event/* {args[0]}://history-api:9000
 			reverse_proxy /api/v1/stats/* {args[0]}://history-api:9000
 			reverse_proxy /api/v1/runtime-event/* {args[0]}://history-api:9000
+			reverse_proxy /api/v1/admission-event/* {args[0]}://history-api:9000
 
 			# vuln-scanner
 			reverse_proxy /api/v1/remote_scan {args[0]}://vuln-scanner:9000
@@ -106,6 +107,9 @@
 
 			# runtime-monitor
 			reverse_proxy /api/v1/config/runtime-monitor {args[0]}://runtime-monitor:9000
+
+			# admission-monitor
+			reverse_proxy /api/v1/config/admission-monitor {args[0]}://admission-monitor:9000
 
 			# event-processor
 			reverse_proxy /api/v1/config/event-processor {args[0]}://event-processor:9000

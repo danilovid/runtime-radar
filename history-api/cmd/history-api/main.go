@@ -130,10 +130,11 @@ func main() {
 
 	grpcSrv := grpc.NewServer(opts...)
 
-	runtimeHistorySvc, runtimeStatsSvc := composeServices(clickhouseDB, verifier, cfg.Auth, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
+	runtimeHistorySvc, runtimeStatsSvc, admissionHistorySvc := composeServices(clickhouseDB, verifier, cfg.Auth, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
 
 	api.RegisterRuntimeHistoryServer(grpcSrv, runtimeHistorySvc)
 	api.RegisterRuntimeStatsServer(grpcSrv, runtimeStatsSvc)
+	api.RegisterAdmissionHistoryServer(grpcSrv, admissionHistorySvc)
 
 	// Register reflection service on gRPC server
 	reflection.Register(grpcSrv)
@@ -197,7 +198,7 @@ func composeServices(
 	isAuth bool,
 	runtimeBatchSize int,
 	runtimeFlushInterval time.Duration,
-) (historySvc api.RuntimeHistoryServer, statsSvc api.RuntimeStatsServer) {
+) (historySvc api.RuntimeHistoryServer, statsSvc api.RuntimeStatsServer, admissionSvc api.AdmissionHistoryServer) {
 	statsSvc = &service.RuntimeStatsGeneric{
 		StatsRepository: &clickhouse.StatsDatabase{clickhouseDB},
 	}
@@ -210,6 +211,10 @@ func composeServices(
 		),
 	}
 
+	admissionSvc = &service.AdmissionHistoryGeneric{
+		AdmissionEventRepository: &clickhouse.AdmissionEventDatabase{clickhouseDB},
+	}
+
 	if isAuth {
 		historySvc = &service.RuntimeHistoryAuth{
 			RuntimeHistoryServer: historySvc,
@@ -220,9 +225,15 @@ func composeServices(
 			RuntimeStatsServer: statsSvc,
 			Verifier:           verifier,
 		}
+
+		admissionSvc = &service.AdmissionHistoryAuth{
+			AdmissionHistoryServer: admissionSvc,
+			Verifier:               verifier,
+		}
 	}
 
 	historySvc = &service.RuntimeHistoryLogging{RuntimeHistoryServer: historySvc}
+	admissionSvc = &service.AdmissionHistoryLogging{AdmissionHistoryServer: admissionSvc}
 	statsSvc = &service.RuntimeStatsLogging{RuntimeStatsServer: statsSvc}
 
 	return

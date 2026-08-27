@@ -51,8 +51,11 @@ for an admission rule.
 To receive notifications, the notification target must be created with the `Admission` event type:
 a target is bound to one type, and a rule only sees targets of its own type.
 
-Admission events are stored in ClickHouse but are not yet readable through the API, so they reach a
-user only as notifications. The read API and the events page are the next step.
+Admission events are listed on the **Events** tab and open into a card with the resource, its
+containers, the policies that fired and the rules that made the finding an incident. They are read
+from `history-api` over `/api/v1/admission-event`.
+
+The public API (`public-api`) does not expose admission events yet: it proxies runtime events only.
 
 ## Known limitation
 

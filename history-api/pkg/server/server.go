@@ -107,6 +107,10 @@ func newGWMux(ctx context.Context, grpcAddr string, tlsConfig *tls.Config) (*run
 		return nil, fmt.Errorf("can't register runtime history handler: %w", err)
 	}
 
+	if err := api.RegisterAdmissionHistoryHandlerFromEndpoint(ctx, m, grpcAddr, opts); err != nil {
+		return nil, err
+	}
+
 	if err := api.RegisterRuntimeStatsHandlerFromEndpoint(ctx, m, grpcAddr, opts); err != nil {
 		return nil, fmt.Errorf("can't register runtime stats handler: %w", err)
 	}

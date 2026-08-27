@@ -1,5 +1,6 @@
 export enum AdmissionRouterName {
-    SETTINGS = 'settings'
+    SETTINGS = 'settings',
+    EVENTS = 'events'
 }
 
 export interface AdmissionNavigationTab {
