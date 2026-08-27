@@ -116,6 +116,7 @@ export class RuntimeFeatureRulesContainer implements OnChanges {
             hasBackdrop: true,
             data: {
                 isEdit: true,
+                type: RuleType.TYPE_RUNTIME,
                 rule
             }
         };
@@ -179,7 +180,7 @@ export class RuntimeFeatureRulesContainer implements OnChanges {
             .open(SharedRuleSidepanelFormComponent, {
                 position: KbqSidepanelPosition.Right,
                 hasBackdrop: true,
-                data: {}
+                data: { type: RuleType.TYPE_RUNTIME }
             })
             .afterClosed()
             .pipe(take(1), filter(utils.isDefined))

@@ -128,6 +128,7 @@ export class RuntimeFeatureEventsGridContainer {
             hasBackdrop: true,
             data: {
                 isEdit: true,
+                type: RuleType.TYPE_RUNTIME,
                 rule: {
                     rule: {
                         version: '1', // @todo: create environment constant

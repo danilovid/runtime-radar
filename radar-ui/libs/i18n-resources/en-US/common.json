@@ -41,6 +41,7 @@
     "Common.Pseudo.Menu.Management": "Management",
     "Common.Pseudo.Menu.Cluster": "Clusters",
     "Common.Pseudo.Menu.Runtime": "Runtime",
+    "Common.Pseudo.Menu.Admission": "Admission",
     "Common.Pseudo.Menu.Rule": "Rules",
     "Common.Pseudo.Menu.Integration": "Notification services",
     "Common.Pseudo.Menu.User": "Users",
@@ -67,6 +68,7 @@
     "Common.Pseudo.DetectorType.Runtime": "Runtime",
 
     "Common.Pseudo.ScanType.Runtime": "Runtime",
+    "Common.Pseudo.ScanType.Admission": "Admission",
 
     "Common.Clipboard.Notification.CopiedToClipboard": "Copied to clipboard",
     "Common.Clipboard.Notification.ClipboardDenied": "Configure a secure connection to copy to the clipboard",
@@ -92,6 +94,7 @@
     "Common.RuleSidepanel.SubTitle.Recipients": "Notification templates",
     "Common.RuleSidepanel.SubTitle.WhiteList": "Exclusions",
     "Common.RuleSidepanel.Text.RuntimeWhiteList" : "Skip the rule for these threats.",
+    "Common.RuleSidepanel.Text.AdmissionWhiteList": "Skip the rule for these Kyverno policies.",
     "Common.RuleSidepanel.Button.Update": "Edit",
     "Common.RuleSidepanel.Button.Delete": "Delete",
 

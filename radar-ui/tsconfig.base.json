@@ -19,6 +19,7 @@
         "paths": {
             "@cs/api": ["libs/api/src/index.ts"],
             "@cs/core": ["libs/core/src/index.ts"],
+            "@cs/domains/admission": ["libs/domains/admission/src/index.ts"],
             "@cs/domains/auth": ["libs/domains/auth/src/index.ts"],
             "@cs/domains/cluster": ["libs/domains/cluster/src/index.ts"],
             "@cs/domains/detector": ["libs/domains/detector/src/index.ts"],
@@ -29,6 +30,7 @@
             "@cs/domains/runtime": ["libs/domains/runtime/src/index.ts"],
             "@cs/domains/token": ["libs/domains/token/src/index.ts"],
             "@cs/domains/user": ["libs/domains/user/src/index.ts"],
+            "@cs/features/admission": ["libs/features/admission/src/index.ts"],
             "@cs/features/cluster": ["libs/features/cluster/src/index.ts"],
             "@cs/features/error": ["libs/features/error/src/index.ts"],
             "@cs/features/forbidden": ["libs/features/forbidden/src/index.ts"],

@@ -1,0 +1,32 @@
+<ng-container *transloco="let tAdmission; prefix: 'admission'">
+    <kbq-sidepanel-header [closeable]="true">{{ tAdmission('Admission.PolicySidepanel.Title.Policy') }}</kbq-sidepanel-header>
+
+    <kbq-sidepanel-body>
+        <div class="admission-feature-sidepanel-policy">
+            <section>
+                <span class="kbq-text-normal cs-text-gray admission-feature-sidepanel-policy-label">
+                    {{ tAdmission('Admission.PolicySidepanel.Label.Name') }}
+                </span>
+                <span>{{ props.name }}</span>
+            </section>
+            <section class="layout-margin-top-l">
+                <span class="kbq-text-normal cs-text-gray admission-feature-sidepanel-policy-label">
+                    {{ tAdmission('Admission.PolicySidepanel.Label.Description') }}
+                </span>
+                <span>{{ props.description || '—' }}</span>
+                @if (props.yaml) {
+                    <kbq-code-block
+                            canCopy
+                            canDownload
+                            canToggleSoftWrap
+                            [lineNumbers]="true"
+                            [softWrap]="false"
+                            [filled]="false"
+                            [files]="files"
+                            class="admission-feature-sidepanel-policy-code">
+                    </kbq-code-block>
+                }
+            </section>
+        </div>
+    </kbq-sidepanel-body>
+</ng-container>

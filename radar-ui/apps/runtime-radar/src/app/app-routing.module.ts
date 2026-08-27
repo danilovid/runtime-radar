@@ -55,6 +55,15 @@ const routes: Routes = [
         }
     },
     {
+        path: RouterName.ADMISSION,
+        loadChildren: () => import('@cs/features/admission').then((m) => m.AdmissionFeatureModule),
+        canActivate: [authSuccessRouteActivateGuard, i18nTranslationActivateGuard, rolePermissionActivateGuard],
+        data: {
+            translateDicts: [TranslationDict.ADMISSION, TranslationDict.RULE],
+            guards: [PermissionName.SYSTEM]
+        }
+    },
+    {
         path: RouterName.SETTINGS,
         canActivate: [authSuccessRouteActivateGuard],
         canActivateChild: [authSuccessRouteActivateChildGuard],

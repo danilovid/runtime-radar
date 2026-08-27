@@ -39,8 +39,20 @@ const DEFAULT_WEBHOOK_HEADERS: NotificationWebhookHeadersList = {
 };
 
 const INTEGRATION_SUBJECT_TEMPLATES: Map<string, string> = new Map([
-    [NotificationEventType.RUNTIME, 'Integration.RecipientForm.Value.Subject.Runtime']
+    [NotificationEventType.RUNTIME, 'Integration.RecipientForm.Value.Subject.Runtime'],
+    [NotificationEventType.ADMISSION, 'Integration.RecipientForm.Value.Subject.Admission']
 ]);
+
+const INTEGRATION_EVENT_TYPES: { id: NotificationEventType; localizationKey: string }[] = [
+    {
+        id: NotificationEventType.RUNTIME,
+        localizationKey: 'Common.Pseudo.ScanType.Runtime'
+    },
+    {
+        id: NotificationEventType.ADMISSION,
+        localizationKey: 'Common.Pseudo.ScanType.Admission'
+    }
+];
 
 @Component({
     templateUrl: './integration-sidepanel-recipient-form.component.html',
@@ -148,6 +160,8 @@ export class IntegrationFeatureSidepanelRecipientFormComponent implements OnInit
     );
 
     readonly integrationType = IntegrationType;
+
+    readonly integrationEventTypeOptions = INTEGRATION_EVENT_TYPES;
 
     readonly separatorKeyCodes = FORM_SEPARATOR_KEY_CODES;
 

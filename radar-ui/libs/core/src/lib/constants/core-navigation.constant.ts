@@ -17,6 +17,12 @@ export const NAVIGATION: NavigationMenu[] = [
                 localizationKey: 'Common.Pseudo.Menu.Runtime',
                 testId: 'runtime-navbar-link',
                 icon: 'kbq-play-rewind_16'
+            },
+            {
+                path: RouterName.ADMISSION,
+                localizationKey: 'Common.Pseudo.Menu.Admission',
+                testId: 'admission-navbar-link',
+                icon: 'kbq-shield-check_16'
             }
         ]
     },

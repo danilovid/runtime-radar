@@ -13,7 +13,8 @@ export interface NotificationDomainState {
 }
 
 const RULE_EVENT_TYPE_RELATIONS: Map<RuleType, string> = new Map([
-    [RuleType.TYPE_RUNTIME, NotificationEventType.RUNTIME] // @todo: clarify RuntimeEventType status
+    [RuleType.TYPE_RUNTIME, NotificationEventType.RUNTIME], // @todo: clarify RuntimeEventType status
+    [RuleType.TYPE_ADMISSION, NotificationEventType.ADMISSION]
 ]);
 
 const selectNotificationDomainState = createFeatureSelector<NotificationDomainState>(NOTIFICATION_DOMAIN_KEY);

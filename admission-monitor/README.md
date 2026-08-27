@@ -35,6 +35,25 @@ a source between audit and enforce never requires editing YAML in expert mode:
 | `AUDIT`   | `[Audit]`         | request is allowed, violation lands in a report |
 | `ENFORCE` | `[Deny]`          | request is denied                              |
 
+## Web interface
+
+Sources are managed on the **Admission** page of the web interface (`radar-ui`), which is the
+admission counterpart of the runtime sources page: a source is enabled with a checkbox, its action
+and severity are picked from selects, and expert mode allows editing the manifest or adding a source
+of your own.
+
+Response rules of type `admission` are created on the common rules page: the rule form asks for the
+type and then shows the whitelist that belongs to it. A runtime rule whitelists WASM detectors picked
+from a tree plus process binaries; an admission rule whitelists Kyverno policies typed in as
+`<policy name>/<rule name>`. Both end up in the `threats` field of the rule, `binaries` stays empty
+for an admission rule.
+
+To receive notifications, the notification target must be created with the `Admission` event type:
+a target is bound to one type, and a rule only sees targets of its own type.
+
+Admission events are stored in ClickHouse but are not yet readable through the API, so they reach a
+user only as notifications. The read API and the events page are the next step.
+
 ## Known limitation
 
 Policy reports only describe resources that exist in the cluster. A request denied by Kyverno never

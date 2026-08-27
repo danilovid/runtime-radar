@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { RuleForm } from '@cs/shared';
-import { RuleNotifyEntity, RuleWhiteList } from '@cs/domains/rule';
+import { RuleNotifyEntity, RuleType, RuleWhiteList } from '@cs/domains/rule';
 
 @Injectable({
     providedIn: 'root'
@@ -20,6 +20,14 @@ export class RuleFeatureHelperService {
             threats: [],
             binaries: []
         };
+
+        // Both kinds of rule keep the whitelist in threats. A runtime one lists WASM detectors and,
+        // additionally, process binaries; an admission one lists Kyverno policies and has no binaries.
+        if (form.type === RuleType.TYPE_ADMISSION) {
+            node.threats.push(...form.policies);
+
+            return node;
+        }
 
         node.threats.push(...form.detectors);
         node.binaries.push(...form.binaries);

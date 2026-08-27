@@ -1,0 +1,23 @@
+{
+    "name": "feature-admission",
+    "projectType": "library",
+    "root": "libs/features/admission",
+    "sourceRoot": "libs/features/admission/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": ["libs/features/admission/src/**/*.ts", "libs/features/admission/src/**/*.html"]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": ["coverage/libs/features/admission"],
+            "options": {
+                "jestConfig": "libs/features/admission/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

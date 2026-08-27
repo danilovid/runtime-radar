@@ -25,6 +25,7 @@
 
     "Rule.CreateForm.Title.Create": "New response rule",
     "Rule.CreateForm.Label.Name": "Name",
+    "Rule.CreateForm.Label.Type": "Rule type",
     "Rule.CreateForm.Label.ImageNames": "Images from specified repositories",
     "Rule.CreateForm.Error.ImageNames": "Incorrect image name template",
     "Rule.CreateForm.Placeholder.ImageNames": "apiteam/*",
@@ -65,6 +66,10 @@
 
     "Rule.CreateForm.WhiteList.SubTitle.Exception": "Exclusions",
     "Rule.CreateForm.WhiteList.Text.Exception.Runtime": "Skip the rule for these threats.",
+    "Rule.CreateForm.WhiteList.Text.Exception.Admission": "Skip the rule for these Kyverno policies.",
+    "Rule.CreateForm.Label.Policies": "Kyverno policies",
+    "Rule.CreateForm.Hint.Policies": "Identifier of a policy is its name and the name of the rule inside it, separated by a slash, for example privileged-containers/rule-0. It is shown on the event page.",
+    "Rule.CreateForm.Placeholder.Policies": "policy/rule",
 
     "Rule.EditForm.Title.Edit": "Editing the rule",
     "Rule.EditForm.Button.Confirm": "Save",

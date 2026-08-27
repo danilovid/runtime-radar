@@ -166,19 +166,33 @@
                             {{ tCommon('Common.RuleSidepanel.SubTitle.WhiteList') }}
                         </h4>
                         <div class="kbq-text-compact cs-text-gray layout-margin-top-xxs">
-                            {{ tCommon('Common.RuleSidepanel.Text.RuntimeWhiteList') }}
+                            {{ rule.type === ruleTypes.TYPE_RUNTIME
+                                ? tCommon('Common.RuleSidepanel.Text.RuntimeWhiteList')
+                                : tCommon('Common.RuleSidepanel.Text.AdmissionWhiteList') }}
                         </div>
 
-                        <ul class="shared-rule-sidepanel-section-detectors">
-                            @for (detector of detectors$(rule.rule.whitelist) | async; track detector.id) {
-                                <li class="layout-row shared-rule-sidepanel-section-detectors-item">
+                        @if (rule.type === ruleTypes.TYPE_RUNTIME) {
+                            <ul class="shared-rule-sidepanel-section-detectors">
+                                @for (detector of detectors$(rule.rule.whitelist) | async; track detector.id) {
+                                    <li class="layout-row shared-rule-sidepanel-section-detectors-item">
                                         <span class="kbq-text-compact cs-text-gray shared-rule-sidepanel-section-detectors-item-id">
                                             {{ detector.key }}
                                         </span>
-                                    <span class="kbq-text-normal">{{ detector.name || '—' }}</span>
-                                </li>
-                            }
-                        </ul>
+                                        <span class="kbq-text-normal">{{ detector.name || '—' }}</span>
+                                    </li>
+                                }
+                            </ul>
+                        } @else {
+                            <ul class="layout-row shared-rule-sidepanel-section-badges">
+                                @for (policy of rule.rule.whitelist.threats; track policy) {
+                                    <li>
+                                        <kbq-badge [badgeColor]="badgeColors.FadeContrast" [outline]="true">
+                                            <span class="shared-rule-sidepanel-section-badges-truncate">{{ policy }}</span>
+                                        </kbq-badge>
+                                    </li>
+                                }
+                            </ul>
+                        }
 
                         @if (rule.rule.whitelist.binaries.length) {
                             <section class="layout-margin-top-l shared-rule-sidepanel-section">

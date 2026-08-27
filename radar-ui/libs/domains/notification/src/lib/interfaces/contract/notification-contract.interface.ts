@@ -1,14 +1,15 @@
 import { IntegrationType } from '@cs/domains/integration';
 
 export enum NotificationEventType {
-    RUNTIME = 'runtime_event'
+    RUNTIME = 'runtime_event',
+    ADMISSION = 'admission_event'
 }
 
 interface AbstractNotification {
     id: string;
     integration_id: string;
     integration_type: IntegrationType;
-    event_type: NotificationEventType.RUNTIME;
+    event_type: NotificationEventType;
     name: string;
     recipients: string[];
     template: string;
