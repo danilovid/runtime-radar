@@ -1,0 +1,296 @@
+<ng-container *transloco="let tAssistant; prefix: 'assistant'">
+    <ng-container *ngrxLet="{
+        isAvailable: (isAvailable$ | async),
+        isOpen: (isOpen$ | async),
+        isStreaming: (isStreaming$ | async),
+        view: (view$ | async)!,
+        integrations: (integrations$ | async)!,
+        integrationId: (integrationId$ | async)!,
+        messages: (messages$ | async)!,
+        eventId: (eventId$ | async),
+        attachments: (attachments$ | async)!
+    } as rxlet">
+        @if (rxlet.isAvailable) {
+            @if (!rxlet.isOpen) {
+                <!-- Collapsed, the widget is still a chat: a question typed
+                     here opens the panel with the answer already coming. -->
+                <section class="assistant-dock" data-testid="assistant-dock">
+                    <div class="assistant-dock__row">
+                        <span class="assistant-dock__badge">AI</span>
+                        <input class="assistant-dock__input"
+                               type="text"
+                               [(ngModel)]="dockInput"
+                               [placeholder]="tAssistant('Assistant.Widget.Placeholder.Dock')"
+                               (keydown)="onDockKeyDown($event)"
+                               data-testid="assistant-dock-input">
+                        <button type="button"
+                                class="assistant-dock__send"
+                                [disabled]="!dockInput.trim()"
+                                (click)="sendFromDock()"
+                                data-testid="assistant-dock-send">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M8 13V3.5M4.5 7L8 3.5 11.5 7" stroke="#fff"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="assistant-dock__links">
+                        <button type="button" (click)="open()" data-testid="assistant-dock-open">
+                            {{ tAssistant('Assistant.Widget.Button.Open') }}
+                        </button>
+                        <button type="button" (click)="reportProblem()" data-testid="assistant-dock-support">
+                            {{ tAssistant('Assistant.Widget.Support.Entry') }}
+                        </button>
+                    </div>
+                </section>
+            } @else {
+                <section class="assistant-panel" data-testid="assistant-widget">
+                    <header class="assistant-panel__header">
+                        <div class="assistant-panel__heading">
+                            @if (rxlet.view !== assistantView.HOME) {
+                                <button type="button"
+                                        class="assistant-panel__back"
+                                        (click)="showHome()"
+                                        data-testid="assistant-back-button">
+                                    ← {{ tAssistant('Assistant.Widget.Button.MainMenu') }}
+                                </button>
+                            }
+
+                            <div class="assistant-panel__title">{{ tAssistant(heading(rxlet.view)) }}</div>
+
+                            @if (rxlet.integrations.length > 1) {
+                                <select class="assistant-panel__integration"
+                                        [value]="rxlet.integrationId"
+                                        (change)="selectIntegration($event)"
+                                        data-testid="assistant-integration-select">
+                                    @for (integration of rxlet.integrations; track integration.id) {
+                                        <option [value]="integration.id">{{ integration.name }}</option>
+                                    }
+                                </select>
+                            } @else {
+                                <div class="assistant-panel__subtitle">
+                                    {{ tAssistant('Assistant.Widget.Label.Integration', { name: rxlet.integrations[0].name }) }}
+                                </div>
+                            }
+                        </div>
+
+                        <div class="assistant-panel__actions">
+                            <button type="button"
+                                    class="assistant-panel__icon-button"
+                                    [title]="tAssistant('Assistant.Widget.Button.OpenFullPage')"
+                                    (click)="openChatsPage()"
+                                    data-testid="assistant-open-page-button">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M6 3.5H3.5v9h9V10" stroke="currentColor"></path>
+                                    <path d="M9 3.5h3.5V7M12.5 3.5L7.5 8.5" stroke="currentColor"></path>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="assistant-panel__icon-button"
+                                    [title]="tAssistant('Assistant.Widget.Button.NewChat')"
+                                    [disabled]="!!rxlet.isStreaming"
+                                    (click)="startChat()"
+                                    data-testid="assistant-new-chat-button">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 3.5v9M3.5 8h9" stroke="currentColor"></path>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="assistant-panel__icon-button"
+                                    (click)="close()"
+                                    data-testid="assistant-close-button">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </header>
+
+                    <div #body class="assistant-panel__body" data-testid="assistant-thread">
+                        @switch (rxlet.view) {
+                            @case (assistantView.HOME) {
+                                <div class="assistant-home">
+                                    <button type="button" class="assistant-home__search" (click)="startChat()">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                            <circle cx="7" cy="7" r="4" stroke="currentColor"></circle>
+                                            <path d="M10.2 10.2L13.5 13.5" stroke="currentColor"></path>
+                                        </svg>
+                                        {{ tAssistant('Assistant.Widget.Placeholder.Search') }}
+                                    </button>
+
+                                    <button type="button" class="assistant-home__tour" (click)="showTour()">
+                                        <div class="assistant-home__tour-title">
+                                            {{ tAssistant('Assistant.Widget.Tour.Title') }}
+                                        </div>
+                                        <div class="assistant-home__tour-hint">
+                                            {{ tAssistant('Assistant.Widget.Tour.Hint') }}
+                                        </div>
+                                        <div class="assistant-home__tour-cta">
+                                            {{ tAssistant('Assistant.Widget.Tour.Cta') }} →
+                                        </div>
+                                    </button>
+
+                                    <div class="assistant-home__label">
+                                        {{ tAssistant('Assistant.Widget.Label.PopularActions') }}
+                                    </div>
+                                    <div class="assistant-home__actions">
+                                        @for (action of quickActions; track action.titleKey) {
+                                            <button type="button"
+                                                    class="assistant-home__action"
+                                                    (click)="askKey(action.titleKey)"
+                                                    data-testid="assistant-quick-action">
+                                                <span>
+                                                    <span class="assistant-home__action-title">
+                                                        {{ tAssistant(action.titleKey) }}
+                                                    </span>
+                                                    <span class="assistant-home__action-hint">
+                                                        {{ tAssistant(action.hintKey) }}
+                                                    </span>
+                                                </span>
+                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                                    <path d="M6 3.5L10.5 8 6 12.5" stroke="#6d7a86"></path>
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <button type="button" class="assistant-home__free" (click)="startChat()">
+                                        <div class="assistant-home__action-title">
+                                            {{ tAssistant('Assistant.Widget.Text.FreeChatTitle') }}
+                                        </div>
+                                        <div class="assistant-home__action-hint">
+                                            {{ tAssistant('Assistant.Widget.Text.FreeChatHint') }}
+                                        </div>
+                                    </button>
+
+                                    <button type="button"
+                                            class="assistant-home__support"
+                                            (click)="reportProblem()"
+                                            data-testid="assistant-support-entry">
+                                        <div class="assistant-home__action-title">
+                                            {{ tAssistant('Assistant.Widget.Support.Entry') }}
+                                        </div>
+                                        <div class="assistant-home__action-hint">
+                                            {{ tAssistant('Assistant.Widget.Support.Hint') }}
+                                        </div>
+                                    </button>
+                                </div>
+                            }
+
+                            @case (assistantView.TOUR) {
+                                <div class="assistant-tour">
+                                    @for (topic of tourTopics; track topic.titleKey) {
+                                        <button type="button"
+                                                class="assistant-tour__topic"
+                                                (click)="askKey(topic.titleKey)">
+                                            <div class="assistant-tour__title">{{ tAssistant(topic.titleKey) }}</div>
+                                            <div class="assistant-tour__desc">{{ tAssistant(topic.descKey) }}</div>
+                                            <div class="assistant-tour__cta">
+                                                {{ tAssistant('Assistant.Widget.Button.AskAbout') }}
+                                            </div>
+                                        </button>
+                                    }
+                                </div>
+                            }
+
+                            @default {
+                                <div class="assistant-thread">
+                                    @if (rxlet.eventId) {
+                                        <div class="assistant-thread__context" data-testid="assistant-event-context">
+                                            {{ tAssistant('Assistant.Widget.Text.EventContext', { id: rxlet.eventId }) }}
+                                        </div>
+                                    }
+
+                                    @for (message of rxlet.messages; track message.id) {
+                                        <cs-assistant-message [message]="message"></cs-assistant-message>
+                                    }
+
+                                    @if (rxlet.messages.length && !rxlet.isStreaming) {
+                                        <div class="assistant-thread__suggestions">
+                                            @for (suggestion of suggestions; track suggestion) {
+                                                <button type="button"
+                                                        class="assistant-thread__suggestion"
+                                                        (click)="askKey(suggestion)"
+                                                        data-testid="assistant-suggestion">
+                                                    {{ tAssistant(suggestion) }}
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @if (rxlet.view === assistantView.CHAT) {
+                        <footer class="assistant-panel__composer assistant-composer">
+                            @if (rxlet.attachments.length) {
+                                <div class="assistant-composer__files">
+                                    @for (attachment of rxlet.attachments; track attachment.name) {
+                                        <span class="assistant-composer__file">
+                                            {{ attachment.name }}
+                                            <!-- A file only partly fits the message, so say which
+                                                 part of it the assistant will actually read. -->
+                                            @if (attachment.isTruncated) {
+                                                <span class="assistant-composer__file-cut"
+                                                      [title]="tAssistant('Assistant.Widget.Text.AttachmentTruncated')">
+                                                    {{ tAssistant('Assistant.Widget.Label.AttachmentTruncated') }}
+                                                </span>
+                                            }
+                                            <button type="button"
+                                                    class="assistant-composer__file-remove"
+                                                    (click)="removeAttachment(attachment.name)">×</button>
+                                        </span>
+                                    }
+                                </div>
+                            }
+
+                            <div class="assistant-composer__row">
+                                <input #filePicker
+                                       type="file"
+                                       multiple
+                                       hidden
+                                       [accept]="attachmentAccept"
+                                       (change)="attach($event)"
+                                       data-testid="assistant-file-input">
+                                <button type="button"
+                                        class="assistant-composer__attach"
+                                        [title]="tAssistant('Assistant.Widget.Button.Attach')"
+                                        [disabled]="rxlet.attachments.length >= maxAttachments"
+                                        (click)="filePicker.click()"
+                                        data-testid="assistant-attach-button">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M11.5 7.5l-4 4a2.1 2.1 0 01-3-3l5-5a2.6 2.6 0 013.7 3.7l-5 5"
+                                              stroke="currentColor"></path>
+                                    </svg>
+                                </button>
+                                <textarea class="assistant-composer__input"
+                                          rows="1"
+                                          [(ngModel)]="input"
+                                          [placeholder]="tAssistant('Assistant.Widget.Placeholder.Input')"
+                                          (keydown)="onKeyDown($event)"
+                                          data-testid="assistant-input"></textarea>
+                                <button type="button"
+                                        class="assistant-composer__send"
+                                        [disabled]="!input.trim() || !!rxlet.isStreaming"
+                                        (click)="send()"
+                                        data-testid="assistant-send-button">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 13V3.5M4.5 7L8 3.5 11.5 7" stroke="#fff"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="assistant-composer__footer">
+                                <span>{{ tAssistant('Assistant.Widget.Text.Disclaimer') }}</span>
+                                <button type="button" class="assistant-composer__full-page" (click)="openChatsPage()">
+                                    {{ tAssistant('Assistant.Widget.Button.OpenFullPage') }}
+                                </button>
+                            </div>
+                        </footer>
+                    }
+                </section>
+            }
+        }
+    </ng-container>
+</ng-container>

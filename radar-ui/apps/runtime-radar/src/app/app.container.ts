@@ -6,7 +6,7 @@ import { ApiPathService } from '@cs/api';
 import { I18nService } from '@cs/i18n';
 import { AuthCredentials, AuthStoreService } from '@cs/domains/auth';
 import { CoreNavigationStoreService, CoreWindowService, LoadStatus, RouterName } from '@cs/core';
-import { Role, RoleStoreService } from '@cs/domains/role';
+import { PermissionName, PermissionType, Role, RoleStoreService } from '@cs/domains/role';
 
 @Component({
     selector: 'cs-app-container',
@@ -29,6 +29,15 @@ export class AppContainer implements OnInit {
         map((credentials) => credentials.roleId),
         distinctUntilChanged(),
         switchMap((roleId) => this.roleStoreService.role$(roleId))
+    );
+
+    /**
+     * Whether the user may read integrations. The chat widget needs it twice
+     * over: to find an AI integration to answer with, and because its own RPC
+     * checks the same permission.
+     */
+    readonly canReadIntegrations$: Observable<boolean> = this.role$.pipe(
+        map((role) => !!role?.role_permissions[PermissionName.INTEGRATIONS]?.actions.includes(PermissionType.READ))
     );
 
     readonly loadStatus = LoadStatus;

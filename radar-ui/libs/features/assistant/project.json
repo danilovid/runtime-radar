@@ -1,0 +1,28 @@
+{
+    "name": "feature-assistant",
+    "projectType": "library",
+    "root": "libs/features/assistant",
+    "sourceRoot": "libs/features/assistant/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": [
+                    "libs/features/assistant/src/**/*.ts",
+                    "libs/features/assistant/src/**/*.html"
+                ]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": [
+                "{workspaceRoot}/coverage/libs/feature-assistant"
+            ],
+            "options": {
+                "jestConfig": "libs/features/assistant/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

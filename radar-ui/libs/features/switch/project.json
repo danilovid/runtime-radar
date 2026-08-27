@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/features/switch"],
+            "outputs": ["{workspaceRoot}/coverage/libs/features/switch"],
             "options": {
                 "jestConfig": "libs/features/switch/jest.config.ts",
                 "passWithNoTests": true

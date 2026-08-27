@@ -13,17 +13,21 @@ import (
 
 	"github.com/google/gops/agent"
 	"github.com/rs/zerolog/log"
+	history_api "github.com/runtime-radar/runtime-radar/history-api/api"
 	"github.com/runtime-radar/runtime-radar/lib/logger"
+	libmetrics "github.com/runtime-radar/runtime-radar/lib/metrics"
 	"github.com/runtime-radar/runtime-radar/lib/security"
 	"github.com/runtime-radar/runtime-radar/lib/security/cipher"
 	"github.com/runtime-radar/runtime-radar/lib/security/jwt"
 	"github.com/runtime-radar/runtime-radar/lib/server/healthcheck"
 	"github.com/runtime-radar/runtime-radar/lib/server/interceptor"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
+	"github.com/runtime-radar/runtime-radar/notifier/pkg/assistant"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/build"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/client"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/config"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/database"
+	"github.com/runtime-radar/runtime-radar/notifier/pkg/metrics"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/server"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/service"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/template"
@@ -128,20 +132,44 @@ func main() {
 	}
 	defer closeRC()
 
+	runtimeHistory, closeRH, err := client.NewRuntimeHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+	defer closeRH()
+
+	// The assistant reaches MCP Server over the same TLS settings as the rest
+	// of the internal traffic. The URL scheme is aligned with TLS: a leftover
+	// http:// against ListenAndServeTLS fails the handshake. Tools are
+	// read-only, and every call carries the asking user's own token rather
+	// than a service credential.
+	assistantRunner := assistant.NewRunner(
+		assistant.NewMCPToolBoxFactory(cfg.MCPServerURL, tlsConfig),
+		cfg.AssistantMaxIterations,
+		cfg.AssistantTimeout,
+		cfg.AssistantMaxChats,
+	)
+
 	grpcSrv := grpc.NewServer(opts...)
-	notifier, notification, email := composeServices(db, ruleController, crypter, verifier, cfg.Auth, cfg.CSVersion)
+	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
 
 	api.RegisterNotifierServer(grpcSrv, notifier)
 	api.RegisterNotificationControllerServer(grpcSrv, notification)
 	api.RegisterIntegrationControllerServer(grpcSrv, email)
+	api.RegisterAssistantControllerServer(grpcSrv, assistantService)
 
 	template.Init(cfg.TemplatesHTMLFolder, cfg.TemplatesTextFolder)
 
 	// Register reflection service on gRPC server
 	reflection.Register(grpcSrv)
 
-	// Create and Run the instrumentation HTTP server for probes, etc.
-	iSrv := server.NewInstrumentation(cfg.InstrumentationAddr)
+	registry, err := libmetrics.NewRegistry(build.AppName, cfg.ClusterName, metrics.Collectors()...)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to register metrics: %v", err)
+	}
+
+	// Create and Run the instrumentation HTTP server for probes, metrics, etc.
+	iSrv := server.NewInstrumentation(cfg.InstrumentationAddr, registry)
 	go func() {
 		if err := iSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal().Msgf("### Can't serve instrumentation HTTP requests: %v", err)
@@ -199,15 +227,23 @@ func main() {
 func composeServices(
 	db *gorm.DB,
 	ruleController enforcer_api.RuleControllerClient,
+	runtimeHistory history_api.RuntimeHistoryClient,
 	crypter cipher.Crypter,
 	verifier jwt.Verifier,
 	isAuth bool,
 	version string,
-) (notifier api.NotifierServer, notification api.NotificationControllerServer, integration api.IntegrationControllerServer) {
+	assistantRunner *assistant.Runner,
+) (
+	notifier api.NotifierServer,
+	notification api.NotificationControllerServer,
+	integration api.IntegrationControllerServer,
+	assistantService api.AssistantControllerServer,
+) {
 	integration = &service.IntegrationGeneric{
 		IntegrationRepository:  &database.IntegrationDatabase{DB: db},
 		NotificationRepository: &database.NotificationDatabase{DB: db},
 		RuleController:         ruleController,
+		RuntimeHistory:         runtimeHistory,
 		Crypter:                crypter,
 	}
 	notification = &service.NotificationGeneric{
@@ -220,6 +256,11 @@ func composeServices(
 		IntegrationRepository:  &database.IntegrationDatabase{DB: db},
 		Crypter:                crypter,
 		CSVersion:              version,
+	}
+	assistantService = &service.AssistantGeneric{
+		IntegrationRepository: &database.IntegrationDatabase{DB: db},
+		Crypter:               crypter,
+		Runner:                assistantRunner,
 	}
 
 	if isAuth {
@@ -235,11 +276,16 @@ func composeServices(
 			NotifierServer: notifier,
 			Verifier:       verifier,
 		}
+		assistantService = &service.AssistantAuth{
+			AssistantControllerServer: assistantService,
+			Verifier:                  verifier,
+		}
 	}
 
 	integration = &service.IntegrationLogging{integration}
 	notification = &service.NotificationLogging{notification}
 	notifier = &service.NotifierLogging{notifier}
+	assistantService = &service.AssistantLogging{assistantService}
 
 	return
 }

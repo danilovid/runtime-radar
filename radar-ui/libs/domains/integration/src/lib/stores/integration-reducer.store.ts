@@ -12,8 +12,9 @@ import {
     UPDATE_INTEGRATION_ENTITY_DOC_ACTION,
     UPDATE_INTEGRATION_STATE_DOC_ACTION
 } from './integration-action.store';
-import { IntegrationEmail, IntegrationSyslog, IntegrationWebhook } from '../interfaces';
+import { IntegrationAI, IntegrationEmail, IntegrationSyslog, IntegrationWebhook } from '../interfaces';
 
+const aiAdapter = createEntityAdapter<IntegrationAI>();
 const emailAdapter = createEntityAdapter<IntegrationEmail>();
 const syslogAdapter = createEntityAdapter<IntegrationSyslog>();
 const webhookAdapter = createEntityAdapter<IntegrationWebhook>();
@@ -22,6 +23,7 @@ const INITIAL_STATE: IntegrationState = {
     loadStatus: LoadStatus.INIT,
     loadedTypes: [],
     lastUpdate: 0,
+    ai: aiAdapter.getInitialState(),
     email: emailAdapter.getInitialState(),
     syslog: syslogAdapter.getInitialState(),
     webhook: webhookAdapter.getInitialState()
@@ -34,32 +36,37 @@ const reducer: ActionReducer<IntegrationState, Action> = createReducer(
         ...state,
         loadedTypes: [...state.loadedTypes, integrationType]
     })),
-    on(SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION, (state, { email, syslog, webhook }) => ({
+    on(SET_ALL_INTEGRATION_ENTITIES_DOC_ACTION, (state, { ai, email, syslog, webhook }) => ({
         ...state,
+        ai: ai ? aiAdapter.setAll(ai, state.ai) : state.ai,
         email: email ? emailAdapter.setAll(email, state.email) : state.email,
         syslog: syslog ? syslogAdapter.setAll(syslog, state.syslog) : state.syslog,
         webhook: webhook ? webhookAdapter.setAll(webhook, state.webhook) : state.webhook
     })),
-    on(SET_INTEGRATION_ENTITY_DOC_ACTION, (state, { email, syslog, webhook }) => ({
+    on(SET_INTEGRATION_ENTITY_DOC_ACTION, (state, { ai, email, syslog, webhook }) => ({
         ...state,
+        ai: ai ? aiAdapter.setOne(ai, state.ai) : state.ai,
         email: email ? emailAdapter.setOne(email, state.email) : state.email,
         syslog: syslog ? syslogAdapter.setOne(syslog, state.syslog) : state.syslog,
         webhook: webhook ? webhookAdapter.setOne(webhook, state.webhook) : state.webhook
     })),
-    on(UPDATE_INTEGRATION_ENTITY_DOC_ACTION, (state, { email, syslog, webhook }) => ({
+    on(UPDATE_INTEGRATION_ENTITY_DOC_ACTION, (state, { ai, email, syslog, webhook }) => ({
         ...state,
+        ai: ai ? aiAdapter.updateOne(ai, state.ai) : state.ai,
         email: email ? emailAdapter.updateOne(email, state.email) : state.email,
         syslog: syslog ? syslogAdapter.updateOne(syslog, state.syslog) : state.syslog,
         webhook: webhook ? webhookAdapter.updateOne(webhook, state.webhook) : state.webhook
     })),
-    on(DELETE_INTEGRATION_ENTITY_DOC_ACTION, (state, { emailId, syslogId, webhookId }) => ({
+    on(DELETE_INTEGRATION_ENTITY_DOC_ACTION, (state, { aiId, emailId, syslogId, webhookId }) => ({
         ...state,
+        ai: aiId ? aiAdapter.removeOne(aiId, state.ai) : state.ai,
         email: emailId ? emailAdapter.removeOne(emailId, state.email) : state.email,
         syslog: syslogId ? syslogAdapter.removeOne(syslogId, state.syslog) : state.syslog,
         webhook: webhookId ? webhookAdapter.removeOne(webhookId, state.webhook) : state.webhook
     }))
 );
 
+export const integrationAIEntitySelector = aiAdapter.getSelectors();
 export const integrationEmailEntitySelector = emailAdapter.getSelectors();
 export const integrationSyslogEntitySelector = syslogAdapter.getSelectors();
 export const integrationWebhookEntitySelector = webhookAdapter.getSelectors();

@@ -1,4 +1,4 @@
-import { IntegrationEmailAuthType } from '@cs/domains/integration';
+import { IntegrationAIProviderType, IntegrationEmailAuthType } from '@cs/domains/integration';
 
 export enum IntegrationProtocolType {
     NONE = 'NONE',
@@ -29,5 +29,16 @@ export interface IntegrationWebhookForm {
     login: string;
     password: string;
     ca: string;
+    isInsecure: boolean;
+}
+
+export interface IntegrationAIForm {
+    name: string;
+    provider: IntegrationAIProviderType;
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+    ca: string;
+    isLocal: boolean;
     isInsecure: boolean;
 }

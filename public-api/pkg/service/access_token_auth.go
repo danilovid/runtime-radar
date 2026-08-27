@@ -35,12 +35,12 @@ func (a *AccessTokenAuth) Create(ctx context.Context, req *model.CreateAccessTok
 	return a.AccessToken.Create(ctx, req)
 }
 
-func (a *AccessTokenAuth) ListPage(ctx context.Context, pageNum, pageSize int, order string) ([]*model.AccessTokenResp, int, error) {
+func (a *AccessTokenAuth) ListPage(ctx context.Context, pageNum, pageSize int, order string, kind model.TokenKind) ([]*model.AccessTokenResp, int, error) {
 	if err := a.Verifier.VerifyPermission(ctx, jwt.PermissionPublicAccessTokens, jwt.ActionRead); err != nil {
 		return nil, 0, errcommon.PermissionErrorToStatus(err)
 	}
 
-	return a.AccessToken.ListPage(ctx, pageNum, pageSize, order)
+	return a.AccessToken.ListPage(ctx, pageNum, pageSize, order, kind)
 }
 
 func (a *AccessTokenAuth) Delete(ctx context.Context, id uuid.UUID) error {

@@ -120,11 +120,21 @@ Test specific backend component:
 cd ${COMPONENT_NAME} && task test-docker
 ```
 
+The `mcp-server` has no infrastructure dependencies, so its tests run without `docker compose`:
+```bash
+cd mcp-server && task test
+```
+
 Test UI:
 ```bash
 cd radar-ui && npx nx test ${LIB_NAME}
 ```
 where `${LIB_NAME}` refers to specific module.
+
+Test all UI modules at once (requires `yarn install` beforehand):
+```bash
+cd radar-ui && task test
+```
 
 ## Code Style and linting
 

@@ -1,0 +1,364 @@
+/* Palette taken from the chat design, like the rest of the widget. */
+$rr-primary: #0066ff;
+$rr-line: #d7dee4;
+$rr-muted: #6d7a86;
+$rr-surface: #f2f5f9;
+
+/* Message layout follows the chat design: the question sits in a bubble on the
+   right, the answer runs full width under a quiet author line. */
+.assistant-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &_user {
+        align-items: flex-end;
+    }
+
+    &__bubble {
+        max-width: 85%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: $rr-surface;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    &__meta {
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    &__tool {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border: 1px solid $rr-line;
+        border-radius: 100px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+
+        &_running {
+            border-color: $rr-primary;
+            color: #000;
+        }
+
+        &_failed {
+            border-color: #f00;
+            color: #c00;
+        }
+    }
+
+    &__files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    &__file {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border: 1px solid $rr-line;
+        border-radius: 100px;
+        background: #fff;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__markdown {
+        word-break: break-word;
+
+        /* The answer is Markdown, so it arrives with block elements of its own
+           that would otherwise carry the browser's default margins. */
+        :first-child {
+            margin-top: 0;
+        }
+
+        :last-child {
+            margin-bottom: 0;
+        }
+
+        p,
+        ul,
+        ol,
+        pre,
+        table {
+            margin: 0 0 8px;
+        }
+
+        ul,
+        ol {
+            padding-left: 20px;
+        }
+
+        code {
+            padding: 0 4px;
+            border-radius: 4px;
+            background: $rr-surface;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 12px;
+        }
+
+        pre {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: $rr-surface;
+            overflow-x: auto;
+
+            code {
+                padding: 0;
+                background: none;
+            }
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 4px 8px;
+            border: 1px solid $rr-line;
+            text-align: left;
+        }
+    }
+
+    &__typing {
+        display: flex;
+        gap: 4px;
+        padding: 6px 0;
+
+        span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: $rr-muted;
+            animation: assistant-typing 1.2s infinite;
+
+            &:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            &:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+        }
+    }
+
+    &__error {
+        color: #c00;
+        font-size: 13px;
+        line-height: 18px;
+    }
+}
+
+@keyframes assistant-typing {
+    0%,
+    60%,
+    100% {
+        opacity: 0.25;
+    }
+
+    30% {
+        opacity: 1;
+    }
+}
+
+/* A change the assistant proposes. It is deliberately louder than the answer
+   around it: pressing the button here alters the product. */
+.assistant-action {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-primary;
+    border-radius: 12px;
+    background: #f5f9ff;
+
+    &_destructive {
+        border-color: #d64545;
+        background: #fff6f6;
+    }
+
+    &__head {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    &__title {
+        font-weight: 600;
+    }
+
+    &__tool {
+        color: $rr-muted;
+        font-size: 12px;
+    }
+
+    &__hint {
+        margin-top: 4px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__arguments {
+        margin: 8px 0 0;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid $rr-line;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 220px;
+        overflow: auto;
+    }
+
+    &__buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    &__confirm,
+    &__decline {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font: inherit;
+        cursor: pointer;
+    }
+
+    &__confirm {
+        border: none;
+        background: $rr-primary;
+        color: #fff;
+    }
+
+    &_destructive &__confirm {
+        background: #d64545;
+    }
+
+    &__decline {
+        border: 1px solid $rr-line;
+        background: #fff;
+    }
+
+    &__state {
+        margin-top: 12px;
+        color: $rr-muted;
+        font-size: 13px;
+    }
+}
+
+/* A credential the product will not show again. */
+.assistant-secret {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-line;
+    border-radius: 12px;
+    background: $rr-surface;
+
+    &__label {
+        font-weight: 600;
+    }
+
+    &__value {
+        display: block;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid $rr-line;
+        font-size: 12px;
+        word-break: break-all;
+    }
+
+    &__note {
+        margin-top: 8px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__copy {
+        margin-top: 8px;
+        padding: 6px 14px;
+        border: 1px solid $rr-line;
+        border-radius: 8px;
+        background: #fff;
+        font: inherit;
+        cursor: pointer;
+    }
+}
+
+/* The finished support request, lifted out of the answer so it can be sent. */
+.assistant-support {
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid $rr-line;
+    border-radius: 12px;
+    background: #fff;
+
+    &__label {
+        color: $rr-muted;
+        font-size: 13px;
+    }
+
+    &__subject {
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    &__body {
+        margin: 8px 0 0;
+        padding: 8px;
+        border-radius: 8px;
+        background: $rr-surface;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 260px;
+        overflow: auto;
+    }
+
+    &__actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    &__send,
+    &__copy {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    &__send {
+        border: none;
+        background: $rr-primary;
+        color: #fff;
+    }
+
+    &__copy {
+        border: 1px solid $rr-line;
+        background: #fff;
+    }
+}

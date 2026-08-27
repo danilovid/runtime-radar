@@ -9,11 +9,12 @@ const (
 	IntegrationEmail   = "email"
 	IntegrationWebhook = "webhook"
 	IntegrationSyslog  = "syslog"
+	IntegrationAI      = "ai"
 )
 
 func IntegrationTypeSupported(it string) bool {
 	switch it {
-	case IntegrationEmail, IntegrationWebhook, IntegrationSyslog:
+	case IntegrationEmail, IntegrationWebhook, IntegrationSyslog, IntegrationAI:
 		return true
 	default:
 		return false

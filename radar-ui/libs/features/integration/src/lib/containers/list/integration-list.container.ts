@@ -6,6 +6,7 @@ import { Observable, filter, take } from 'rxjs';
 import { ApiPathService } from '@cs/api';
 import { ClusterStoreService, RegisteredCluster } from '@cs/domains/cluster';
 import {
+    IntegrationAI,
     IntegrationEmail,
     IntegrationStoreService,
     IntegrationSyslog,
@@ -26,6 +27,8 @@ import { IntegrationSidepanelFormOutputs } from '../../interfaces/integration-si
 })
 export class IntegrationFeatureListContainer {
     readonly loadStatus$: Observable<LoadStatus> = this.integrationStoreService.loadStatus$;
+
+    readonly aiIntegrations$: Observable<IntegrationAI[]> = this.integrationStoreService.aiIntegrations$;
 
     readonly emailIntegrations$: Observable<IntegrationEmail[]> = this.integrationStoreService.emailIntegrations$;
 
@@ -67,6 +70,22 @@ export class IntegrationFeatureListContainer {
             .pipe(take(1), filter(utils.isDefined))
             .subscribe((outputs: IntegrationSidepanelFormOutputs) => {
                 switch (outputs.type) {
+                    case IntegrationType.AI:
+                        this.integrationStoreService.createAIIntegration({
+                            type: outputs.type,
+                            name: outputs.ai.name,
+                            skip_check: outputs.hasSkipCheck,
+                            ai: {
+                                provider: outputs.ai.provider,
+                                base_url: outputs.ai.baseUrl,
+                                model: outputs.ai.model,
+                                api_key: outputs.ai.apiKey,
+                                ca: outputs.ai.ca,
+                                is_local: outputs.ai.isLocal,
+                                insecure: !outputs.ai.isInsecure
+                            }
+                        });
+                        break;
                     case IntegrationType.EMAIL:
                         this.integrationStoreService.createEmailIntegration({
                             type: outputs.type,

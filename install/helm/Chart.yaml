@@ -44,6 +44,10 @@ dependencies:
     version: v0.x.x
     repository: file://../../public-api/.helm
     tags: [cs-app, public-api]
+  - name: mcp-server
+    version: v0.x.x
+    repository: file://../../mcp-server/.helm
+    tags: [cs-app, mcp-server]
   - name: postgresql
     version: 0.x.x
     condition: postgresql.deploy

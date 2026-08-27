@@ -1,3 +1,4 @@
 export enum I18nLocale {
-    EN = 'en-US'
+    EN = 'en-US',
+    RU = 'ru-RU'
 }

@@ -23,6 +23,8 @@ import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
 import { ApiPathService } from '@cs/api';
 import { I18nService } from '@cs/i18n';
+import { IntegrationStoreService } from '@cs/domains/integration';
+import { AssistantMode, AssistantStoreService } from '@cs/domains/assistant';
 import { ClusterStoreService, RegisteredCluster } from '@cs/domains/cluster';
 import { DetectorExtended, DetectorStoreService, DetectorType } from '@cs/domains/detector';
 import { GetRuleResponse, Rule, RuleRequestService, RuleStoreService, RuleType } from '@cs/domains/rule';
@@ -212,6 +214,11 @@ export class RuntimeFeatureEventsContainer implements OnInit {
 
     readonly clusters$: Observable<RegisteredCluster[]> = this.clusterStoreService.registeredClusters$;
 
+    /** The summary is an assistant answer, so it needs an AI integration. */
+    readonly isAssistantAvailable$: Observable<boolean> = this.integrationStoreService.aiIntegrations$.pipe(
+        map((integrations) => !!integrations.length)
+    );
+
     readonly filterComponentStore = this.runtimeFeatureEventFilterComponentStore;
 
     readonly loadStatus = LoadStatus;
@@ -230,10 +237,12 @@ export class RuntimeFeatureEventsContainer implements OnInit {
     readonly permissionName = PermissionName;
 
     constructor(
+        private readonly assistantStoreService: AssistantStoreService,
         private readonly dateAdapter: DateAdapter<DateTime>,
         private readonly destroyRef: DestroyRef,
         private readonly detectorStoreService: DetectorStoreService,
         private readonly i18nService: I18nService,
+        private readonly integrationStoreService: IntegrationStoreService,
         private readonly ruleStoreService: RuleStoreService,
         private readonly clusterStoreService: ClusterStoreService,
         private readonly apiPathService: ApiPathService,
@@ -247,6 +256,18 @@ export class RuntimeFeatureEventsContainer implements OnInit {
 
     ngOnInit() {
         this.routeWithFilterAndCursor$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    }
+
+    /**
+     * Asks the assistant to summarise the week: how much was recorded, how much
+     * of it carries threats, and what is worth looking at. It opens in the chat
+     * panel, so the obvious next question can be asked straight away.
+     */
+    openWeeklyDigest() {
+        this.assistantStoreService.open({
+            question: this.i18nService.translate('Runtime.Pseudo.Text.WeeklyDigest'),
+            mode: AssistantMode.DIGEST
+        });
     }
 
     tabChange(path?: string) {

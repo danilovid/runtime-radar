@@ -9,5 +9,6 @@ export * from './lib/services/core-window.service';
 export * from './lib/tokens/core-polling-interval.token';
 export * from './lib/tokens/core-refresh-interval.token';
 export * from './lib/tokens/core-child-cluster.token';
+export * from './lib/tokens/core-support-email.token';
 export * from './lib/validators/core.validators';
 export * from './lib/core.module';
