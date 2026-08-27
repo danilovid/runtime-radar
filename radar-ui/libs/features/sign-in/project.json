@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/features/sign-in"],
+            "outputs": ["{workspaceRoot}/coverage/libs/features/sign-in"],
             "options": {
                 "jestConfig": "libs/features/sign-in/jest.config.ts",
                 "passWithNoTests": true

@@ -60,8 +60,17 @@ func (ia *IntegrationAuth) TestAI(ctx context.Context, req *api.TestAIReq) (*emp
 	return ia.IntegrationControllerServer.TestAI(ctx, req)
 }
 
+// ExplainRuntimeEvent needs both permissions it stands between. Reading the
+// integration is what picks the model; reading the event is what the answer is
+// made of, and the event is fetched from History API with this service's own
+// credential rather than the caller's. Without the second check the explanation
+// would hand the contents of an event to somebody who may not see events at
+// all.
 func (ia *IntegrationAuth) ExplainRuntimeEvent(ctx context.Context, req *api.ExplainRuntimeEventReq) (*api.ExplainRuntimeEventResp, error) {
 	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionEvents, jwt.ActionRead); err != nil {
 		return nil, errcommon.PermissionErrorToStatus(err)
 	}
 	return ia.IntegrationControllerServer.ExplainRuntimeEvent(ctx, req)

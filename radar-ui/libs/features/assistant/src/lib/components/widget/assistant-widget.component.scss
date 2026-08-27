@@ -448,6 +448,12 @@ $rr-offset: 24px;
         line-height: 16px;
     }
 
+    &__file-cut {
+        color: $rr-muted;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
     &__file-remove {
         border: 0;
         background: none;

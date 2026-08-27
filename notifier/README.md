@@ -14,7 +14,9 @@ MCP Server over the Model Context Protocol, and the caller's own `Authorization`
 them, so RBAC and audit downstream name the person asking rather than this service.
 
 No conversation is stored. The client replays the history it wants the model to see on every request, bounded here at
-50 messages and 64 KB.
+50 messages, 16 KB per message and 64 KB in total. A request over any of those bounds is refused rather than trimmed,
+so the interface keeps the files a user attaches inside a budget of its own — see `ASSISTANT_MAX_ATTACHMENTS_BYTES` in
+`radar-ui/libs/domains/assistant`, which leaves room in the message for the question itself.
 
 ### Modes
 

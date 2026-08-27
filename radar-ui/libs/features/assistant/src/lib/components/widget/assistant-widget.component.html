@@ -229,6 +229,14 @@
                                     @for (attachment of rxlet.attachments; track attachment.name) {
                                         <span class="assistant-composer__file">
                                             {{ attachment.name }}
+                                            <!-- A file only partly fits the message, so say which
+                                                 part of it the assistant will actually read. -->
+                                            @if (attachment.isTruncated) {
+                                                <span class="assistant-composer__file-cut"
+                                                      [title]="tAssistant('Assistant.Widget.Text.AttachmentTruncated')">
+                                                    {{ tAssistant('Assistant.Widget.Label.AttachmentTruncated') }}
+                                                </span>
+                                            }
                                             <button type="button"
                                                     class="assistant-composer__file-remove"
                                                     (click)="removeAttachment(attachment.name)">×</button>

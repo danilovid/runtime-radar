@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/features/token"],
+            "outputs": ["{workspaceRoot}/coverage/libs/features/token"],
             "options": {
                 "jestConfig": "libs/features/token/jest.config.ts",
                 "passWithNoTests": true

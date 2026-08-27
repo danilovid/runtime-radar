@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/features/forbidden"],
+            "outputs": ["{workspaceRoot}/coverage/libs/features/forbidden"],
             "options": {
                 "jestConfig": "libs/features/forbidden/jest.config.ts",
                 "passWithNoTests": true

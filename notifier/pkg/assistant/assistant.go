@@ -27,8 +27,16 @@ const (
 	// Bounds on the conversation a client may send. The server keeps no chat
 	// state, so the history arrives with every request and has to be bounded
 	// here rather than by how much was stored.
+	//
+	// A message is allowed to be large because one may carry attached files:
+	// the interface renders them into the question itself. Its own budget for
+	// them is smaller than this, so that a message with the most files it
+	// allows still fits here alongside what the user typed — see
+	// ASSISTANT_MAX_ATTACHMENTS_BYTES in libs/domains/assistant. Exceeding any
+	// of these bounds is refused outright rather than trimmed: a question the
+	// model answers has to be the question that was asked.
 	maxConversationMessages = 50
-	maxMessageBytes         = 8 * 1024
+	maxMessageBytes         = 16 * 1024
 	maxConversationBytes    = 64 * 1024
 
 	// Phases reported in a ToolEvent.

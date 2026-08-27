@@ -1,0 +1,44 @@
+name: Test UI
+
+on:
+  pull_request:
+    paths:
+      - radar-ui/**
+  push:
+    paths:
+      - radar-ui/**
+    branches:
+      - main
+
+env:
+  # Same version the radar-ui image is built with.
+  NODE_VERSION: '18.20.4'
+  TASK_VERSION: '3.38.0'
+  # The workspace uses the local task runner, keep CI from reaching Nx Cloud.
+  NX_NO_CLOUD: 'true'
+
+jobs:
+  test-ui:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: radar-ui/yarn.lock
+
+      - name: Install Task
+        uses: go-task/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Install dependencies
+        working-directory: radar-ui
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        working-directory: radar-ui
+        run: task test

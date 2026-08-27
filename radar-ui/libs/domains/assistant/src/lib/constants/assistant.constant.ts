@@ -1,10 +1,15 @@
 /**
  * A file attached to a question is read in the browser and travels as text
- * inside the message. These bounds keep a stray log file from filling the
- * model's context: the server caps the conversation too, and a request over
- * its limit is rejected outright.
+ * inside the message, so the files of one message share a single budget rather
+ * than each getting one of their own.
+ *
+ * The budget is smaller than maxMessageBytes in notifier/pkg/assistant, which
+ * bounds the whole message: what is left over covers the question itself and
+ * the delimiters around each file. The server rejects a message over its limit
+ * outright instead of trimming it, so anything the widget sends has to fit —
+ * that is what this number is for.
  */
-export const ASSISTANT_MAX_ATTACHMENT_BYTES = 32 * 1024;
+export const ASSISTANT_MAX_ATTACHMENTS_BYTES = 12 * 1024;
 
 export const ASSISTANT_MAX_ATTACHMENTS = 3;
 

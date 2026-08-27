@@ -146,11 +146,16 @@ export class AssistantEffectStore {
         this.actions$.pipe(
             ofType(ATTACH_ASSISTANT_FILES_TODO_ACTION),
             withLatestFrom(this.store.select(getAssistantPendingAttachments)),
-            switchMap(([{ files }, pending]) =>
-                from(Promise.all(files.map((file) => this.assistantAttachmentService.read(file)))).pipe(
+            switchMap(([{ files }, pending]) => {
+                // How many more files this message may carry is decided before
+                // anything is read, so that the shared byte budget is not spent
+                // on a file that would be dropped for being the fourth one.
+                const room = Math.max(ASSISTANT_MAX_ATTACHMENTS - pending.length, 0);
+
+                return from(this.assistantAttachmentService.readWithinBudget(files.slice(0, room), pending)).pipe(
                     map((attachments) =>
                         SET_ASSISTANT_ATTACHMENTS_DOC_ACTION({
-                            attachments: [...pending, ...attachments].slice(0, ASSISTANT_MAX_ATTACHMENTS)
+                            attachments: [...pending, ...attachments]
                         })
                     ),
                     catchError(() => {
@@ -161,8 +166,8 @@ export class AssistantEffectStore {
 
                         return of(SET_ASSISTANT_ATTACHMENTS_DOC_ACTION({ attachments: pending }));
                     })
-                )
-            )
+                );
+            })
         )
     );
 
