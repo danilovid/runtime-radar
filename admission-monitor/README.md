@@ -57,15 +57,26 @@ from `history-api` over `/api/v1/admission-event`.
 
 The public API (`public-api`) does not expose admission events yet: it proxies runtime events only.
 
-## Known limitation
+## Two sources of findings
 
 Policy reports only describe resources that exist in the cluster. A request denied by Kyverno never
-becomes a resource, so it produces no report: Kyverno reports blocked requests via Kubernetes events
-and metrics instead, see https://kyverno.io/docs/guides/reports/. This means a source in the enforce
-mode blocks the request but produces no Runtime Radar event.
+becomes a resource, so it produces no report, see https://kyverno.io/docs/guides/reports/. This is
+why admission-monitor watches two things at once:
 
-TODO: watch Kubernetes events with `reason=PolicyViolation` produced by the `kyverno-admission`
-component to also record blocked requests.
+| Source | Covers | Event |
+|---|---|---|
+| `PolicyReport` / `ClusterPolicyReport` | audited violations and background scans | `blocked: false` |
+| Kubernetes events | requests denied at admission | `blocked: true` |
+
+The two never overlap. Kyverno emits an event for every result of the webhook, and the action tells
+them apart: a denied request is `Resource Blocked`, an audited violation is `Resource Passed` and is
+skipped because a report already covers it.
+
+An event is reported on the policy, and the resource that was denied is its related object. The name
+of the failed rule appears only inside the message, so it is parsed out of it: that keeps the threat
+identifier (`<policy name>/<rule name>`) the same for a blocked and for an audited finding, so one
+whitelist entry works for both. A blocked resource never exists, so such an event carries no
+containers and rules scoped by image or container do not match it.
 
 ## Deployment notes
 

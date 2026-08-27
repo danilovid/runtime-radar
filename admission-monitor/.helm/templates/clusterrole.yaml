@@ -29,6 +29,15 @@ rules:
       - get
       - list
       - watch
+  # A denied request produces no policy report, Kyverno reports it as a Kubernetes event instead.
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
   # Resources a report is scoped to are read to enrich an event with container images, so that
   # image and registry scopes of policy-enforcer rules can be matched.
   - apiGroups:

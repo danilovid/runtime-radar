@@ -15,7 +15,7 @@
     "Admission.SettingsPage.SubTitle.Policies": "Sources",
     "Admission.SettingsPage.SubTitle.HistoryControl": "Event history",
     "Admission.SettingsPage.Policies.Button.AddItem": "Add source",
-    "Admission.SettingsPage.Policies.Text.EnforceHint": "A source in the Block mode denies the request. Kyverno reports blocked requests through Kubernetes events only, so they produce no event in Runtime Radar.",
+    "Admission.SettingsPage.Policies.Text.EnforceHint": "A source in the Block mode denies the request. Such an event carries no containers, so rules scoped by image or container do not match it.",
     "Admission.SettingsPage.Text.ExpertMode": "Expert mode",
     "Admission.SettingsPage.Text.ExpertModeDescription": "You can add your own Kyverno policies and edit the manifests of the existing ones. An invalid manifest is rejected by Kyverno when it is applied.",
     "Admission.SettingsPage.Text.ExpertWarning": "Policy manifests have changed. The whole policy set will be re-applied in the cluster.",

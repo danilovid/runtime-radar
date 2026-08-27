@@ -11,12 +11,15 @@ import (
 	"github.com/runtime-radar/runtime-radar/admission-monitor/pkg/build"
 	"github.com/runtime-radar/runtime-radar/admission-monitor/pkg/model"
 	"github.com/runtime-radar/runtime-radar/admission-monitor/pkg/monitor/config"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	coreinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -71,6 +74,7 @@ type Kyverno struct {
 	Version string
 
 	dynamicClient dynamic.Interface
+	clientset     kubernetes.Interface
 	// namespace Kyverno itself is installed in, its own resources are never reported.
 	namespace string
 
@@ -108,6 +112,7 @@ func NewKyverno(namespace string, bufferSize int) (*Kyverno, func() error, error
 	k := &Kyverno{
 		Version:       version,
 		dynamicClient: dynamicClient,
+		clientset:     clientset,
 		namespace:     namespace,
 
 		ready:  make(chan struct{}),
@@ -286,11 +291,32 @@ func (k *Kyverno) Run(stop <-chan struct{}) error {
 		}
 	}
 
+	// A denied request never becomes a resource, so it produces no policy report. Kyverno reports
+	// it as a Kubernetes event on the policy instead, which is the only source for blocked requests.
+	eventInformers := coreinformers.NewSharedInformerFactoryWithOptions(
+		k.clientset,
+		informerResync,
+		coreinformers.WithTweakListOptions(func(opts *metav1.ListOptions) {
+			opts.FieldSelector = fields.OneTermEqualSelector("reason", kyvernoEventReason).String()
+		}),
+	)
+
+	if _, err := eventInformers.Core().V1().Events().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			k.dispatchEvent(obj, since)
+		},
+	}); err != nil {
+		return fmt.Errorf("can't add event handler for events: %w", err)
+	}
+
 	informerStop := make(chan struct{})
 	defer close(informerStop)
 
 	informers.Start(informerStop)
 	informers.WaitForCacheSync(informerStop)
+
+	eventInformers.Start(informerStop)
+	eventInformers.WaitForCacheSync(informerStop)
 
 	for {
 		select {
@@ -327,15 +353,31 @@ func (k *Kyverno) dispatchResults(oldObj, newObj interface{}, since time.Time) {
 	}
 
 	for _, ev := range k.eventsFromReports(oldReport, newReport, since) {
-		timer := time.NewTimer(dispatchTimeout)
+		k.dispatch(ev)
+	}
+}
 
-		select {
-		case k.events <- ev:
-		case <-timer.C:
-			log.Error().Interface("event", ev).Msgf("Timeout dispatching event")
-		}
+// dispatchEvent converts a Kubernetes event about a blocked request and puts it into the events channel.
+func (k *Kyverno) dispatchEvent(obj interface{}, since time.Time) {
+	kubeEvent, ok := obj.(*corev1.Event)
+	if !ok {
+		log.Error().Interface("object", obj).Msgf("Got unexpected object instead of event")
+		return
+	}
 
-		timer.Stop()
+	if ev := k.eventFromKubernetesEvent(kubeEvent, since); ev != nil {
+		k.dispatch(ev)
+	}
+}
+
+func (k *Kyverno) dispatch(ev *api.AdmissionEvent) {
+	timer := time.NewTimer(dispatchTimeout)
+	defer timer.Stop()
+
+	select {
+	case k.events <- ev:
+	case <-timer.C:
+		log.Error().Interface("event", ev).Msgf("Timeout dispatching event")
 	}
 }
 
