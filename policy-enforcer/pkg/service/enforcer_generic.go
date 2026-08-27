@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"maps"
 	"slices"
 
 	"github.com/gobwas/glob"
+	"github.com/google/uuid"
 	"github.com/runtime-radar/runtime-radar/policy-enforcer/api"
 	"github.com/runtime-radar/runtime-radar/policy-enforcer/pkg/cache"
 	"github.com/runtime-radar/runtime-radar/policy-enforcer/pkg/database"
@@ -126,4 +128,80 @@ func isBinaryWhitelisted(bin string, r *model.Rule) bool {
 		}
 	}
 	return false
+}
+
+func (eg *EnforcerGeneric) EvaluatePolicyAdmission(ctx context.Context, req *api.EvaluatePolicyAdmissionReq) (*api.EvaluatePolicyAdmissionReq, error) {
+	if reason, ok := eg.validateAdmissionRequest(req); !ok {
+		return nil, status.Error(codes.InvalidArgument, reason)
+	}
+
+	rules, err := eg.matchAdmissionRules(ctx, req.GetAction().GetArgs())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "can't match rules: %v", err)
+	}
+
+	for _, event := range req.GetResult().GetEvents() {
+		var eventSeverity model.Severity
+		eventSeverity.Set(event.GetSeverity())
+
+		rs := filterRulesByFunc(rules, func(r *model.Rule) bool {
+			return isThreatWhitelisted(event.GetPolicyId(), r)
+		})
+		block, notify := filterRulesBySeverity(rs, eventSeverity)
+
+		event.Policy = &api.Policy{
+			BlockBy:  convert.RulesToProto(block),
+			NotifyBy: convert.RulesToProto(notify),
+		}
+	}
+
+	return req, nil
+}
+
+// matchAdmissionRules matches admission rules against every container of the resource and returns
+// their union: an admission event is a single decision about the whole resource, so a rule scoped to
+// an image applies to the event even when only one of the containers uses that image.
+// A resource without containers, such as a role binding, is matched by its namespace, name and node only.
+func (eg *EnforcerGeneric) matchAdmissionRules(ctx context.Context, args *api.EvaluatePolicyAdmissionReq_Action_Args) ([]*model.Rule, error) {
+	// TODO: add cache.WithCluster when we support multiple clusters
+	common := []cache.MatchOption{
+		cache.WithNamespace(args.GetNamespace()),
+		cache.WithPod(args.GetPod()),
+		cache.WithNode(args.GetNode()),
+	}
+
+	optsPerContainer := [][]cache.MatchOption{common}
+
+	for _, c := range args.GetContainers() {
+		optsPerContainer = append(optsPerContainer, append(slices.Clone(common),
+			cache.WithContainer(c.GetName()),
+			cache.WithImageName(c.GetImageName()),
+			cache.WithRegistry(c.GetRegistry()),
+		))
+	}
+
+	matched := map[uuid.UUID]*model.Rule{}
+
+	for _, opts := range optsPerContainer {
+		rules, err := eg.RuleMatcher.MatchRules(ctx, model.RuleTypeAdmission, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, r := range rules {
+			matched[r.ID] = r
+		}
+	}
+
+	return slices.Collect(maps.Values(matched)), nil
+}
+
+func (eg *EnforcerGeneric) validateAdmissionRequest(req *api.EvaluatePolicyAdmissionReq) (reason string, ok bool) {
+	if a := req.GetAction(); a == nil {
+		return "no action", false
+	} else if a.GetArgs() == nil {
+		return "no args", false
+	}
+
+	return "", true
 }

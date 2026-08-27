@@ -105,6 +105,14 @@ func main() {
 
 	go eventsConsumer(mb, clickhouseDB, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
 
+	admissionMB, err := rabbit.NewMessageBroker(cfg.RabbitAddr, cfg.RabbitUser, cfg.RabbitPassword, cfg.RabbitAdmissionQueue, rabbit.WithConsumer(build.AppName, cfg.RabbitQueuePrefetchCount))
+	if err != nil {
+		log.Fatal().Msgf("Failed to init message broker: %v", err)
+	}
+	defer admissionMB.Close()
+
+	go admissionEventsConsumer(admissionMB, clickhouseDB)
+
 	var tlsConfig *tls.Config
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(interceptor.Recovery, interceptor.Correlation),
@@ -224,6 +232,15 @@ func eventsConsumer(mb *rabbit.MessageBroker, clickhouseDB *gorm.DB, batchSize i
 	c := &consumer.Consumer{
 		PublishConsumer:        mb,
 		RuntimeEventRepository: clickhouse.NewRuntimeEventBatchingDatabase(batchSize, flushInterval, clickhouseDB),
+	}
+
+	c.Run(shutdown)
+}
+
+func admissionEventsConsumer(mb *rabbit.MessageBroker, clickhouseDB *gorm.DB) {
+	c := &consumer.AdmissionConsumer{
+		PublishConsumer:          mb,
+		AdmissionEventRepository: &clickhouse.AdmissionEventDatabase{clickhouseDB},
 	}
 
 	c.Run(shutdown)

@@ -14,11 +14,13 @@ var (
 
 func initTexts(templatesTextFolder string) {
 	TextFilePaths = map[string]string{
-		history.EventTypeRuntimeEvent: filepath.Join(templatesTextFolder, "runtime_event.tmpl"),
+		history.EventTypeRuntimeEvent:   filepath.Join(templatesTextFolder, "runtime_event.tmpl"),
+		history.EventTypeAdmissionEvent: filepath.Join(templatesTextFolder, "admission_event.tmpl"),
 	}
 
 	DefaultTexts = map[string]*template.Template{
-		history.EventTypeRuntimeEvent: mustParseText(TextFilePaths[history.EventTypeRuntimeEvent]),
+		history.EventTypeRuntimeEvent:   mustParseText(TextFilePaths[history.EventTypeRuntimeEvent]),
+		history.EventTypeAdmissionEvent: mustParseText(TextFilePaths[history.EventTypeAdmissionEvent]),
 	}
 }
 

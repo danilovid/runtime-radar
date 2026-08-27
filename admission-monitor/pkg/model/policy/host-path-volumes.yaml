@@ -1,0 +1,27 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: host-path-volumes
+spec:
+  validationActions:
+    - Audit
+  autogen:
+    podControllers:
+      controllers:
+        - deployments
+        - statefulsets
+        - daemonsets
+        - replicasets
+        - jobs
+        - cronjobs
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  validations:
+    - expression: >-
+        !object.spec.?volumes.orValue([]).exists(v, has(v.hostPath))
+      message: >-
+        Mounting a host path into a container is not allowed.

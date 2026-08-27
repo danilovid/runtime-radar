@@ -33,3 +33,11 @@ func (ea *EnforcerAuth) EvaluatePolicyRuntimeEvent(ctx context.Context, req *api
 	resp, err = ea.EnforcerServer.EvaluatePolicyRuntimeEvent(ctx, req)
 	return
 }
+
+func (ea *EnforcerAuth) EvaluatePolicyAdmission(ctx context.Context, req *api.EvaluatePolicyAdmissionReq) (resp *api.EvaluatePolicyAdmissionReq, err error) {
+	if err := ea.Verifier.VerifyPermission(ctx, jwt.PermissionScanning, jwt.ActionExecute); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+	resp, err = ea.EnforcerServer.EvaluatePolicyAdmission(ctx, req)
+	return
+}

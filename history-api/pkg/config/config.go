@@ -26,7 +26,8 @@ type Config struct {
 	RabbitAddr                 string        // RabbitMQ address in host[:port] format
 	RabbitUser                 string        // RabbitMQ user
 	RabbitPassword             string        // RabbitMQ password
-	RabbitQueue                string        // RabbitMQ queue name to consume events from
+	RabbitQueue                string        // RabbitMQ queue name to consume runtime events from
+	RabbitAdmissionQueue       string        // RabbitMQ queue name to consume admission events from
 	RabbitQueuePrefetchCount   int           // RabbitMQ prefetch count for queue to consume events from
 	RuntimeEventsBatchSize     int           // Size of runtime events buffer
 	RuntimeEventsSaveInterval  time.Duration // Interval between savings of runtime buffer
@@ -65,6 +66,7 @@ func New() *Config {
 	flag.StringVar(&c.RabbitUser, "rabbitUser", config.LookupEnvString("RABBIT_USER", "guest"), "Set RabbitMQ user.")
 	flag.StringVar(&c.RabbitPassword, "rabbitPassword", config.LookupEnvString("RABBIT_PASSWORD", "guest"), "Set RabbitMQ password.")
 	flag.StringVar(&c.RabbitQueue, "rabbitQueue", config.LookupEnvString("RABBIT_QUEUE", "history_events"), "Set RabbitMQ queue name to consume runtime events from.")
+	flag.StringVar(&c.RabbitAdmissionQueue, "rabbitAdmissionQueue", config.LookupEnvString("RABBIT_ADMISSION_EVENTS_QUEUE", "admission_events"), "Set RabbitMQ queue name to consume admission events from.")
 	flag.IntVar(&c.RabbitQueuePrefetchCount, "rabbitQueuePrefetchCount", config.LookupEnvInt("RABBIT_QUEUE_PREFETCH_COUNT", 100), "Set RabbitMQ prefetch count for queue to consume events from.")
 	flag.IntVar(&c.RuntimeEventsBatchSize, "runtimeEventsBatchSize", config.LookupEnvInt("RUNTIME_EVENTS_BATCH_SIZE", 10000), "Size of runtime events buffer.")
 	flag.DurationVar(&c.RuntimeEventsSaveInterval, "runtimeEventsSaveInterval", config.LookupEnvDuration("RUNTIME_EVENTS_SAVE_INTERVAL", 5*time.Second), `Interval between savings of runtime buffer, as a duration string which is compatibale with time.ParseDuraion, for example "1s"`)

@@ -14,11 +14,13 @@ var (
 
 func initHTMLs(templatesHTMLFolder string) {
 	HTMLFilePaths = map[string]string{
-		history.EventTypeRuntimeEvent: filepath.Join(templatesHTMLFolder, "runtime_event.html"),
+		history.EventTypeRuntimeEvent:   filepath.Join(templatesHTMLFolder, "runtime_event.html"),
+		history.EventTypeAdmissionEvent: filepath.Join(templatesHTMLFolder, "admission_event.html"),
 	}
 
 	DefaultHTMLs = map[string]*template.Template{
-		history.EventTypeRuntimeEvent: mustParseHTML(HTMLFilePaths[history.EventTypeRuntimeEvent]),
+		history.EventTypeRuntimeEvent:   mustParseHTML(HTMLFilePaths[history.EventTypeRuntimeEvent]),
+		history.EventTypeAdmissionEvent: mustParseHTML(HTMLFilePaths[history.EventTypeAdmissionEvent]),
 	}
 }
 

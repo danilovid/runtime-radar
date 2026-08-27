@@ -194,6 +194,8 @@ func renderRequestBody(n *model.Notification, event any) (io.Reader, error) {
 	switch ev := event.(type) {
 	case *api.Message_RuntimeEvent:
 		unwrappedEvent = ev.RuntimeEvent
+	case *api.Message_AdmissionEvent:
+		unwrappedEvent = ev.AdmissionEvent
 	default:
 		return nil, fmt.Errorf("invalid event type given: %T", ev)
 	}

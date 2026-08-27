@@ -32,6 +32,9 @@ includes:
   runtime-monitor:
     taskfile: ./runtime-monitor/Taskfile.yml
     dir: ./runtime-monitor
+  admission-monitor:
+    taskfile: ./admission-monitor/Taskfile.yml
+    dir: ./admission-monitor
   auth-center:
     taskfile: ./auth-center/Taskfile.yml
     dir: ./auth-center
@@ -54,6 +57,7 @@ tasks:
           - notifier
           - event-processor
           - runtime-monitor
+          - admission-monitor
           - cs-manager
           - public-api
         task: "{{.ITEM}}:proto"
@@ -75,6 +79,7 @@ tasks:
           - notifier
           - event-processor
           - runtime-monitor
+          - admission-monitor
           - public-api
           - cs-manager
           - reverse-proxy

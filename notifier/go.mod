@@ -163,6 +163,7 @@ require (
 	github.com/raeperd/recvcheck v0.2.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/runtime-radar/runtime-radar/admission-monitor v0.0.0-00010101000000-000000000000 // indirect
 	github.com/runtime-radar/runtime-radar/event-processor v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ryancurrah/gomodguard v1.3.5 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
@@ -234,6 +235,7 @@ require (
 )
 
 replace (
+	github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 	github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 	github.com/runtime-radar/runtime-radar/history-api => ../history-api
 	github.com/runtime-radar/runtime-radar/lib => ../lib
