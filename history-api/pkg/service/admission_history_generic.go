@@ -113,7 +113,7 @@ func (ahg *AdmissionHistoryGeneric) validateSlice(direction string, cursor *time
 	}
 
 	if cursor == nil {
-		return "missing cursor", false
+		return reasonMissingCursor, false
 	}
 
 	if err := cursor.CheckValid(); err != nil {
@@ -136,7 +136,7 @@ func (ahg *AdmissionHistoryGeneric) validateAdmissionEventFilter(af *api.Admissi
 		af.GetPeriod().GetTo() == nil &&
 		af.Blocked == nil &&
 		af.HasIncident == nil {
-		return "at least one filter should be set", false
+		return reasonEmptyFilter, false
 	}
 
 	for i, r := range af.GetRules() {

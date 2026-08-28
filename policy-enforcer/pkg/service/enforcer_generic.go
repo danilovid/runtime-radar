@@ -66,9 +66,9 @@ func (eg *EnforcerGeneric) EvaluatePolicyRuntimeEvent(ctx context.Context, req *
 
 func (eg *EnforcerGeneric) validateRuntimeEventRequest(req *api.EvaluatePolicyRuntimeEventReq) (reason string, ok bool) {
 	if a := req.GetAction(); a == nil {
-		return "no action", false
+		return reasonNoAction, false
 	} else if a.GetArgs() == nil {
-		return "no args", false
+		return reasonNoArgs, false
 	}
 
 	return "", true
@@ -198,9 +198,9 @@ func (eg *EnforcerGeneric) matchAdmissionRules(ctx context.Context, args *api.Ev
 
 func (eg *EnforcerGeneric) validateAdmissionRequest(req *api.EvaluatePolicyAdmissionReq) (reason string, ok bool) {
 	if a := req.GetAction(); a == nil {
-		return "no action", false
+		return reasonNoAction, false
 	} else if a.GetArgs() == nil {
-		return "no args", false
+		return reasonNoArgs, false
 	}
 
 	return "", true

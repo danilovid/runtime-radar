@@ -111,7 +111,7 @@ func TestEventFromKubernetesEvent(t *testing.T) {
 			if got := threat.GetPolicy().GetId(); got != "privileged-containers/privileged-containers" {
 				t.Errorf("expected the rule name parsed out of the message, got '%s'", got)
 			}
-			if got := threat.GetSeverity(); got != "high" {
+			if got := threat.GetSeverity(); got != testSeverity {
 				t.Errorf("expected severity from the source, got '%s'", got)
 			}
 			if got := threat.GetPolicy().GetDescription(); got != "Privileged containers are not allowed." {

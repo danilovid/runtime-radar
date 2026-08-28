@@ -9,6 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// testSeverity is the severity the source in testKyverno is configured with.
+const testSeverity = "high"
+
 // defaultPolicyYAML is one of the manifests shipped with the product, it is used to make sure
 // the tests stay in sync with what is actually applied to the cluster.
 var defaultPolicyYAML = model.DefaultConfig.Config.Policies["privileged-containers"].GetYaml()
@@ -24,7 +27,7 @@ func testKyverno() *Kyverno {
 					Yaml:     defaultPolicyYAML,
 					Enabled:  true,
 					Action:   api.KyvernoPolicy_AUDIT,
-					Severity: "high",
+					Severity: testSeverity,
 				},
 			},
 		},
@@ -124,7 +127,7 @@ func TestEventsFromReports(t *testing.T) {
 			for _, threat := range evs[0].GetThreats() {
 				got = append(got, threat.GetPolicy().GetId())
 
-				if threat.GetSeverity() != "high" {
+				if threat.GetSeverity() != testSeverity {
 					t.Errorf("expected severity from the source, got '%s'", threat.GetSeverity())
 				}
 			}
