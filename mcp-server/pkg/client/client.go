@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	monitor_api "github.com/runtime-radar/runtime-radar/admission-monitor/api"
 	processor_api "github.com/runtime-radar/runtime-radar/event-processor/api"
 	history_api "github.com/runtime-radar/runtime-radar/history-api/api"
 	enf_api "github.com/runtime-radar/runtime-radar/policy-enforcer/api"
@@ -22,8 +23,8 @@ const MaxRecvMsgSize = 10 * 1024 * 1024 // 10MB
 
 // New dials the services the tools read from and write to, and returns their
 // clients along with a function closing every connection.
-func New(historyAddr, processorAddr, enforcerAddr string, tlsConfig *tls.Config) (*Clients, func() error, error) {
-	conns := make([]*grpc.ClientConn, 0, 3)
+func New(historyAddr, processorAddr, enforcerAddr, admissionAddr string, tlsConfig *tls.Config) (*Clients, func() error, error) {
+	conns := make([]*grpc.ClientConn, 0, 4)
 
 	closeAll := func() error {
 		var err error
@@ -58,11 +59,21 @@ func New(historyAddr, processorAddr, enforcerAddr string, tlsConfig *tls.Config)
 	}
 	conns = append(conns, enforcerConn)
 
+	admissionConn, err := dial(admissionAddr, tlsConfig)
+	if err != nil {
+		_ = closeAll()
+
+		return nil, nil, fmt.Errorf("can't connect to Admission Monitor: %w", err)
+	}
+	conns = append(conns, admissionConn)
+
 	clients := &Clients{
-		RuntimeHistory: history_api.NewRuntimeHistoryClient(historyConn),
-		RuntimeStats:   history_api.NewRuntimeStatsClient(historyConn),
-		Detectors:      processor_api.NewDetectorControllerClient(processorConn),
-		Rules:          enf_api.NewRuleControllerClient(enforcerConn),
+		RuntimeHistory:   history_api.NewRuntimeHistoryClient(historyConn),
+		RuntimeStats:     history_api.NewRuntimeStatsClient(historyConn),
+		AdmissionHistory: history_api.NewAdmissionHistoryClient(historyConn),
+		Detectors:        processor_api.NewDetectorControllerClient(processorConn),
+		Rules:            enf_api.NewRuleControllerClient(enforcerConn),
+		AdmissionConfig:  monitor_api.NewConfigControllerClient(admissionConn),
 	}
 
 	return clients, closeAll, nil
@@ -74,6 +85,11 @@ type Clients struct {
 	RuntimeStats   history_api.RuntimeStatsClient
 	Detectors      processor_api.DetectorControllerClient
 	Rules          enf_api.RuleControllerClient
+
+	// AdmissionHistory reads the events Kyverno produced, AdmissionConfig reads
+	// and writes the set of Kyverno policies admission-monitor keeps applied.
+	AdmissionHistory history_api.AdmissionHistoryClient
+	AdmissionConfig  monitor_api.ConfigControllerClient
 }
 
 func dial(address string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {

@@ -94,6 +94,7 @@ func (e *MCPKeyExchanger) ExchangeMCPKey(ctx context.Context, key string) (*mode
 	}
 
 	return &model.ExchangeMCPKeyResp{
+		Scopes:      at.Scopes,
 		AccessToken: signed,
 		ExpiresAt:   expiresAt,
 		Username:    user.Username,

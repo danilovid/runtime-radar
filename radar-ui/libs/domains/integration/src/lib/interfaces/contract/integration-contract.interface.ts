@@ -67,6 +67,17 @@ export interface IntegrationWebhook extends AbstractIntegration {
     webhook: IntegrationWebhookEntity;
 }
 
+/**
+ * IntegrationAIScope is one half of the product the built-in assistant may
+ * reach. It is a property of the integration rather than of a credential: the
+ * assistant answers with the signed-in user's own token, so there is no key to
+ * hang a limit on. An empty list offers every tool the user's role allows.
+ */
+export enum IntegrationAIScope {
+    RUNTIME_MONITOR = 'runtime_monitor',
+    ADMISSION = 'admission'
+}
+
 export interface IntegrationAIEntity {
     provider: IntegrationAIProviderType;
     base_url: string;
@@ -75,6 +86,7 @@ export interface IntegrationAIEntity {
     is_local: boolean;
     insecure: boolean;
     ca: string;
+    scopes?: IntegrationAIScope[];
 }
 
 export interface IntegrationAI extends AbstractIntegration {

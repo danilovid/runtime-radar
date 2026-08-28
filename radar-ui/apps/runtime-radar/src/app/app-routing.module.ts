@@ -137,6 +137,19 @@ const routes: Routes = [
         }
     },
     {
+        path: RouterName.MCP_KEYS,
+        loadChildren: () => import('@cs/features/mcp-key').then((m) => m.McpKeyFeatureModule),
+        canActivate: [authSuccessRouteActivateGuard, i18nTranslationActivateGuard, rolePermissionActivateGuard],
+        resolve: {
+            permissions: rolePermissionsResolver
+        },
+        data: {
+            translateDicts: [TranslationDict.MCP_KEY],
+            permissions: [PermissionName.TOKENS],
+            guards: [PermissionName.TOKENS]
+        }
+    },
+    {
         path: RouterName.FORBIDDEN,
         loadChildren: () => import('@cs/features/forbidden').then((m) => m.ForbiddenFeatureModule),
         canActivate: [authSuccessRouteActivateGuard]

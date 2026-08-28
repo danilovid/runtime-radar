@@ -94,20 +94,25 @@ func (m *fakeModel) turns() int {
 
 // fakeToolBox stands in for the MCP session.
 type fakeToolBox struct {
-	tools     []ai.Tool
-	results   map[string]string
-	failWith  map[string]error
-	listErr   error
-	openErr   error
-	closed    bool
-	callNames []string
-	callArgs  []string
+	// openedScopes records what the runner passed on, so a test can assert the
+	// integration's limit reaches the tool session.
+	openedScopes []string
+	tools        []ai.Tool
+	results      map[string]string
+	failWith     map[string]error
+	listErr      error
+	openErr      error
+	closed       bool
+	callNames    []string
+	callArgs     []string
 }
 
-func (b *fakeToolBox) Open(context.Context, string) (ToolBox, error) {
+func (b *fakeToolBox) Open(_ context.Context, _ string, scopes []string) (ToolBox, error) {
 	if b.openErr != nil {
 		return nil, b.openErr
 	}
+
+	b.openedScopes = scopes
 
 	return b, nil
 }

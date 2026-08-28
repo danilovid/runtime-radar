@@ -82,7 +82,8 @@ export class IntegrationFeatureListContainer {
                                 api_key: outputs.ai.apiKey,
                                 ca: outputs.ai.ca,
                                 is_local: outputs.ai.isLocal,
-                                insecure: !outputs.ai.isInsecure
+                                insecure: !outputs.ai.isInsecure,
+                                scopes: outputs.ai.scopes
                             }
                         });
                         break;

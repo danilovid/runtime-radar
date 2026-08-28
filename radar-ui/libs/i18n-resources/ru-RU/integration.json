@@ -31,6 +31,11 @@
     "Integration.Pseudo.AuthType.Login": "Login",
     "Integration.Pseudo.AuthType.Plain": "Plain",
 
+    "Integration.Pseudo.Scope.RuntimeMonitor": "Мониторинг среды выполнения",
+    "Integration.Pseudo.Scope.RuntimeMonitorDescription": "События среды выполнения, детекторы и их правила",
+    "Integration.Pseudo.Scope.Admission": "Контроль допуска",
+    "Integration.Pseudo.Scope.AdmissionDescription": "Источники контроля допуска, их срабатывания и правила",
+
     "Integration.ListPage.Header.Title": "Сервисы уведомлений",
     "Integration.ListPage.Button.Create": "Новый сервис",
     "Integration.ListPage.SubHeading.EmptyResult": "Сервисов пока нет",
@@ -42,6 +47,7 @@
     "Integration.Card.Label.BaseUrl": "Базовый URL",
     "Integration.Card.Label.Model": "Модель",
     "Integration.Card.Label.Local": "Локальная",
+    "Integration.Card.Label.Scopes": "Область работы ассистента",
     "Integration.Card.Text.EmptyRule": "Не назначено",
     "Integration.Card.Hint.DeleteRecipient": "Чтобы удалить шаблон уведомления, сначала снимите его выбор в правиле реагирования",
     "Integration.Card.Button.Update": "Изменить сервис",
@@ -52,6 +58,7 @@
     "Integration.Card.Text.EmptyResult": "Настройте шаблон уведомлений о событиях и обнаруженных уязвимостях.",
     "Integration.Card.Value.Yes": "Да",
     "Integration.Card.Value.No": "Нет",
+    "Integration.Card.Value.AllScopes": "Всё, что разрешает роль",
 
     "Integration.CreateForm.Title.Create": "Новый сервис уведомлений",
     "Integration.CreateForm.SubTitle.Params": "Параметры",
@@ -75,6 +82,8 @@
     "Integration.CreateForm.Label.UseTls": "Использовать TLS",
     "Integration.CreateForm.Label.UseStartTls": "Использовать STARTTLS",
     "Integration.CreateForm.Label.Insecure": "Проверять безопасность соединения",
+    "Integration.CreateForm.SubTitle.Scopes": "Область работы ассистента",
+    "Integration.CreateForm.Text.Scopes": "Ограничивает части продукта, с которыми работает ассистент. Если ничего не выбрано, он работает со всем, что разрешает ваша роль.",
     "Integration.CreateForm.Label.Address": "Адрес и порт сервера",
     "Integration.CreateForm.Placeholder.Address": "tcp://192.0.2.1:514 или udp://example.com:514",
     "Integration.CreateForm.Hint.Address": "При UDP-подключении сервис будет добавлен без проверки соединения с syslog-сервером",

@@ -56,7 +56,7 @@ func (ag *AssistantGeneric) Chat(req *api.ChatReq, stream api.AssistantControlle
 		return err
 	}
 
-	client, err := ag.modelClient(ctx, req.GetIntegrationId())
+	client, scopes, err := ag.modelClient(ctx, req.GetIntegrationId())
 	if err != nil {
 		return err
 	}
@@ -73,6 +73,7 @@ func (ag *AssistantGeneric) Chat(req *api.ChatReq, stream api.AssistantControlle
 		Mode:          assistant.ParseMode(req.GetMode()),
 		ConfirmID:     confirmID,
 		Authorization: authorizationFromContext(ctx),
+		Scopes:        scopes,
 	}, func(chunk assistant.Chunk) error {
 		return stream.Send(convertChunk(chunk))
 	})
@@ -96,29 +97,31 @@ func (ag *AssistantGeneric) Chat(req *api.ChatReq, stream api.AssistantControlle
 	}
 }
 
-// modelClient loads the AI integration the caller picked and builds its client.
-func (ag *AssistantGeneric) modelClient(ctx context.Context, integrationID string) (ai.Client, error) {
+// modelClient builds the client for the chosen integration and returns the
+// scopes it limits the assistant to. An empty list means every tool the
+// signed-in user's role allows.
+func (ag *AssistantGeneric) modelClient(ctx context.Context, integrationID string) (ai.Client, []string, error) {
 	if integrationID == "" {
-		return nil, status.Error(codes.InvalidArgument, "integration ID is empty")
+		return nil, nil, status.Error(codes.InvalidArgument, "integration ID is empty")
 	}
 
 	id, err := uuid.Parse(integrationID)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "can't parse integration ID: %v", err)
+		return nil, nil, status.Errorf(codes.InvalidArgument, "can't parse integration ID: %v", err)
 	}
 
 	integration, err := ag.IntegrationRepository.GetByTypeAndID(ctx, model.IntegrationAI, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Error(codes.NotFound, "integration not found")
+			return nil, nil, status.Error(codes.NotFound, "integration not found")
 		}
 
-		return nil, status.Errorf(codes.Internal, "can't get integration: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "can't get integration: %v", err)
 	}
 
 	aiIntegration, ok := integration.(*model.AI)
 	if !ok {
-		return nil, status.Errorf(codes.Internal, "invalid integration type given: %T", integration)
+		return nil, nil, status.Errorf(codes.Internal, "invalid integration type given: %T", integration)
 	}
 
 	aiIntegration.DecryptSensitive(ag.Crypter)
@@ -130,10 +133,10 @@ func (ag *AssistantGeneric) modelClient(ctx context.Context, integrationID strin
 
 	client, err := newClient(aiIntegration)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
+		return nil, nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
 	}
 
-	return client, nil
+	return client, aiIntegration.Scopes, nil
 }
 
 // convertConversation maps the history a client sent onto chat messages.

@@ -43,7 +43,10 @@ type KeyExchanger struct {
 }
 
 type exchanged struct {
-	token     string
+	token string
+	// scopes are the key's own, they are not part of the JWT: the key is a
+	// credential of this server, and what it may reach is decided here.
+	scopes    []string
 	expiresAt time.Time
 }
 
@@ -75,21 +78,21 @@ func NewKeyExchanger(publicAPIURL string, tlsConfig *tls.Config, tokenKey []byte
 	return exchanger, nil
 }
 
-// Exchange returns a JWT for the given key, reusing a previous exchange while
-// it is still valid.
-func (e *KeyExchanger) Exchange(ctx context.Context, key string) (string, error) {
-	if token, ok := e.fromCache(key); ok {
-		return token, nil
+// Exchange returns a JWT for the given key along with the scopes the key was
+// issued with, reusing a previous exchange while it is still valid.
+func (e *KeyExchanger) Exchange(ctx context.Context, key string) (string, []string, error) {
+	if entry, ok := e.fromCache(key); ok {
+		return entry.token, entry.scopes, nil
 	}
 
 	payload, err := json.Marshal(map[string]string{"key": key})
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -99,50 +102,51 @@ func (e *KeyExchanger) Exchange(ctx context.Context, key string) (string, error)
 
 	resp, err := e.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("can't reach public api: %w", err)
+		return "", nil, fmt.Errorf("can't reach public api: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// The body may name the reason; it is not passed on, so that a caller
 		// can't tell an unknown key from a revoked one.
-		return "", fmt.Errorf("%w: mcp key was not accepted", jwt.ErrUnauthenticated)
+		return "", nil, fmt.Errorf("%w: mcp key was not accepted", jwt.ErrUnauthenticated)
 	}
 
 	var answer struct {
 		AccessToken string    `json:"access_token"`
 		ExpiresAt   time.Time `json:"expires_at"`
+		Scopes      []string  `json:"scopes"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&answer); err != nil {
-		return "", fmt.Errorf("can't decode exchange response: %w", err)
+		return "", nil, fmt.Errorf("can't decode exchange response: %w", err)
 	}
 
 	if answer.AccessToken == "" {
-		return "", fmt.Errorf("%w: empty token from public api", jwt.ErrUnauthenticated)
+		return "", nil, fmt.Errorf("%w: empty token from public api", jwt.ErrUnauthenticated)
 	}
 
-	e.store(key, answer.AccessToken, answer.ExpiresAt)
+	e.store(key, answer.AccessToken, answer.Scopes, answer.ExpiresAt)
 
-	return answer.AccessToken, nil
+	return answer.AccessToken, answer.Scopes, nil
 }
 
-func (e *KeyExchanger) fromCache(key string) (string, bool) {
+func (e *KeyExchanger) fromCache(key string) (exchanged, bool) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	entry, ok := e.cached[key]
 	if !ok || time.Now().Add(exchangeRenewBefore).After(entry.expiresAt) {
-		return "", false
+		return exchanged{}, false
 	}
 
-	return entry.token, true
+	return entry, true
 }
 
-func (e *KeyExchanger) store(key, token string, expiresAt time.Time) {
+func (e *KeyExchanger) store(key, token string, scopes []string, expiresAt time.Time) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.cached[key] = exchanged{token: token, expiresAt: expiresAt}
+	e.cached[key] = exchanged{token: token, scopes: scopes, expiresAt: expiresAt}
 }
 
 // IsJWT reports whether a bearer value looks like one of the product's tokens

@@ -13,6 +13,7 @@ func AccessTokensToResponse(accessTokens []*model.AccessToken) []*model.AccessTo
 			Name:          at.Name,
 			UserID:        at.UserID,
 			Permissions:   at.Permissions,
+			Scopes:        at.Scopes,
 			ExpiresAt:     at.ExpiresAt,
 			CreatedAt:     at.CreatedAt,
 			InvalidatedAt: at.InvalidatedAt,

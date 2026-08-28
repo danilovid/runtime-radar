@@ -73,6 +73,20 @@
                                 <kbq-dd>{{ item.ai.model }}</kbq-dd>
                                 <kbq-dt>{{ tIntegration('Integration.Card.Label.Local') }}:</kbq-dt>
                                 <kbq-dd>{{ item.ai.is_local ? tIntegration('Integration.Card.Value.Yes') : tIntegration('Integration.Card.Value.No') }}</kbq-dd>
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.Scopes') }}:</kbq-dt>
+                                <kbq-dd>
+                                    @if (item.ai.scopes?.length) {
+                                        @for (scope of item.ai.scopes; track scope) {
+                                            <span class="cs-separator">
+                                                {{ scope === integrationAIScope.ADMISSION
+                                                    ? tIntegration('Integration.Pseudo.Scope.Admission')
+                                                    : tIntegration('Integration.Pseudo.Scope.RuntimeMonitor') }}
+                                            </span>
+                                        }
+                                    } @else {
+                                        {{ tIntegration('Integration.Card.Value.AllScopes') }}
+                                    }
+                                </kbq-dd>
                             </kbq-dl>
                         } @else if (notifications.length) {
                             <table kbq-table [border]="true" class="integration-feature-collapse-card-body-table">

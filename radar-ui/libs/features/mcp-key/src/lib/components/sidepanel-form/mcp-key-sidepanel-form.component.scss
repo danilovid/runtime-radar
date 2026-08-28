@@ -1,0 +1,39 @@
+:host {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
+}
+
+.mcp-key-feature-sidepanel-form {
+    position: relative;
+
+    &-preset-field {
+        max-width: 300px;
+    }
+
+    &-accordion {
+        position: relative;
+
+        &-label {
+            font-size: var(--kbq-typography-text-normal-font-size);
+        }
+
+        &-content {
+            padding-bottom: 0 !important;
+        }
+
+        &-permission {
+            gap: 16px;
+            margin: 8px 0;
+        }
+    }
+}
+
+::ng-deep .kbq-accordion-item:last-child .mcp-key-feature-sidepanel-form-accordion-permission {
+    margin-bottom: 0;
+}
+
+.mcp-key-feature-sidepanel-form-scopes {
+    gap: 12px;
+}

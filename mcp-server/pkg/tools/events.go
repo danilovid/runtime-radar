@@ -89,7 +89,7 @@ type ProcessContextResult struct {
 func registerEventTools(server *mcp.Server, deps *Deps) {
 	events := []auth.Permission{auth.ReadEvents()}
 
-	addTool(server, deps, &mcp.Tool{
+	addScopedTool(server, deps, auth.ScopeRuntimeMonitor, &mcp.Tool{
 		Name:        "search_runtime_events",
 		Annotations: readOnly("Search runtime events"),
 		Description: "Search the runtime events Runtime Radar recorded from Kubernetes workloads, filtered by " +
@@ -99,7 +99,7 @@ func registerEventTools(server *mcp.Server, deps *Deps) {
 			"questions like \"what suspicious activity happened in namespace X\".",
 	}, events, searchRuntimeEvents(deps))
 
-	addTool(server, deps, &mcp.Tool{
+	addScopedTool(server, deps, auth.ScopeRuntimeMonitor, &mcp.Tool{
 		Name:        "get_runtime_event",
 		Annotations: readOnly("Get runtime event"),
 		Description: "Read one runtime event by its identifier: the full record, including the process and its " +
@@ -107,7 +107,7 @@ func registerEventTools(server *mcp.Server, deps *Deps) {
 			"failed to run on it. Long arguments and stack traces are truncated.",
 	}, events, getRuntimeEvent(deps))
 
-	addTool(server, deps, &mcp.Tool{
+	addScopedTool(server, deps, auth.ScopeRuntimeMonitor, &mcp.Tool{
 		Name:        "get_process_context",
 		Annotations: readOnly("Get process context"),
 		Description: "Given one runtime event, return what else the same process did, what its parent process did " +

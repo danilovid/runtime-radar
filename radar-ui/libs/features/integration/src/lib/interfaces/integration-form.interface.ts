@@ -1,4 +1,4 @@
-import { IntegrationAIProviderType, IntegrationEmailAuthType } from '@cs/domains/integration';
+import { IntegrationAIProviderType, IntegrationAIScope, IntegrationEmailAuthType } from '@cs/domains/integration';
 
 export enum IntegrationProtocolType {
     NONE = 'NONE',
@@ -41,4 +41,12 @@ export interface IntegrationAIForm {
     ca: string;
     isLocal: boolean;
     isInsecure: boolean;
+    /** scopes limit which halves of the product the assistant may reach. Empty means both. */
+    scopes: IntegrationAIScope[];
+}
+
+export interface IntegrationAIScopeOption {
+    id: IntegrationAIScope;
+    localizationKey: string;
+    descriptionLocalizationKey: string;
 }

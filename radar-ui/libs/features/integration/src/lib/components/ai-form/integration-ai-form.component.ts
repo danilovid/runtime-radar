@@ -28,10 +28,27 @@ import {
     IntegrationAI,
     IntegrationAIProviderType,
     IntegrationAIRequestService,
+    IntegrationAIScope,
     IntegrationType
 } from '@cs/domains/integration';
 
-import { IntegrationAIForm } from '../../interfaces/integration-form.interface';
+import { IntegrationAIForm, IntegrationAIScopeOption } from '../../interfaces/integration-form.interface';
+
+// The halves of the product the assistant can be limited to. Leaving both
+// unchecked offers it every tool the signed-in user's role allows, which is
+// what an integration created before scopes existed does.
+const INTEGRATION_AI_SCOPES: IntegrationAIScopeOption[] = [
+    {
+        id: IntegrationAIScope.RUNTIME_MONITOR,
+        localizationKey: 'Integration.Pseudo.Scope.RuntimeMonitor',
+        descriptionLocalizationKey: 'Integration.Pseudo.Scope.RuntimeMonitorDescription'
+    },
+    {
+        id: IntegrationAIScope.ADMISSION,
+        localizationKey: 'Integration.Pseudo.Scope.Admission',
+        descriptionLocalizationKey: 'Integration.Pseudo.Scope.AdmissionDescription'
+    }
+];
 
 // An empty base url is resolved by the backend to the public OpenAI API, so the
 // openai-compatible provider has to name its endpoint explicitly. Anthropic and
@@ -52,6 +69,7 @@ function baseUrlValidators(provider: IntegrationAIProviderType | null): Validato
 @Component({
     selector: 'cs-integration-feature-ai-form-component',
     templateUrl: './integration-ai-form.component.html',
+    styleUrl: './integration-ai-form.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit {
@@ -69,10 +87,13 @@ export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit 
         apiKey: [''],
         ca: [''],
         isLocal: [false],
-        isInsecure: [false]
+        isInsecure: [false],
+        scopes: [[] as IntegrationAIScope[]]
     });
 
     readonly providerOptions = INTEGRATION_AI_PROVIDER_TYPE;
+
+    readonly scopeOptions = INTEGRATION_AI_SCOPES;
 
     private readonly onFormValidChanges$: Observable<boolean> = this.form.valueChanges.pipe(
         startWith(this.form.value),
@@ -123,7 +144,8 @@ export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit 
                 model: this.values.ai.model,
                 ca: this.values.ai.ca,
                 isLocal: this.values.ai.is_local,
-                isInsecure: !this.values.ai.insecure
+                isInsecure: !this.values.ai.insecure,
+                scopes: this.values.ai.scopes || []
             });
         }
     }

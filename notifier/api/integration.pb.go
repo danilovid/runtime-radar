@@ -285,14 +285,19 @@ func (*Integration_Syslog) isIntegration_Config() {}
 func (*Integration_Ai) isIntegration_Config() {}
 
 type AI struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      AI_Provider            `protobuf:"varint,1,opt,name=provider,proto3,enum=integration.AI_Provider" json:"provider,omitempty"`
-	BaseUrl       string                 `protobuf:"bytes,2,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
-	Model         string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
-	ApiKey        string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	IsLocal       bool                   `protobuf:"varint,5,opt,name=is_local,json=isLocal,proto3" json:"is_local,omitempty"`
-	Insecure      bool                   `protobuf:"varint,6,opt,name=insecure,proto3" json:"insecure,omitempty"`
-	Ca            string                 `protobuf:"bytes,7,opt,name=ca,proto3" json:"ca,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Provider AI_Provider            `protobuf:"varint,1,opt,name=provider,proto3,enum=integration.AI_Provider" json:"provider,omitempty"`
+	BaseUrl  string                 `protobuf:"bytes,2,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	Model    string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	ApiKey   string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	IsLocal  bool                   `protobuf:"varint,5,opt,name=is_local,json=isLocal,proto3" json:"is_local,omitempty"`
+	Insecure bool                   `protobuf:"varint,6,opt,name=insecure,proto3" json:"insecure,omitempty"`
+	Ca       string                 `protobuf:"bytes,7,opt,name=ca,proto3" json:"ca,omitempty"`
+	// scopes limit which halves of the product the built-in assistant may reach
+	// through MCP Server: "runtime_monitor", "admission", or both. An empty list
+	// offers it every tool the signed-in user's role allows, which is what an
+	// integration created before scopes existed does.
+	Scopes        []string `protobuf:"bytes,8,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -374,6 +379,13 @@ func (x *AI) GetCa() string {
 		return x.Ca
 	}
 	return ""
+}
+
+func (x *AI) GetScopes() []string {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
 }
 
 type Email struct {
@@ -1049,7 +1061,7 @@ const file_integration_proto_rawDesc = "" +
 	"\awebhook\x18\x06 \x01(\v2\x14.integration.WebhookH\x00R\awebhook\x12-\n" +
 	"\x06syslog\x18\a \x01(\v2\x13.integration.SyslogH\x00R\x06syslog\x12!\n" +
 	"\x02ai\x18\b \x01(\v2\x0f.integration.AIH\x00R\x02aiB\b\n" +
-	"\x06config\"\xe1\x02\n" +
+	"\x06config\"\xf9\x02\n" +
 	"\x02AI\x124\n" +
 	"\bprovider\x18\x01 \x01(\x0e2\x18.integration.AI.ProviderR\bprovider\x12\x19\n" +
 	"\bbase_url\x18\x02 \x01(\tR\abaseUrl\x12\x14\n" +
@@ -1057,7 +1069,8 @@ const file_integration_proto_rawDesc = "" +
 	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12\x19\n" +
 	"\bis_local\x18\x05 \x01(\bR\aisLocal\x12\x1a\n" +
 	"\binsecure\x18\x06 \x01(\bR\binsecure\x12\x0e\n" +
-	"\x02ca\x18\a \x01(\tR\x02ca\"\x93\x01\n" +
+	"\x02ca\x18\a \x01(\tR\x02ca\x12\x16\n" +
+	"\x06scopes\x18\b \x03(\tR\x06scopes\"\x93\x01\n" +
 	"\bProvider\x12\x1e\n" +
 	"\x1aPROVIDER_OPENAI_COMPATIBLE\x10\x00\x12\x16\n" +
 	"\x12PROVIDER_ANTHROPIC\x10\x01\x12\x13\n" +

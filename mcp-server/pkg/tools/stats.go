@@ -43,7 +43,7 @@ type GetRuntimeStatsResult struct {
 }
 
 func registerStatsTools(server *mcp.Server, deps *Deps) {
-	addTool(server, deps, &mcp.Tool{
+	addScopedTool(server, deps, auth.ScopeRuntimeMonitor, &mcp.Tool{
 		Name:        "get_runtime_stats",
 		Annotations: readOnly("Get runtime event stats"),
 		Description: "Count the runtime events recorded in a time window, in total and broken down by event type. " +

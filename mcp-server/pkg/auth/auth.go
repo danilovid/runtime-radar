@@ -117,6 +117,10 @@ func (a *Authorizer) Authorize(ctx context.Context, token string, perms ...Permi
 		return context.WithValue(ctx, tokenContextKey, token), caller, nil
 	}
 
+	// Scopes belong to an MCP key. A session opened with the product's own JWT
+	// has none and is limited by the role behind that JWT alone.
+	var scopes []string
+
 	if token == "" {
 		return ctx, Caller{}, ErrNoToken
 	}
@@ -129,12 +133,13 @@ func (a *Authorizer) Authorize(ctx context.Context, token string, perms ...Permi
 			return ctx, Caller{}, fmt.Errorf("%w: mcp keys are not configured", jwt.ErrUnauthenticated)
 		}
 
-		exchanged, err := a.exchanger.Exchange(ctx, token)
+		exchanged, keyScopes, err := a.exchanger.Exchange(ctx, token)
 		if err != nil {
 			return ctx, Caller{}, err
 		}
 
 		token = exchanged
+		scopes = keyScopes
 	}
 
 	// The lib verifier reads the token from incoming gRPC metadata, which is
@@ -157,6 +162,7 @@ func (a *Authorizer) Authorize(ctx context.Context, token string, perms ...Permi
 
 	ctx = WithCaller(withToken(ctx, token), caller)
 	ctx = context.WithValue(ctx, tokenContextKey, token)
+	ctx = WithScopes(ctx, scopes)
 
 	return ctx, caller, nil
 }
@@ -175,6 +181,13 @@ func ReadEvents() Permission {
 // ReadSystemSettings is the permission required to read the detector list.
 func ReadSystemSettings() Permission {
 	return Permission{Type: jwt.PermissionSystemSettings, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// WriteSystemSettings is the permission required to change the set of admission
+// sources. The product guards both monitors' configuration with system
+// settings; which of the two an MCP key may touch is decided by its scope.
+func WriteSystemSettings() Permission {
+	return Permission{Type: jwt.PermissionSystemSettings, Actions: []jwt.Action{jwt.ActionUpdate}}
 }
 
 // ReadRules is the permission required to list policy rules.

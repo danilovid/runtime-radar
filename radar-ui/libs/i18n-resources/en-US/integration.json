@@ -31,6 +31,11 @@
     "Integration.Pseudo.AuthType.Login": "Login",
     "Integration.Pseudo.AuthType.Plain": "Plain",
 
+    "Integration.Pseudo.Scope.RuntimeMonitor": "Runtime monitor",
+    "Integration.Pseudo.Scope.RuntimeMonitorDescription": "Runtime events, detectors and their rules",
+    "Integration.Pseudo.Scope.Admission": "Admission",
+    "Integration.Pseudo.Scope.AdmissionDescription": "Admission sources, their findings and rules",
+
     "Integration.ListPage.Header.Title": "Notification services",
     "Integration.ListPage.Button.Create": "New service",
     "Integration.ListPage.SubHeading.EmptyResult": "No services yet",
@@ -42,6 +47,7 @@
     "Integration.Card.Label.BaseUrl": "Base URL",
     "Integration.Card.Label.Model": "Model",
     "Integration.Card.Label.Local": "Local",
+    "Integration.Card.Label.Scopes": "Assistant scope",
     "Integration.Card.Text.EmptyRule": "Not assigned",
     "Integration.Card.Hint.DeleteRecipient": "To delete the notification template, first unselect it in the response rule",
     "Integration.Card.Button.Update": "Edit service",
@@ -52,6 +58,7 @@
     "Integration.Card.Text.EmptyResult": "Configure a notification template about events and detected vulnerabilities.",
     "Integration.Card.Value.Yes": "Yes",
     "Integration.Card.Value.No": "No",
+    "Integration.Card.Value.AllScopes": "Everything the role allows",
 
     "Integration.CreateForm.Title.Create": "New notification service",
     "Integration.CreateForm.SubTitle.Params": "Parameters",
@@ -75,6 +82,8 @@
     "Integration.CreateForm.Label.UseTls": "Use TLS",
     "Integration.CreateForm.Label.UseStartTls": "Use STARTTLS",
     "Integration.CreateForm.Label.Insecure": "Verify connection security",
+    "Integration.CreateForm.SubTitle.Scopes": "Assistant scope",
+    "Integration.CreateForm.Text.Scopes": "Limits the parts of the product the assistant may work with. If nothing is selected, it works with everything your role allows.",
     "Integration.CreateForm.Label.Address": "Server address and port",
     "Integration.CreateForm.Placeholder.Address": "tcp://192.0.2.1:514 or udp://example.com:514",
     "Integration.CreateForm.Hint.Address": "If a UDP connection is used, the service will be added without checking the syslog server connection",

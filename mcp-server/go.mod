@@ -3,6 +3,7 @@ module github.com/runtime-radar/runtime-radar/mcp-server
 go 1.25.0
 
 replace (
+	github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 	github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 	github.com/runtime-radar/runtime-radar/history-api => ../history-api
 	github.com/runtime-radar/runtime-radar/lib => ../lib
@@ -16,6 +17,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
+	github.com/runtime-radar/runtime-radar/admission-monitor v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/event-processor v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/history-api v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/lib v0.0.24

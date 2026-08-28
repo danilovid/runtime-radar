@@ -1,0 +1,28 @@
+{
+    "name": "feature-mcp-key",
+    "projectType": "library",
+    "root": "libs/features/mcp-key",
+    "sourceRoot": "libs/features/mcp-key/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": [
+                    "libs/features/mcp-key/src/**/*.ts",
+                    "libs/features/mcp-key/src/**/*.html"
+                ]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": [
+                "coverage/libs/features/mcp-key"
+            ],
+            "options": {
+                "jestConfig": "libs/features/mcp-key/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

@@ -52,8 +52,13 @@ type ToolBox interface {
 // authorization travels with it, so that the tools run under the permissions of
 // the person asking, and the audit of the services behind MCP Server names them
 // rather than the notifier.
+//
+// scopes are the halves of the product the AI integration allows. They narrow
+// the assistant below what the caller's role would otherwise permit, which is
+// the only way to limit it: the assistant carries no credential of its own to
+// hang a scope on. An empty list offers every tool.
 type ToolBoxFactory interface {
-	Open(ctx context.Context, authorization string) (ToolBox, error)
+	Open(ctx context.Context, authorization string, scopes []string) (ToolBox, error)
 }
 
 // MCPToolBoxFactory connects to MCP Server over Streamable HTTP.
@@ -96,7 +101,7 @@ func NormalizeMCPEndpoint(endpoint string, tlsEnabled bool) string {
 }
 
 // Open connects to MCP Server and initialises a session.
-func (f *MCPToolBoxFactory) Open(ctx context.Context, authorization string) (ToolBox, error) {
+func (f *MCPToolBoxFactory) Open(ctx context.Context, authorization string, scopes []string) (ToolBox, error) {
 	httpClient := &http.Client{
 		Timeout:   mcpClientTimeout,
 		Transport: &authTransport{base: f.transport, authorization: authorization},
@@ -115,7 +120,7 @@ func (f *MCPToolBoxFactory) Open(ctx context.Context, authorization string) (Too
 		return nil, fmt.Errorf("can't connect to mcp server: %w", err)
 	}
 
-	return &mcpToolBox{session: session}, nil
+	return &mcpToolBox{session: session, scopes: scopes}, nil
 }
 
 // authTransport adds the caller's authorization to every MCP request.
@@ -137,6 +142,37 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 type mcpToolBox struct {
 	session *mcp.ClientSession
+	// scopes limit which tools are offered. Empty means all of them.
+	scopes []string
+	// allowed remembers the tools ListTools offered, so that a model cannot
+	// call one it saw earlier in a conversation whose integration allowed more.
+	allowed map[string]bool
+}
+
+// scopeMetaKey is the _meta field MCP Server publishes a tool's scope under.
+// Reading it keeps this list of tools from having to be maintained here.
+const scopeMetaKey = "runtime-radar/scope"
+
+// inScope reports whether a tool belongs to a half the integration allows. A
+// tool that declares no scope belongs to neither half and is always offered:
+// documentation search and the rules are useful to both.
+func (b *mcpToolBox) inScope(tool *mcp.Tool) bool {
+	if len(b.scopes) == 0 {
+		return true
+	}
+
+	scope, ok := tool.Meta[scopeMetaKey].(string)
+	if !ok || scope == "" {
+		return true
+	}
+
+	for _, allowed := range b.scopes {
+		if allowed == scope {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (b *mcpToolBox) ListTools(ctx context.Context) ([]ai.Tool, error) {
@@ -146,13 +182,21 @@ func (b *mcpToolBox) ListTools(ctx context.Context) ([]ai.Tool, error) {
 	}
 
 	tools := make([]ai.Tool, 0, len(resp.Tools))
+	b.allowed = make(map[string]bool, len(resp.Tools))
+
 	for _, tool := range resp.Tools {
+		if !b.inScope(tool) {
+			continue
+		}
+
 		schema, err := toolSchema(tool.InputSchema)
 		if err != nil {
 			// A tool whose schema can't be rendered can't be offered safely:
 			// the model would be guessing at its arguments.
 			continue
 		}
+
+		b.allowed[tool.Name] = true
 
 		tools = append(tools, ai.Tool{
 			Name:        tool.Name,
@@ -171,6 +215,13 @@ func (b *mcpToolBox) ListTools(ctx context.Context) ([]ai.Tool, error) {
 }
 
 func (b *mcpToolBox) CallTool(ctx context.Context, name string, arguments json.RawMessage) (string, error) {
+	// The model is offered only the tools of the allowed halves, but it also
+	// sees the conversation, which may name a tool from a chat held under a
+	// wider integration.
+	if b.allowed != nil && !b.allowed[name] {
+		return "", fmt.Errorf("tool %q is not available to this assistant", name)
+	}
+
 	resp, err := b.session.CallTool(ctx, &mcp.CallToolParams{
 		Name:      name,
 		Arguments: json.RawMessage(arguments),

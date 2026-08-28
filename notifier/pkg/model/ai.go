@@ -1,6 +1,8 @@
 package model
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -35,6 +37,50 @@ func (p AIProvider) IsOpenAICompatible() bool {
 	}
 }
 
+// AssistantScope is one half of the product the built-in assistant may reach.
+// It is a property of the integration rather than of a credential: the
+// assistant answers with the signed-in user's own token, so there is no key to
+// hang a scope on, and this is what lets an operator keep the assistant below
+// what a user's role would otherwise allow.
+type AssistantScope = string
+
+const (
+	// AssistantScopeRuntimeMonitor covers Tetragon events, detectors and stats.
+	AssistantScopeRuntimeMonitor AssistantScope = "runtime_monitor"
+	// AssistantScopeAdmission covers the Kyverno sources and their findings.
+	AssistantScopeAdmission AssistantScope = "admission"
+)
+
+// KnownAssistantScopes are the scopes an AI integration may be limited to.
+var KnownAssistantScopes = []AssistantScope{AssistantScopeRuntimeMonitor, AssistantScopeAdmission}
+
+// IsKnownAssistantScope reports whether name is a scope this product understands.
+func IsKnownAssistantScope(name string) bool {
+	for _, scope := range KnownAssistantScopes {
+		if scope == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AssistantScopes is the list as it is stored.
+type AssistantScopes []AssistantScope
+
+func (s *AssistantScopes) Scan(src interface{}) error {
+	b, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("expected []byte, got %T", src)
+	}
+
+	return json.Unmarshal(b, s)
+}
+
+func (s AssistantScopes) Value() (driver.Value, error) {
+	return json.Marshal(s)
+}
+
 type AI struct {
 	Base
 	Name            string `gorm:"index"`
@@ -46,9 +92,12 @@ type AI struct {
 	IsLocal         bool   `gorm:"not null;default:false"`
 	Insecure        bool   `gorm:"not null;default:false"`
 	CA              string
-	Notifications   []*Notification `gorm:"polymorphic:Integration;polymorphicValue:ai"`
-	DeletedAt       gorm.DeletedAt  `gorm:"index"`
-	Meta            IntegrationMeta `gorm:"-"`
+	// Scopes limit the tools the assistant is offered. Empty means every tool
+	// the user's role allows.
+	Scopes        AssistantScopes `gorm:"type:jsonb"`
+	Notifications []*Notification `gorm:"polymorphic:Integration;polymorphicValue:ai"`
+	DeletedAt     gorm.DeletedAt  `gorm:"index"`
+	Meta          IntegrationMeta `gorm:"-"`
 }
 
 func (a *AI) BeforeCreate(tx *gorm.DB) error {

@@ -112,6 +112,28 @@
             </kbq-checkbox>
         </section>
 
+        <section class="kbq-form__row kbq-form-row_margin">
+            <h4 class="kbq-subheading layout-margin-no-top layout-margin-no-bottom">
+                {{ tIntegration('Integration.CreateForm.SubTitle.Scopes') }}
+            </h4>
+            <div class="kbq-text-compact cs-text-gray layout-margin-top-xxs">
+                {{ tIntegration('Integration.CreateForm.Text.Scopes') }}
+            </div>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <kbq-checkbox-group formControlName="scopes"
+                                class="layout-column integration-feature-ai-form-scopes"
+                                data-testid="integration-ai-scopes-checkbox-group">
+                @for (scope of scopeOptions; track scope.id) {
+                    <kbq-checkbox [value]="scope.id" [attr.data-testid]="scope.id">
+                        {{ tIntegration(scope.localizationKey) }}
+                        <div class="kbq-text-compact cs-text-gray">{{ tIntegration(scope.descriptionLocalizationKey) }}</div>
+                    </kbq-checkbox>
+                }
+            </kbq-checkbox-group>
+        </section>
+
         <section class="kbq-form__row">
             <button kbq-button
                     kbqStyle="outline"

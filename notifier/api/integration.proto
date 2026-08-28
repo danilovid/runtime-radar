@@ -89,6 +89,11 @@ message AI {
   bool is_local = 5;
   bool insecure = 6;
   string ca = 7;
+  // scopes limit which halves of the product the built-in assistant may reach
+  // through MCP Server: "runtime_monitor", "admission", or both. An empty list
+  // offers it every tool the signed-in user's role allows, which is what an
+  // integration created before scopes existed does.
+  repeated string scopes = 8;
 }
 
 message Email {

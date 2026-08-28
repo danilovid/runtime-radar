@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,6 +46,7 @@ func (ac *AccessTokenGeneric) Create(ctx context.Context, req *model.CreateAcces
 		Kind:        req.Kind,
 		Hash:        hashed,
 		Permissions: req.Permissions,
+		Scopes:      req.Scopes,
 		ExpiresAt:   req.ExpiresAt,
 	}
 
@@ -141,6 +144,19 @@ func (ac *AccessTokenGeneric) validateCreateReq(req *model.CreateAccessTokenReq)
 		}
 		if req.ExpiresAt.Before(time.Now()) {
 			return "expired token", false
+		}
+	}
+
+	// Scopes narrow an MCP key inside MCP Server. A public API token never
+	// reaches it, so accepting scopes there would promise a limit nothing
+	// applies.
+	if len(req.Scopes) > 0 && req.Kind != model.TokenKindMCP {
+		return "scopes only apply to an mcp key", false
+	}
+
+	for _, scope := range req.Scopes {
+		if !model.IsKnownScope(scope) {
+			return fmt.Sprintf("unknown scope %q, expected one of %s", scope, strings.Join(model.KnownScopes, ", ")), false
 		}
 	}
 

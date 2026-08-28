@@ -1,0 +1,133 @@
+<ng-container *transloco="let tMcpKey; prefix: 'mcp-key'">
+    <ng-container *ngrxLet="mcpKeys$ as mcpKeys">
+        <header class="layout-row layout-align-space-between-center">
+            <h1 class="kbq-display-compact mcp-key-feature-list-title">
+                {{ tMcpKey('McpKey.ListPage.Header.Title') }}
+            </h1>
+            <section class="layout-row">
+                <cs-cluster-select-component
+                        [clusters]="clusters$ | async"
+                        [activeClusterHost]="activeClusterHost$ | async"
+                        (selectClusterId)="switchCluster($event)"
+                        testLocator="mcp-key-cluster-select"></cs-cluster-select-component>
+                @if (mcpKeys.length) {
+                    <button kbq-button
+                            kbqStyle="outline"
+                            color="theme-fade"
+                            class="layout-margin-left-xl"
+                            type="button"
+                            [disabled]="!permissions[permissionName.TOKENS].has(permissionType.CREATE)"
+                            (click)="openCreateSidepanel()"
+                            data-testid="mcp-key-open-sidepanel-form-button">
+                        {{ tMcpKey('McpKey.ListPage.Button.Create') }}
+                    </button>
+                }
+            </section>
+        </header>
+
+
+        @if (mcpKeys.length) {
+            <section class="mcp-key-feature-list">
+                @for (mcpKey of mcpKeys; track mcpKey.id) {
+                    <article class="mcp-key-feature-list-card"
+                             id="{{ mcpKey.id }}"
+                             [ngClass]="{ 'expanded': mcpKey.access_token }"
+                             [attr.data-testid]="mcpKey.name">
+                        <header class="layout-row layout-wrap layout-align-space-between-center">
+                            <h4 class="kbq-title mcp-key-feature-list-card-title">{{ mcpKey.name }}</h4>
+                            <section class="layout-row layout-align-center-center">
+                                <kbq-badge
+                                        mcpKeyExpirationColor
+                                        [expiresAt]="mcpKey.expires_at"
+                                        [invalidatedAt]="mcpKey.invalidated_at"
+                                        class="layout-margin-right-xxl">
+                                    @if (mcpKey.invalidated_at) {
+                                        {{ mcpKey.invalidated_at | dateFormatter: dateTimeFullFormat | mcpKeyExpirationLabel: mcpKey.expires_at: mcpKey.invalidated_at }}
+                                    } @else if (mcpKey.expires_at) {
+                                        {{ mcpKey.expires_at | dateFormatter: dateTimeFullFormat | mcpKeyExpirationLabel: mcpKey.expires_at }}
+                                    } @else {
+                                        {{ tMcpKey('McpKey.Pseudo.Label.Indefinitely') }}
+                                    }
+                                </kbq-badge>
+                                <button kbq-button
+                                        kbqStyle="transparent"
+                                        color="contrast"
+                                        type="button"
+                                        class="kbq-button-icon"
+                                        [disabled]="!permissions[permissionName.TOKENS].has(permissionType.DELETE)"
+                                        (click)="openDeleteModal(mcpKey.id)"
+                                        data-testid="mcp-key-delete-button">
+                                    <i kbq-icon="kbq-trash_16"></i>
+                                </button>
+                            </section>
+                        </header>
+
+                        @if (mcpKey.access_token) {
+                            <section class="mcp-key-feature-list-card-access">
+                                <p class="layout-row layout-align-start-center kbq-text-compact-strong mcp-key-feature-list-card-access-alert">
+                                    <i kbq-icon="kbq-exclamation-triangle_16" class="mcp-key-feature-list-card-access-alert-icon"></i>
+                                    <span>{{ tMcpKey('McpKey.ListPage.Table.Text.AccessToken') }}</span>
+                                </p>
+                                <cs-clipboard-component [value]="mcpKey.access_token"></cs-clipboard-component>
+                            </section>
+                        }
+
+                        <ul class="layout-row mcp-key-feature-list-card-list">
+                            <li>
+                                <div class="kbq-text-compact cs-text-gray mcp-key-feature-list-card-list-label">
+                                    {{ tMcpKey('McpKey.ListPage.Table.Permissions') }}
+                                </div>
+                                @if (mcpKey.permissions[mcpKeyPermissionName.EVENTS]; as eventPermissions) {
+                                    @for (item of eventPermissions.actions; track item) {
+                                        <span class="cs-separator">{{ item | mcpKeyPermissionType: mcpKeyPermissionName.EVENTS }}</span>
+                                    }
+                                }
+                                @if (mcpKey.permissions[mcpKeyPermissionName.RULES]; as rulePermissions) {
+                                    @for (item of rulePermissions.actions; track item) {
+                                        <span class="cs-separator">{{ item | mcpKeyPermissionType: mcpKeyPermissionName.RULES }}</span>
+                                    }
+                                }
+                                @if (mcpKey.permissions[mcpKeyPermissionName.SYSTEM_SETTINGS]; as systemPermissions) {
+                                    @for (item of systemPermissions.actions; track item) {
+                                        <span class="cs-separator">{{ item | mcpKeyPermissionType: mcpKeyPermissionName.SYSTEM_SETTINGS }}</span>
+                                    }
+                                }
+                            </li>
+                            <li>
+                                <div class="kbq-text-compact cs-text-gray mcp-key-feature-list-card-list-label">
+                                    {{ tMcpKey('McpKey.ListPage.Table.Scopes') }}
+                                </div>
+                                @if (mcpKey.scopes?.length) {
+                                    @for (scope of mcpKey.scopes; track scope) {
+                                        <span class="cs-separator">
+                                            {{ scope === mcpKeyScope.ADMISSION
+                                                ? tMcpKey('McpKey.Pseudo.Scope.Admission')
+                                                : tMcpKey('McpKey.Pseudo.Scope.RuntimeMonitor') }}
+                                        </span>
+                                    }
+                                } @else {
+                                    <span>{{ tMcpKey('McpKey.ListPage.Table.Text.AllScopes') }}</span>
+                                }
+                            </li>
+                        </ul>
+                    </article>
+                }
+            </section>
+        } @else {
+            <cs-empty-screen-component
+                    imageUrl="/assets/koobiq/light/folder-plus_256@2x.png"
+                    [title]="tMcpKey('McpKey.ListPage.SubHeading.EmptyResult')"
+                    [description]="tMcpKey('McpKey.ListPage.Text.EmptyResult')">
+                <button kbq-button
+                        kbqStyle="outline"
+                        color="theme-fade"
+                        type="button"
+                        [disabled]="!permissions[permissionName.TOKENS].has(permissionType.CREATE)"
+                        (click)="openCreateSidepanel()"
+                        data-testid="mcp-key-open-sidepanel-form-empty-button">
+                    {{ tMcpKey('McpKey.ListPage.Button.Create') }}
+                </button>
+            </cs-empty-screen-component>
+        }
+    </ng-container>
+</ng-container>

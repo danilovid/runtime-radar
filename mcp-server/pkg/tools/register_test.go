@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/auth"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/client"
 )
 
@@ -48,18 +49,37 @@ func TestRegister(t *testing.T) {
 	// product must say so in its annotation, because that is what an MCP
 	// client decides whether to ask the user about.
 	readOnlyByTool := map[string]bool{
-		"search_runtime_events": true,
-		"get_runtime_event":     true,
-		"get_process_context":   true,
-		"list_detectors":        true,
-		"get_runtime_stats":     true,
-		"list_rules":            true,
-		"list_api_tokens":       true,
-		"search_docs":           true,
-		"create_rule":           false,
-		"delete_rule":           false,
-		"create_api_token":      false,
-		"delete_api_token":      false,
+		"search_runtime_events":   true,
+		"get_runtime_event":       true,
+		"get_process_context":     true,
+		"list_detectors":          true,
+		"get_runtime_stats":       true,
+		"list_rules":              true,
+		"list_api_tokens":         true,
+		"search_docs":             true,
+		"list_admission_sources":  true,
+		"search_admission_events": true,
+		"get_admission_event":     true,
+		"create_rule":             false,
+		"delete_rule":             false,
+		"create_api_token":        false,
+		"delete_api_token":        false,
+		"set_admission_source":    false,
+		"create_admission_source": false,
+	}
+
+	// The tools that belong to one half of the product, and the half they belong to.
+	scopeByTool := map[string]string{
+		"search_runtime_events":   string(auth.ScopeRuntimeMonitor),
+		"get_runtime_event":       string(auth.ScopeRuntimeMonitor),
+		"get_process_context":     string(auth.ScopeRuntimeMonitor),
+		"list_detectors":          string(auth.ScopeRuntimeMonitor),
+		"get_runtime_stats":       string(auth.ScopeRuntimeMonitor),
+		"list_admission_sources":  string(auth.ScopeAdmission),
+		"search_admission_events": string(auth.ScopeAdmission),
+		"get_admission_event":     string(auth.ScopeAdmission),
+		"set_admission_source":    string(auth.ScopeAdmission),
+		"create_admission_source": string(auth.ScopeAdmission),
 	}
 
 	found := map[string]bool{}
@@ -74,6 +94,16 @@ func TestRegister(t *testing.T) {
 
 		if !strings.Contains(tool.Description, "UNTRUSTED TELEMETRY") {
 			t.Errorf("tool %q does not warn about untrusted data", tool.Name)
+		}
+
+		// A tool of one half of the product says so, which is what lets a
+		// first-party client offer only the half its configuration allows.
+		if wantScope, scoped := scopeByTool[tool.Name]; scoped {
+			if got := tool.Meta[auth.ScopeMetaKey]; got != wantScope {
+				t.Errorf("tool %q publishes scope %v, expected %q", tool.Name, got, wantScope)
+			}
+		} else if _, published := tool.Meta[auth.ScopeMetaKey]; published {
+			t.Errorf("tool %q publishes a scope but belongs to neither half", tool.Name)
 		}
 		if tool.Annotations == nil {
 			t.Errorf("tool %q has no annotations", tool.Name)

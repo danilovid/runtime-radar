@@ -107,6 +107,10 @@ type Request struct {
 	// ConfirmID, when set, approves the tool call the assistant proposed in the
 	// previous turn. It is the only way a tool that changes anything is run.
 	ConfirmID string
+	// Scopes are the halves of the product the chosen AI integration allows.
+	// Empty offers every tool the caller's role permits.
+	Scopes []string
+
 	// Authorization is the caller's own credential, passed to MCP Server so
 	// that the tools run with the caller's permissions.
 	Authorization string
@@ -211,7 +215,7 @@ var errEmitFailed = errors.New("can't emit chunk")
 // run is the agent loop. It returns the metric reason of a failure alongside
 // the error, so that Run can count it without parsing the message.
 func (r *Runner) run(ctx context.Context, req Request, emit Emit) (errorReason string, iterations int, confirming bool, err error) {
-	box, err := r.tools.Open(ctx, req.Authorization)
+	box, err := r.tools.Open(ctx, req.Authorization, req.Scopes)
 	if err != nil {
 		return errorReasonTools, 0, false, fmt.Errorf("can't reach the assistant tools: %w", err)
 	}

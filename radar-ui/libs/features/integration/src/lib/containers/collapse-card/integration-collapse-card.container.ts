@@ -9,7 +9,7 @@ import { DetectorStoreService } from '@cs/domains/detector';
 import { I18nService } from '@cs/i18n';
 import { CoreUtilsService as utils } from '@cs/core';
 import { ClusterStoreService, RegisteredCluster } from '@cs/domains/cluster';
-import { Integration, IntegrationStoreService, IntegrationType } from '@cs/domains/integration';
+import { Integration, IntegrationAIScope, IntegrationStoreService, IntegrationType } from '@cs/domains/integration';
 import { Notification, NotificationStoreService } from '@cs/domains/notification';
 import { PermissionName, PermissionType, RolePermissionMap } from '@cs/domains/role';
 import { Rule, RuleStoreService } from '@cs/domains/rule';
@@ -62,6 +62,8 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
     readonly permissionName = PermissionName;
 
     readonly integrationType = IntegrationType;
+
+    readonly integrationAIScope = IntegrationAIScope;
 
     readonly tooltipPlacements = PopUpPlacements;
 
@@ -280,7 +282,8 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
                                 api_key: outputs.ai.apiKey,
                                 ca: outputs.ai.ca,
                                 is_local: outputs.ai.isLocal,
-                                insecure: !outputs.ai.isInsecure
+                                insecure: !outputs.ai.isInsecure,
+                                scopes: outputs.ai.scopes
                             }
                         });
                         break;

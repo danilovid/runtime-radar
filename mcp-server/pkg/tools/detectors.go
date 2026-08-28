@@ -60,7 +60,7 @@ const detectorSeverityNote = "Severity is not a property of a detector: it is as
 	"listed only when the detector's author mentioned them in its description."
 
 func registerDetectorTools(server *mcp.Server, deps *Deps) {
-	addTool(server, deps, &mcp.Tool{
+	addScopedTool(server, deps, auth.ScopeRuntimeMonitor, &mcp.Tool{
 		Name:        "list_detectors",
 		Annotations: readOnly("List detectors"),
 		Description: "List the threat detectors installed in Event Processor: identifier, name, description, " +

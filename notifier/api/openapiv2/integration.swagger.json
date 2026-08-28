@@ -307,6 +307,13 @@
         },
         "ca": {
           "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "scopes limit which halves of the product the built-in assistant may reach\nthrough MCP Server: \"runtime_monitor\", \"admission\", or both. An empty list\noffers it every tool the signed-in user's role allows, which is what an\nintegration created before scopes existed does."
         }
       }
     },

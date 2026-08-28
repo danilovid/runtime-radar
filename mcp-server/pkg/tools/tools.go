@@ -7,10 +7,12 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/rs/zerolog/log"
+	"github.com/runtime-radar/runtime-radar/lib/security/jwt"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/auth"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/client"
 	"github.com/runtime-radar/runtime-radar/mcp-server/pkg/docs"
@@ -100,6 +102,7 @@ func Register(server *mcp.Server, deps *Deps) {
 	registerStatsTools(server, deps)
 	registerDocsTools(server, deps)
 	registerRuleTools(server, deps)
+	registerAdmissionTools(server, deps)
 
 	if deps.PublicAPI != nil {
 		registerTokenTools(server, deps)
@@ -134,11 +137,29 @@ func write(title string, destructive bool) *mcp.ToolAnnotations {
 	}
 }
 
-// addTool registers a tool along with the plumbing every tool needs: the
-// caller's token is verified against perms and carried into the gRPC calls the
-// handler makes, the call is logged, and its outcome is counted.
+// addTool registers a tool that belongs to no scope: every session may call it.
 func addTool[In, Out any](server *mcp.Server, deps *Deps, tool *mcp.Tool, perms []auth.Permission, handler func(context.Context, In) (Out, error)) {
+	addScopedTool(server, deps, "", tool, perms, handler)
+}
+
+// addScopedTool registers a tool along with the plumbing every tool needs: the
+// caller's token is verified against perms and carried into the gRPC calls the
+// handler makes, the call is logged, and its outcome is counted. When scope is
+// not empty, a session opened with an MCP key must have been granted that scope.
+func addScopedTool[In, Out any](server *mcp.Server, deps *Deps, scope auth.Scope, tool *mcp.Tool, perms []auth.Permission, handler func(context.Context, In) (Out, error)) {
 	tool.Description += untrustedWarning
+
+	// The scope travels with the tool so that a first-party client can decide
+	// what to offer a model without keeping a list of tool names in step with
+	// this server. A key-scoped session is still checked below: this is a
+	// description, not the enforcement.
+	if scope != "" {
+		if tool.Meta == nil {
+			tool.Meta = mcp.Meta{}
+		}
+
+		tool.Meta[auth.ScopeMetaKey] = string(scope)
+	}
 
 	if tool.Annotations != nil && tool.Annotations.ReadOnlyHint {
 		tool.Description += readOnlyWarning
@@ -155,6 +176,16 @@ func addTool[In, Out any](server *mcp.Server, deps *Deps, tool *mcp.Tool, perms 
 		if err != nil {
 			elapsed := deps.now().Sub(started)
 			logCall(tool.Name, auth.Caller{}, in, elapsed, err)
+			metrics.ObserveToolCall(tool.Name, elapsed, err)
+
+			return nil, zero, err
+		}
+
+		if scope != "" && !auth.AllowsScope(ctx, scope) {
+			err := fmt.Errorf("%w: this key is not scoped to %s", jwt.ErrPermissionDenied, scope)
+
+			elapsed := deps.now().Sub(started)
+			logCall(tool.Name, caller, in, elapsed, err)
 			metrics.ObserveToolCall(tool.Name, elapsed, err)
 
 			return nil, zero, err

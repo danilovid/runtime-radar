@@ -158,6 +158,7 @@ func AIToPB(a *model.AI) *api.AI {
 		IsLocal:  a.IsLocal,
 		Insecure: a.Insecure,
 		Ca:       a.CA,
+		Scopes:   a.Scopes,
 	}
 }
 
@@ -284,6 +285,7 @@ func IntegrationFromPB(req *api.Integration) (model.Integration, error) {
 			IsLocal:  aiConf.GetIsLocal(),
 			Insecure: aiConf.GetInsecure(),
 			CA:       aiConf.GetCa(),
+			Scopes:   aiConf.GetScopes(),
 		}, nil
 	default:
 		return nil, errors.New("can't parse integration type")

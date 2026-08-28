@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -459,6 +460,13 @@ func validateAI(conf *api.AI) (reason string, valid bool) {
 		return fmt.Sprintf("unsupported ai provider given: %s", conf.GetProvider().String()), false
 	}
 
+	for _, scope := range conf.GetScopes() {
+		if !model.IsKnownAssistantScope(scope) {
+			return fmt.Sprintf("unknown assistant scope %q, expected one of %s",
+				scope, strings.Join(model.KnownAssistantScopes, ", ")), false
+		}
+	}
+
 	if conf.GetBaseUrl() == "" {
 		// Anthropic and Ollama have a single meaningful endpoint, but an empty
 		// base url for an openai-compatible provider silently resolves to the
@@ -549,6 +557,7 @@ func (ig *IntegrationGeneric) aiUpdateMap(name string, conf *api.AI) map[string]
 		"IsLocal":  conf.GetIsLocal(),
 		"Insecure": conf.GetInsecure(),
 		"CA":       conf.GetCa(),
+		"Scopes":   model.AssistantScopes(conf.GetScopes()),
 	}
 
 	// The key is only ever handed out masked, so an edit that doesn't touch it

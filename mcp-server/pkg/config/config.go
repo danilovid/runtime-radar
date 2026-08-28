@@ -8,22 +8,23 @@ import (
 
 // Config represents system configuration.
 type Config struct {
-	LogLevel               string // log level can be INFO, WARN, ERROR, FATAL, DEBUG or ALL
-	LogFile                string // path to log file
-	Stdio                  bool   // serve MCP over stdin/stdout instead of HTTP
-	ListenHTTPAddr         string // address "[host]:port" that Streamable HTTP MCP server should be listening on
-	InstrumentationAddr    string // address "[host]:port" that instrumentation server should be listening for health checks and metrics
-	GopsAddr               string // gops listen address
-	TLS                    bool   // is TLS enabled?
-	TokenKey               string // key for jwt token
-	Auth                   bool   // is auth enabled?
-	AuthToken              string // jwt token to authenticate outgoing calls with when the client presents none
-	HistoryAPIGRPCAddr     string // History API address in host[:port] format
-	EventProcessorGRPCAddr string // Event Processor address in host[:port] format
-	PolicyEnforcerGRPCAddr string // Policy Enforcer address in host[:port] format
-	PublicAPIURL           string // Public API address in schema://host[:port] format, used to exchange MCP keys
-	DocsDir                string // directory to load product documentation from
-	ClusterName            string // cluster name to label metrics with
+	LogLevel                 string // log level can be INFO, WARN, ERROR, FATAL, DEBUG or ALL
+	LogFile                  string // path to log file
+	Stdio                    bool   // serve MCP over stdin/stdout instead of HTTP
+	ListenHTTPAddr           string // address "[host]:port" that Streamable HTTP MCP server should be listening on
+	InstrumentationAddr      string // address "[host]:port" that instrumentation server should be listening for health checks and metrics
+	GopsAddr                 string // gops listen address
+	TLS                      bool   // is TLS enabled?
+	TokenKey                 string // key for jwt token
+	Auth                     bool   // is auth enabled?
+	AuthToken                string // jwt token to authenticate outgoing calls with when the client presents none
+	HistoryAPIGRPCAddr       string // History API address in host[:port] format
+	EventProcessorGRPCAddr   string // Event Processor address in host[:port] format
+	PolicyEnforcerGRPCAddr   string // Policy Enforcer address in host[:port] format
+	AdmissionMonitorGRPCAddr string // Admission Monitor address in host[:port] format
+	PublicAPIURL             string // Public API address in schema://host[:port] format, used to exchange MCP keys
+	DocsDir                  string // directory to load product documentation from
+	ClusterName              string // cluster name to label metrics with
 }
 
 // New reads config from environment and returns pointer to a new Config.
@@ -43,6 +44,7 @@ func New() *Config {
 	flag.StringVar(&c.HistoryAPIGRPCAddr, "historyAPIGRPCAddr", config.LookupEnvString("HISTORY_API_GRPC_ADDR", "127.0.0.1:8000"), "History API gRPC address in host[:port] format.")
 	flag.StringVar(&c.EventProcessorGRPCAddr, "eventProcessorGRPCAddr", config.LookupEnvString("EVENT_PROCESSOR_GRPC_ADDR", "127.0.0.1:8000"), "Event Processor gRPC address in host[:port] format.")
 	flag.StringVar(&c.PolicyEnforcerGRPCAddr, "policyEnforcerGRPCAddr", config.LookupEnvString("POLICY_ENFORCER_GRPC_ADDR", "127.0.0.1:8000"), "Policy Enforcer gRPC address in host[:port] format.")
+	flag.StringVar(&c.AdmissionMonitorGRPCAddr, "admissionMonitorGRPCAddr", config.LookupEnvString("ADMISSION_MONITOR_GRPC_ADDR", "127.0.0.1:8000"), "Admission Monitor gRPC address in host[:port] format.")
 	flag.StringVar(&c.PublicAPIURL, "publicAPIURL", config.LookupEnvString("PUBLIC_API_URL", ""), "Public API address in schema://host[:port] format. Set it to accept the MCP keys issued there in addition to the product's own tokens, and to manage API tokens through the tools.")
 	flag.StringVar(&c.DocsDir, "docsDir", config.LookupEnvString("DOCS_DIR", "docs"), "Set directory to load product documentation (*.md) from.")
 	flag.StringVar(&c.ClusterName, "clusterName", config.LookupEnvString("CLUSTER_NAME", ""), "Set cluster name to label metrics with.")

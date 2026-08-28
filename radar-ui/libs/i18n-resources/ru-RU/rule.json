@@ -3,7 +3,6 @@
     "Rule.Pseudo.Notification.Updated": "Правило реагирования изменено",
     "Rule.Pseudo.Notification.Deleted": "Правило реагирования удалено",
     "Rule.Pseudo.Notification.NameMustBeUnique": "Правило с таким именем уже существует",
-
     "Rule.ListPage.Header.Title": "Правила реагирования",
     "Rule.ListPage.Button.Create": "Создать",
     "Rule.ListPage.Filter.Placeholder.Name": "Имя правила",
@@ -22,7 +21,6 @@
     "Rule.ListPage.Text.EmptyResult": "Создайте правила реагирования, чтобы задать, как система будет обрабатывать обнаруженные угрозы или уязвимости.",
     "Rule.ListPage.SubHeading.EmptySearch": "Правила не найдены",
     "Rule.ListPage.Text.EmptySearch": "Попробуйте изменить фильтры.",
-
     "Rule.CreateForm.Title.Create": "Новое правило реагирования",
     "Rule.CreateForm.Label.Name": "Имя",
     "Rule.CreateForm.Label.ImageNames": "Образы из указанных репозиториев",
@@ -62,14 +60,16 @@
     "Rule.CreateForm.Text.EmptyNotifySeverity": "Чтобы отправлять результаты сканирования, подключите хотя бы один [template]сервис[/template] и добавьте к нему шаблон уведомления.",
     "Rule.CreateForm.Button.Confirm": "Создать",
     "Rule.CreateForm.Button.Cancel": "Отмена",
-
     "Rule.CreateForm.WhiteList.SubTitle.Exception": "Исключения",
     "Rule.CreateForm.WhiteList.Text.Exception.Runtime": "Не применять правило к этим угрозам.",
-
     "Rule.EditForm.Title.Edit": "Редактирование правила",
     "Rule.EditForm.Button.Confirm": "Сохранить",
-
     "Rule.DeleteModal.Title.Text": "Удалить правило?",
     "Rule.DeleteModal.Button.Confirm": "Удалить",
-    "Rule.DeleteModal.Button.Cancel": "Отмена"
+    "Rule.DeleteModal.Button.Cancel": "Отмена",
+    "Rule.CreateForm.Label.Type": "Тип правила",
+    "Rule.CreateForm.WhiteList.Text.Exception.Admission": "Не применять правило для этих политик Kyverno.",
+    "Rule.CreateForm.Label.Policies": "Политики Kyverno",
+    "Rule.CreateForm.Hint.Policies": "Идентификатор политики — её имя и имя правила внутри неё через косую черту, например privileged-containers/rule-0. Он показан на странице события.",
+    "Rule.CreateForm.Placeholder.Policies": "политика/правило"
 }
