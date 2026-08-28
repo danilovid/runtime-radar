@@ -9,3 +9,8 @@ export interface IntegrationEmailAuthTypeOption {
     id: IntegrationEmailAuthType;
     localizationKey: string;
 }
+
+export interface IntegrationAIProviderTypeOption {
+    id: string;
+    localizationKey: string;
+}

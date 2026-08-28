@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/domains/cluster"],
+            "outputs": ["{workspaceRoot}/coverage/libs/domains/cluster"],
             "options": {
                 "jestConfig": "libs/domains/cluster/jest.config.ts",
                 "passWithNoTests": true

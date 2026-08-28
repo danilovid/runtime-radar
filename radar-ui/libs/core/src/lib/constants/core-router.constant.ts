@@ -1,6 +1,7 @@
 export enum RouterName {
     DEFAULT = '',
     ADMISSION = 'admission',
+    CHATS = 'chats',
     CLUSTERS = 'clusters',
     FORBIDDEN = 'forbidden',
     ERROR = 'error',
@@ -16,6 +17,7 @@ export enum RouterName {
 
 export enum TranslationDict {
     ADMISSION = 'admission',
+    ASSISTANT = 'assistant',
     AUTH = 'auth',
     COMMON = 'common',
     CLUSTER = 'cluster',
@@ -29,4 +31,6 @@ export enum TranslationDict {
 
 export const DEFAULT_ROUTER_NAME = RouterName.RUNTIME;
 
-export const DEFAULT_TRANSLATION_DICTS = [TranslationDict.COMMON, TranslationDict.USER];
+// The chat widget belongs to the shell, so its dictionary is loaded up front
+// rather than per route.
+export const DEFAULT_TRANSLATION_DICTS = [TranslationDict.ASSISTANT, TranslationDict.COMMON, TranslationDict.USER];

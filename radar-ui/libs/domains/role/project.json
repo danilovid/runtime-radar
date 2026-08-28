@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/domains/role"],
+            "outputs": ["{workspaceRoot}/coverage/libs/domains/role"],
             "options": {
                 "jestConfig": "libs/domains/role/jest.config.ts",
                 "passWithNoTests": true

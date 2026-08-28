@@ -1,0 +1,11 @@
+# .vscode
+.idea
+# .task
+/.task/checksum/tools
+*.exe
+/bin
+/cmd/mcp-server/mcp-server
+.helm/Chart.lock
+.helm/charts
+
+*.http

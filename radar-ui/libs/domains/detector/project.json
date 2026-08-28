@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/domains/detector"],
+            "outputs": ["{workspaceRoot}/coverage/libs/domains/detector"],
             "options": {
                 "jestConfig": "libs/domains/detector/jest.config.ts",
                 "passWithNoTests": true

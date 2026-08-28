@@ -128,7 +128,28 @@ func main() {
 	}
 
 	ruleSvc, accessTokenSvc, runtimeHistorySvc := composeServices(db, authAPI, ruleController, runtimeHistory, salt, cfg.Auth, verifier, token)
-	srv := server.New(cfg.ListenHTTPAddr, tlsConfig, accessTokenSvc, ruleSvc, runtimeHistorySvc)
+
+	// MCP Server exchanges the keys issued here for short-lived JWTs of the
+	// users they belong to. The route is internal, and with auth on the caller
+	// still has to prove it is a service of the product before a key is
+	// exchanged for a session.
+	var mcpKeyExchanger service.MCPKeyExchanger = &auth.MCPKeyExchanger{
+		Verifier: &auth.Verifier{
+			UsersGetter:           authAPI,
+			AccessTokenRepository: &database.AccessTokenDatabase{DB: db},
+			AccessTokenSalt:       salt,
+		},
+		TokenKey: token,
+	}
+
+	if cfg.Auth {
+		mcpKeyExchanger = &service.MCPKeyExchangeAuth{
+			MCPKeyExchanger: mcpKeyExchanger,
+			TokenKey:        token,
+		}
+	}
+
+	srv := server.New(cfg.ListenHTTPAddr, tlsConfig, accessTokenSvc, ruleSvc, runtimeHistorySvc, mcpKeyExchanger)
 
 	// Create and Run the instrumentation HTTP server for probes, etc.
 	iSrv := server.NewInstrumentation(cfg.InstrumentationAddr)

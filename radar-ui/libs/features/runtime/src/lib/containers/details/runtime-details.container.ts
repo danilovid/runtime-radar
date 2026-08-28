@@ -20,6 +20,7 @@ import { KbqSidepanelConfig, KbqSidepanelPosition, KbqSidepanelService } from '@
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
 
 import { I18nService } from '@cs/i18n';
+import { AssistantMode, AssistantStoreService } from '@cs/domains/assistant';
 import {
     GetRuntimeEventsResponse,
     RUNTIME_CONTEXT,
@@ -174,6 +175,7 @@ export class RuntimeFeatureDetailsContainer {
     expandErrorsLimit: number | undefined = RUNTIME_DETAILS_LIST_ITEMS_LIMIT;
 
     constructor(
+        private readonly assistantStoreService: AssistantStoreService,
         private readonly sidepanelService: KbqSidepanelService,
         private readonly dateAdapter: DateAdapter<DateTime>,
         private readonly i18nService: I18nService,
@@ -254,6 +256,31 @@ export class RuntimeFeatureDetailsContainer {
             .afterClosed()
             .pipe(take(1))
             .subscribe();
+    }
+
+    /**
+     * Explains the event in the assistant panel. The explanation streams in as
+     * the model writes it, and the conversation stays open, so the next
+     * question about the same event needs no second trip through a modal.
+     */
+    explainEvent(event: RuntimeEvent) {
+        this.assistantStoreService.open({
+            eventId: event.id,
+            question: this.i18nService.translate('Runtime.DetailsPage.Text.ExplainEvent'),
+            mode: AssistantMode.EXPLAIN
+        });
+    }
+
+    /**
+     * Opens the chat assistant with this event attached and asks about it. The
+     * event itself is not handed over: the assistant reads it through its own
+     * read-only tools, so the model sees what the system recorded.
+     */
+    askAssistant(event: RuntimeEvent) {
+        this.assistantStoreService.open({
+            eventId: event.id,
+            question: this.i18nService.translate('Runtime.DetailsPage.Text.AskAssistant')
+        });
     }
 
     expandThreats() {

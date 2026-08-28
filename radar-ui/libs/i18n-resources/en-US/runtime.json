@@ -1,5 +1,7 @@
 {
     "Runtime.Pseudo.Header.Title": "Runtime",
+    "Runtime.Pseudo.Button.WeeklyDigest": "Weekly summary",
+    "Runtime.Pseudo.Text.WeeklyDigest": "Summarise the last seven days: how many events were recorded, how many of them carry threats, and what needs attention.",
 
     "Runtime.Pseudo.Notification.Created": "The runtime parameters are edited. Your changes will take effect in a minute.",
     "Runtime.Pseudo.Notification.CursorLimited": "No events to display. Try again.",
@@ -173,6 +175,10 @@
     "Runtime.EventsPage.Filter.PresetDrowdown.Option.OneWeek": "During one week",
 
     "Runtime.DetailsPage.Header.Title": "Event",
+    "Runtime.DetailsPage.Button.ExplainEvent": "Explain event",
+    "Runtime.DetailsPage.Button.AskAssistant": "Ask the assistant",
+    "Runtime.DetailsPage.Text.AskAssistant": "What happened in this event, and how serious is it?",
+    "Runtime.DetailsPage.Text.ExplainEvent": "Explain this event.",
     "Runtime.DetailsPage.Label.Id": "ID",
     "Runtime.DetailsPage.Label.Date": "Event date",
     "Runtime.DetailsPage.SubTitle.Sibling": "Same parent",

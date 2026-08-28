@@ -1,0 +1,127 @@
+<ng-container *transloco="let tIntegration; prefix: 'integration'">
+    <form [formGroup]="form" *transloco="let tCommon; prefix: 'common'">
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="name" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.Name') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <input kbqInput
+                       cdkFocusInitial
+                       type="text"
+                       id="name"
+                       formControlName="name"
+                       data-testid="integration-ai-name-input">
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <h4 class="kbq-subheading layout-margin-no-top layout-margin-no-bottom">
+                {{ tIntegration('Integration.CreateForm.SubTitle.Params') }}
+            </h4>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="provider" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.Provider') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <kbq-select id="provider"
+                            formControlName="provider"
+                            data-testid="integration-ai-provider-select">
+                    @for (option of providerOptions; track option.id) {
+                        <kbq-option [value]="option.id"
+                                    [attr.data-testid]="tIntegration(option.localizationKey)">
+                            {{ tIntegration(option.localizationKey) }}
+                        </kbq-option>
+                    }
+                </kbq-select>
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="baseUrl" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.BaseUrl') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <input kbqInput
+                       type="text"
+                       id="baseUrl"
+                       formControlName="baseUrl"
+                       placeholder="{{ tIntegration('Integration.CreateForm.Placeholder.BaseUrl') }}"
+                       data-testid="integration-ai-base-url-input">
+                @if (form.get('baseUrl')?.hasError('pattern')) {
+                    <kbq-hint color="error">{{ tCommon('Common.Form.Error.Format') }}</kbq-hint>
+                }
+                @if (form.get('baseUrl')?.hasError('segment')) {
+                    <kbq-hint color="error">{{ tCommon('Common.Form.Error.Segment') }}</kbq-hint>
+                }
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="model" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.Model') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <input kbqInput
+                       type="text"
+                       id="model"
+                       formControlName="model"
+                       data-testid="integration-ai-model-input">
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="apiKey" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.ApiKey') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <input kbqInputPassword
+                       type="password"
+                       id="apiKey"
+                       formControlName="apiKey"
+                       data-testid="integration-ai-api-key-input">
+                <kbq-password-toggle
+                        [kbqTooltipNotHidden]="tIntegration('Integration.CreateForm.Hint.HidePassword')"
+                        [kbqTooltipHidden]="tIntegration('Integration.CreateForm.Hint.ShowPassword')"></kbq-password-toggle>
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <label for="ca" class="kbq-form__label">
+                {{ tIntegration('Integration.CreateForm.Label.Ca') }}
+            </label>
+            <kbq-form-field class="kbq-form__control">
+                <textarea kbqTextarea
+                          [freeRowsHeight]="0"
+                          id="ca"
+                          formControlName="ca"
+                          data-testid="integration-ai-ca-textarea"></textarea>
+            </kbq-form-field>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <kbq-checkbox formControlName="isLocal" data-testid="integration-ai-local-checkbox">
+                {{ tIntegration('Integration.CreateForm.Label.IsLocal') }}
+            </kbq-checkbox>
+        </section>
+
+        <section class="kbq-form__row kbq-form-row_margin">
+            <kbq-checkbox formControlName="isInsecure" data-testid="integration-ai-insecure-checkbox">
+                {{ tIntegration('Integration.CreateForm.Label.Insecure') }}
+            </kbq-checkbox>
+        </section>
+
+        <section class="kbq-form__row">
+            <button kbq-button
+                    kbqStyle="outline"
+                    color="theme-fade"
+                    type="button"
+                    [disabled]="!form.valid || (isTesting$ | async)"
+                    (click)="testConnection()"
+                    data-testid="integration-ai-test-button">
+                {{ tIntegration('Integration.CreateForm.Button.TestConnection') }}
+            </button>
+        </section>
+    </form>
+</ng-container>

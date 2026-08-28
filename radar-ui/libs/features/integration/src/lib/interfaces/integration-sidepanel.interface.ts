@@ -4,16 +4,23 @@ import { Notification } from '@cs/domains/notification';
 import { RegisteredCluster } from '@cs/domains/cluster';
 import {
     Integration,
+    IntegrationAI,
     IntegrationEmail,
     IntegrationSyslog,
     IntegrationType,
     IntegrationWebhook
 } from '@cs/domains/integration';
 
-import { IntegrationEmailForm, IntegrationSyslogForm, IntegrationWebhookForm } from './integration-form.interface';
+import {
+    IntegrationAIForm,
+    IntegrationEmailForm,
+    IntegrationSyslogForm,
+    IntegrationWebhookForm
+} from './integration-form.interface';
 
 export interface IntegrationSidepanelFormProps {
     type: IntegrationType;
+    ai: IntegrationAI;
     email: IntegrationEmail;
     syslog: IntegrationSyslog;
     webhook: IntegrationWebhook;
@@ -30,6 +37,11 @@ interface IntegrationSidepanelEmailFormOutputs extends AbstractIntegrationSidepa
     email: IntegrationEmailForm;
 }
 
+interface IntegrationSidepanelAIFormOutputs extends AbstractIntegrationSidepanelFormOutputs {
+    type: IntegrationType.AI;
+    ai: IntegrationAIForm;
+}
+
 interface IntegrationSidepanelSyslogFormOutputs extends AbstractIntegrationSidepanelFormOutputs {
     type: IntegrationType.SYSLOG;
     syslog: IntegrationSyslogForm;
@@ -41,6 +53,7 @@ interface IntegrationSidepanelWebhookFormOutputs extends AbstractIntegrationSide
 }
 
 export type IntegrationSidepanelFormOutputs =
+    | IntegrationSidepanelAIFormOutputs
     | IntegrationSidepanelEmailFormOutputs
     | IntegrationSidepanelSyslogFormOutputs
     | IntegrationSidepanelWebhookFormOutputs;

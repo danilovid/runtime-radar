@@ -1,0 +1,238 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Assistant API",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AssistantController"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/assistant/chat": {
+      "post": {
+        "summary": "Chat answers one user turn. The answer arrives as a stream, so that the UI\ncan show which tool the assistant is running while it is still working.\ngrpc-gateway serves this as an HTTP stream of newline-delimited JSON.",
+        "operationId": "AssistantController_Chat",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/assistantChatChunk"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of assistantChatChunk"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/assistantChatReq"
+            }
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "assistantChatChunk": {
+      "type": "object",
+      "properties": {
+        "delta": {
+          "type": "string",
+          "description": "delta is a piece of the answer's text, to be appended as it arrives."
+        },
+        "toolActivity": {
+          "$ref": "#/definitions/assistantToolActivity",
+          "description": "tool_activity reports that the assistant started or finished a tool."
+        },
+        "done": {
+          "$ref": "#/definitions/assistantDone",
+          "description": "done ends the answer."
+        },
+        "confirmation": {
+          "$ref": "#/definitions/assistantConfirmation",
+          "description": "confirmation asks the user to approve a tool that would change the\nproduct. The answer stops there until they do."
+        },
+        "secret": {
+          "$ref": "#/definitions/assistantSecret",
+          "description": "secret carries a credential an approved tool produced. It is delivered\nto the user and deliberately kept out of the conversation the model\nsees, so that it never reaches an LLM provider."
+        }
+      },
+      "description": "ChatChunk is one piece of the answer. Exactly one field is set."
+    },
+    "assistantChatMessage": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Role of the author: \"user\" or \"assistant\". Any other value is rejected;\ntool traffic belongs to the server side of the loop and is not replayed\nby clients."
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "assistantChatReq": {
+      "type": "object",
+      "properties": {
+        "integrationId": {
+          "type": "string",
+          "description": "Identifier of the AI integration whose model answers."
+        },
+        "conversation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChatMessage"
+          },
+          "description": "The conversation so far, oldest first, ending with the user's new message.\nNo conversation state is kept on the server: the client sends the whole\nhistory it wants the model to see."
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Optional identifier of a runtime event the question is about. The event\nitself is never taken from the client: the assistant reads it through the\ntools, so that what the model sees is what the system recorded."
+        },
+        "mode": {
+          "type": "string",
+          "description": "What the assistant is being asked to do: \"chat\" (the default), \"explain\"\nfor one runtime event, \"digest\" for a summary of a period, or \"support\"\nto help the user write a support request. The mode only selects the\ninstructions the assistant is given; it never widens what it may do."
+        },
+        "confirmId": {
+          "type": "string",
+          "description": "Approval of a tool call the assistant asked about in the previous turn,\ncarrying the identifier from that Confirmation. It is the only way a tool\nthat changes anything is ever run."
+        }
+      }
+    },
+    "assistantConfirmation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier to send back as confirm_id to approve this exact call. It is\nvalid for a few minutes, once, and only for the user it was issued to."
+        },
+        "tool": {
+          "type": "string",
+          "description": "Name of the tool, for example create_rule."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human readable title of the tool, as the MCP server named it."
+        },
+        "arguments": {
+          "type": "string",
+          "description": "The arguments the tool would be called with, as pretty-printed JSON. They\ncome from the model, so the user is shown exactly what would be sent."
+        },
+        "destructive": {
+          "type": "boolean",
+          "description": "destructive is set when the call removes something rather than adds it."
+        }
+      },
+      "description": "Confirmation is a tool call the assistant wants to make and may not make on\nits own: it would create, change or delete something in the product."
+    },
+    "assistantDone": {
+      "type": "object",
+      "properties": {
+        "stopReason": {
+          "type": "string",
+          "description": "stop_reason is \"end_turn\" when the assistant finished on its own,\n\"confirmation_required\" when it is waiting for the user to approve a tool\ncall, \"max_iterations\" when the agent loop ran out of steps, or \"error\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set when stop_reason is \"error\"."
+        },
+        "iterations": {
+          "type": "integer",
+          "format": "int64",
+          "description": "iterations is how many model turns the answer took."
+        }
+      }
+    },
+    "assistantSecret": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "What the secret is, for example \"API token ci-bot\"."
+        },
+        "value": {
+          "type": "string",
+          "description": "The secret itself."
+        },
+        "note": {
+          "type": "string",
+          "description": "How the secret is to be handled."
+        }
+      },
+      "description": "Secret is a credential produced by an approved tool call. It is shown once:\nthe product stores only a hash of it."
+    },
+    "assistantToolActivity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the tool, for example search_docs."
+        },
+        "phase": {
+          "type": "string",
+          "description": "Phase is \"started\" or \"finished\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set on a finished phase when the tool failed. The assistant\ncarries on: a failed tool is an answer the model has to account for."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

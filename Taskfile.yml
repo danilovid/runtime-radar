@@ -44,6 +44,9 @@ includes:
   cs-manager:
     taskfile: ./cs-manager/Taskfile.yml
     dir: ./cs-manager
+  mcp-server:
+    taskfile: ./mcp-server/Taskfile.yml
+    dir: ./mcp-server
 
 tasks:
   proto:
@@ -83,6 +86,7 @@ tasks:
           - public-api
           - cs-manager
           - reverse-proxy
+          - mcp-server
         task: "{{.ITEM}}:docker-build"
 
   docker-push:
@@ -101,6 +105,9 @@ tasks:
     cmds:
       - for: *backend-services
         task: "{{.ITEM}}:test-docker"
+      # mcp-server has no proto files and no infrastructure to spin up: its
+      # tests are unit tests over mocked gRPC clients.
+      - task: mcp-server:test
 
   tools:
     status:
@@ -116,3 +123,4 @@ tasks:
     cmds:
       - for: *backend-services
         task: "{{.ITEM}}:lint"
+      - task: mcp-server:lint

@@ -46,6 +46,14 @@ const routes: Routes = [
         }
     },
     {
+        path: RouterName.CHATS,
+        loadChildren: () => import('@cs/features/assistant').then((m) => m.AssistantPageFeatureModule),
+        canActivate: [authSuccessRouteActivateGuard, i18nTranslationActivateGuard],
+        data: {
+            translateDicts: [TranslationDict.ASSISTANT]
+        }
+    },
+    {
         path: RouterName.RUNTIME,
         loadChildren: () => import('@cs/features/runtime').then((m) => m.RuntimeFeatureModule),
         canActivate: [authSuccessRouteActivateGuard, i18nTranslationActivateGuard, rolePermissionActivateGuard],

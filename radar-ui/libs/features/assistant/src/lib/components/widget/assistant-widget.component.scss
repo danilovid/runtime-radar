@@ -1,0 +1,551 @@
+/* Palette and metrics come from the chat design; the widget deliberately does
+   not use Koobiq components, so that it matches that mock one to one. */
+$rr-primary: #0066ff;
+$rr-primary-hover: #134fb4;
+$rr-line: #d7dee4;
+$rr-muted: #6d7a86;
+$rr-surface: #f2f5f9;
+$rr-accent-surface: #eff6ff;
+$rr-accent-surface-hover: #e2eeff;
+$rr-label: #808080;
+$rr-offset: 24px;
+
+/* Collapsed, the widget is a small chat window rather than a button: the point
+   is that a question can always be typed without opening anything first. */
+.assistant-dock {
+    position: fixed;
+    right: $rr-offset;
+    bottom: $rr-offset;
+    z-index: 40;
+    width: 340px;
+    max-width: calc(100vw - #{$rr-offset * 2});
+    padding: 10px;
+    border: 1px solid $rr-line;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(19, 79, 180, 0.18);
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__badge,
+    &__send {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: none;
+        border-radius: 50%;
+    }
+
+    &__badge {
+        background: $rr-accent-surface;
+        color: $rr-primary;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    &__input {
+        flex: 1;
+        min-width: 0;
+        height: 32px;
+        border: 0;
+        outline: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 14px;
+
+        &::placeholder {
+            color: $rr-muted;
+        }
+    }
+
+    &__send {
+        border: 0;
+        background: $rr-primary;
+        cursor: pointer;
+
+        &:disabled {
+            background: $rr-line;
+            cursor: default;
+        }
+    }
+
+    &__links {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        padding-left: 40px;
+
+        button {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: $rr-muted;
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+        }
+    }
+}
+
+.assistant-panel {
+    position: fixed;
+    right: $rr-offset;
+    bottom: $rr-offset;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    width: 420px;
+    max-width: calc(100vw - #{$rr-offset * 2});
+    height: 680px;
+    max-height: calc(100vh - #{$rr-offset * 2});
+    border: 1px solid $rr-line;
+    border-radius: 16px;
+    background: #fff;
+    color: #000;
+    font-size: 15px;
+    line-height: 20px;
+    box-shadow: 0 12px 40px rgba(33, 33, 33, 0.18);
+    overflow: hidden;
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid $rr-line;
+    }
+
+    &__heading {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__back {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0 0 8px -6px;
+        padding: 3px 8px 3px 6px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: $rr-primary;
+        font-family: inherit;
+        font-size: 13px;
+        line-height: 16px;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-accent-surface;
+        }
+    }
+
+    &__title {
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 24px;
+    }
+
+    &__subtitle {
+        margin-top: 2px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__integration {
+        margin-top: 4px;
+        max-width: 100%;
+        padding: 2px 4px;
+        border: 1px solid $rr-line;
+        border-radius: 6px;
+        background: #fff;
+        color: $rr-muted;
+        font-family: inherit;
+        font-size: 13px;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    &__icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: $rr-muted;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: $rr-surface;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+    }
+
+    &__body {
+        flex: 1 1 auto;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    &__composer {
+        padding: 12px 16px 16px;
+        border-top: 1px solid $rr-line;
+    }
+}
+
+.assistant-home {
+    &__search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid $rr-line;
+        border-radius: 8px;
+        background: $rr-surface;
+        color: $rr-muted;
+        font-family: inherit;
+        font-size: 15px;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: #e9eef4;
+        }
+    }
+
+    &__tour {
+        display: block;
+        width: 100%;
+        margin-top: 16px;
+        padding: 16px;
+        border: 0;
+        border-radius: 12px;
+        background: $rr-accent-surface;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-accent-surface-hover;
+        }
+    }
+
+    &__tour-title {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    &__tour-hint {
+        margin-top: 4px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__tour-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+        color: $rr-primary;
+        font-size: 15px;
+    }
+
+    &__label {
+        margin: 20px 0 8px;
+        color: $rr-label;
+        font-size: 13px;
+        line-height: 16px;
+        text-transform: uppercase;
+    }
+
+    &__actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    &__action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid $rr-line;
+        border-radius: 10px;
+        background: #fff;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+
+    &__action-title {
+        display: block;
+        font-size: 15px;
+    }
+
+    &__action-hint {
+        display: block;
+        margin-top: 2px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__free,
+    &__support {
+        display: block;
+        width: 100%;
+        margin-top: 20px;
+        padding: 14px;
+        border: 1px dashed $rr-line;
+        border-radius: 10px;
+        background: #fff;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+
+    &__support {
+        margin-top: 12px;
+        border-style: solid;
+        background: $rr-accent-surface;
+
+        &:hover {
+            background: $rr-accent-surface-hover;
+        }
+    }
+}
+
+.assistant-tour {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &__topic {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid $rr-line;
+        border-radius: 10px;
+        background: #fff;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+
+    &__title {
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    &__desc {
+        margin-top: 4px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+
+    &__cta {
+        margin-top: 8px;
+        color: $rr-primary;
+        font-size: 13px;
+    }
+}
+
+.assistant-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    &__context {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: $rr-surface;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+        word-break: break-all;
+    }
+
+    &__suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    &__suggestion {
+        padding: 5px 10px;
+        border: 1px solid $rr-line;
+        border-radius: 10px;
+        background: #fff;
+        font-family: inherit;
+        font-size: 13px;
+        line-height: 18px;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+}
+
+.assistant-composer {
+    &__files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+
+    &__file {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border: 1px solid $rr-line;
+        border-radius: 100px;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__file-cut {
+        color: $rr-muted;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    &__file-remove {
+        border: 0;
+        background: none;
+        color: $rr-muted;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    &__row {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid $rr-line;
+        border-radius: 10px;
+    }
+
+    &__attach {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: $rr-muted;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: $rr-surface;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+    }
+
+    &__input {
+        flex: 1 1 auto;
+        min-height: 30px;
+        max-height: 96px;
+        padding: 5px 2px;
+        border: 0;
+        outline: none;
+        resize: none;
+        font-family: inherit;
+        font-size: 15px;
+        line-height: 20px;
+    }
+
+    &__send {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 6px;
+        background: $rr-primary;
+        color: #fff;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: $rr-primary-hover;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+    }
+
+    &__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 8px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__full-page {
+        border: 0;
+        background: none;
+        color: $rr-primary;
+        font-family: inherit;
+        font-size: 13px;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+}

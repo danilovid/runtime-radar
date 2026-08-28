@@ -23,6 +23,12 @@ export const NAVIGATION: NavigationMenu[] = [
                 localizationKey: 'Common.Pseudo.Menu.Admission',
                 testId: 'admission-navbar-link',
                 icon: 'kbq-shield-check_16'
+            },
+            {
+                path: RouterName.CHATS,
+                localizationKey: 'Common.Pseudo.Menu.Chats',
+                testId: 'chats-navbar-link',
+                icon: 'kbq-message-square_16'
             }
         ]
     },

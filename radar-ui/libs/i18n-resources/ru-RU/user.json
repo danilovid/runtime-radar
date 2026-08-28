@@ -1,0 +1,40 @@
+{
+    "User.Pseudo.Notification.Created": "Пользователь добавлен",
+    "User.Pseudo.Notification.Updated": "Параметры пользователя изменены",
+    "User.Pseudo.Notification.Deleted": "Пользователь удалён",
+    "User.Pseudo.Notification.UserAlreadyExist": "Такой пользователь уже существует",
+    "User.Pseudo.Notification.PasswordUpdated": "Пароль изменён",
+    "User.Pseudo.Notification.UserDoesNotExist": "Не удалось сменить пароль. Пользователя с таким именем не существует.",
+    "User.Pseudo.Notification.PasswordHasBeenUsedBefore": "Новый пароль совпадает с предыдущим. Введите другой пароль.",
+    "User.Pseudo.Notification.PasswordFoundInPassList": "Этот пароль слишком распространён. Введите другой пароль.",
+    "User.Pseudo.Notification.PasswordUpdateFailed": "Не удалось сменить пароль. Попробуйте через несколько минут.",
+    "User.Pseudo.Notification.PasswordChangeRestricted": "Нельзя сменить пароль корпоративной учётной записи",
+    "User.Pseudo.Notification.LastAdminRemovingDenied": "Нельзя удалить учётную запись. Это единственный аккаунт с ролью «Администратор».",
+
+    "User.Pseudo.Navigation.List": "Список пользователей",
+
+    "User.Pseudo.Header.Title": "Пользователи",
+
+    "User.ListPage.Header.Title": "Пользователи",
+    "User.ListPage.Button.Create": "Добавить пользователя",
+    "User.ListPage.Table.Username": "Логин",
+    "User.ListPage.Table.Email": "Email",
+    "User.ListPage.Table.Role": "Роль",
+
+    "User.CreateForm.Title.Create": "Новый пользователь",
+    "User.CreateForm.Label.Username": "Логин",
+    "User.CreateForm.Label.Email": "Email",
+    "User.CreateForm.Label.Password": "Пароль",
+    "User.CreateForm.Label.Role": "Роль",
+    "User.CreateForm.Hint.ShowPassword": "Показать пароль",
+    "User.CreateForm.Hint.HidePassword": "Скрыть пароль",
+    "User.CreateForm.Button.Confirm": "Добавить",
+    "User.CreateForm.Button.Cancel": "Отмена",
+
+    "User.EditForm.Title.Edit": "Редактирование учётной записи",
+    "User.EditForm.Button.Confirm": "Сохранить",
+
+    "User.DeleteModal.Content.Text": "Удалить пользователя?",
+    "User.DeleteModal.Button.Confirm": "Удалить",
+    "User.DeleteModal.Button.Cancel": "Отмена"
+}

@@ -25,7 +25,11 @@
                 </kbq-form-field>
             </section>
 
-            @if (integrationTypeValue === integrationType.EMAIL) {
+            @if (integrationTypeValue === integrationType.AI) {
+                <cs-integration-feature-ai-form-component
+                        [values]="props.ai"
+                        (formChange)="changeAIForm($event)"></cs-integration-feature-ai-form-component>
+            } @else if (integrationTypeValue === integrationType.EMAIL) {
                 <cs-integration-feature-email-form-component
                         [values]="props.email"
                         (formChange)="changeEmailForm($event)"></cs-integration-feature-email-form-component>

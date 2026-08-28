@@ -1,0 +1,28 @@
+{
+    "name": "domain-assistant",
+    "projectType": "library",
+    "root": "libs/domains/assistant",
+    "sourceRoot": "libs/domains/assistant/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": [
+                    "libs/domains/assistant/src/**/*.ts",
+                    "libs/domains/assistant/src/**/*.html"
+                ]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": [
+                "{workspaceRoot}/coverage/libs/domain-assistant"
+            ],
+            "options": {
+                "jestConfig": "libs/domains/assistant/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

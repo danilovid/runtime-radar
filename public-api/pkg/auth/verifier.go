@@ -19,6 +19,9 @@ import (
 
 var (
 	ErrTokenInvalidated = errors.New("token was invalidated")
+	// ErrNotAPublicAPIToken is returned when an MCP key is presented to the
+	// public API.
+	ErrNotAPublicAPIToken = errors.New("token is not a public api token")
 )
 
 // Verifier checks whether public access token is provided, valid
@@ -47,6 +50,12 @@ func (v *Verifier) VerifyPermission(ctx context.Context, pt jwt.PermissionType, 
 	at, err := v.AccessTokenRepository.GetByTokenHash(ctx, hashed)
 	if err != nil {
 		return fmt.Errorf("%w: %w", jwt.ErrUnauthenticated, err)
+	}
+
+	// An MCP key opens the read-only MCP server and nothing else: it must not
+	// be usable against the public API, which can create and delete rules.
+	if at.Kind == model.TokenKindMCP {
+		return fmt.Errorf("%w: %w", jwt.ErrUnauthenticated, ErrNotAPublicAPIToken)
 	}
 
 	if at.ExpiresAt != nil && at.ExpiresAt.Before(time.Now()) {

@@ -141,7 +141,7 @@ services:
         condition: service_healthy
     environment:
       - ENCRYPTION_KEY=f5f3c6ac672c0e4ba49a41c96fad2cb4cb4fa2464836cada5a331847099181de
-    command: --postgresAddr=postgres --policyEnforcerGRPCAddr=policy-enforcer:8000 --logLevel=INFO
+    command: --postgresAddr=postgres --policyEnforcerGRPCAddr=policy-enforcer:8000 --historyAPIGRPCAddr=history-api:8000 --mcpServerURL=http://mcp-server:9000/mcp --logLevel=INFO
     networks:
       - local
 
@@ -191,6 +191,26 @@ services:
       tetragon:
         condition: service_started
     command: --postgresAddr=postgres --rabbitAddr=rabbitmq --rabbitUser=cs --rabbitPassword=cs --tetragonAddr=tetragon:54321 --logLevel=INFO
+    networks:
+      - local
+
+  mcp-server:
+    build:
+      # The image ships the product documentation from docs/, so the build
+      # context is the repository root rather than the service directory.
+      context: .
+      dockerfile: mcp-server/Dockerfile
+    image: mcp-server
+    ports:
+      - "9009:9000"
+    depends_on:
+      event-processor:
+        condition: service_started
+      history-api:
+        condition: service_started
+      policy-enforcer:
+        condition: service_started
+    command: --historyAPIGRPCAddr=history-api:8000 --eventProcessorGRPCAddr=event-processor:8000 --policyEnforcerGRPCAddr=policy-enforcer:8000 --publicAPIURL=http://public-api:9000 --logLevel=INFO
     networks:
       - local
 
