@@ -20,6 +20,17 @@
                 data-testid="runtime-paginator-refresh-button">
             <i kbq-icon="kbq-arrows-rotate-reverse_16"></i>
         </button>
+        @if (isAssistantAvailable$ | async) {
+            <button kbq-button
+                    kbqStyle="outline"
+                    color="theme-fade"
+                    type="button"
+                    class="layout-margin-left-s"
+                    (click)="openWeeklyDigest()"
+                    data-testid="runtime-events-weekly-digest-button">
+                {{ tRuntime('Runtime.Pseudo.Button.WeeklyDigest') }}
+            </button>
+        }
     </cs-tabs-component>
 
     <section class="runtime-feature-events-wrapper" *ngrxLet="{

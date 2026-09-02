@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package admission_history;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "admission-monitor/admission_event.proto";
+import "common.proto";
+
+option go_package = "./api";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "History Admission Events API";
+  };
+};
+
+service AdmissionHistory {
+  rpc Read(ReadAdmissionEventReq) returns (admission_event.AdmissionEvent) {
+    option (google.api.http) = {
+      get: "/api/v1/admission-event/{id}"
+    };
+  }
+
+  rpc ListAdmissionEventSlice(ListAdmissionEventSliceReq) returns (ListAdmissionEventSliceResp) {
+    option (google.api.http) = {
+      get: "/api/v1/admission-event/slice/{direction}"
+    };
+  }
+
+  rpc FilterAdmissionEventSlice(FilterAdmissionEventSliceReq) returns (ListAdmissionEventSliceResp) {
+    option (google.api.http) = {
+      post: "/api/v1/admission-event/by-filter/slice/{direction}"
+      body: "*"
+    };
+  }
+}
+
+message ListAdmissionEventSliceReq {
+  google.protobuf.Timestamp cursor = 1;
+  string direction = 2;
+  uint32 slice_size = 3;
+}
+
+message AdmissionFilter {
+  repeated string resource_kind = 1;
+  repeated string resource_namespace = 2;
+  repeated string resource_name = 3;
+  repeated string node_name = 4;
+  repeated string container_names = 5;
+  repeated string image_names = 6;
+  common.Period period = 7;
+  optional bool blocked = 8;
+  optional bool has_incident = 9;
+
+  // Identifiers of Kyverno policies that produced the findings, as "<policy name>/<rule name>".
+  // This field does not support globs.
+  repeated string threats_policies = 10;
+  // Identifiers of worked rules. This field does not support globs.
+  repeated string rules = 11;
+}
+
+message FilterAdmissionEventSliceReq {
+  google.protobuf.Timestamp cursor = 1;
+  string direction = 2;
+  uint32 slice_size = 3;
+  AdmissionFilter filter = 4;
+}
+
+message ListAdmissionEventSliceResp {
+  repeated admission_event.AdmissionEvent admission_events = 1;
+  google.protobuf.Timestamp left_cursor = 2;
+  google.protobuf.Timestamp right_cursor = 3;
+}
+
+message ReadAdmissionEventReq {
+  string id = 1;
+}

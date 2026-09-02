@@ -1,0 +1,428 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Assistant API",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AssistantController"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/assistant/chat": {
+      "post": {
+        "summary": "Chat answers one user turn. The answer arrives as a stream, so that the UI\ncan show which tool the assistant is running while it is still working.\ngrpc-gateway serves this as an HTTP stream of newline-delimited JSON.",
+        "operationId": "AssistantController_Chat",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/assistantChatChunk"
+                },
+                "error": {
+                  "$ref": "#/definitions/rpcStatus"
+                }
+              },
+              "title": "Stream result of assistantChatChunk"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/assistantChatReq"
+            }
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    },
+    "/api/v1/assistant/chat/{id}": {
+      "get": {
+        "summary": "ReadChat returns one of the caller's conversations with every turn of it.",
+        "operationId": "AssistantController_ReadChat",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantReadChatResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      },
+      "delete": {
+        "summary": "DeleteChat removes one of the caller's conversations for good.",
+        "operationId": "AssistantController_DeleteChat",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantDeleteChatResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    },
+    "/api/v1/assistant/chats": {
+      "get": {
+        "summary": "ListChats returns the caller's own conversations, newest first and without\ntheir messages. A conversation holds whatever its author could read, so it\nis never returned to anybody else.",
+        "operationId": "AssistantController_ListChats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantListChatsResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "How many conversations to return, newest first. Zero means the default.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "assistantChat": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title is the opening of the first question."
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string",
+          "description": "The event the conversation was opened from, when it was opened from one."
+        },
+        "eventKind": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "messageCount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "How many turns the conversation holds. Filled in listings, where the\nmessages themselves are not returned."
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChatMessage"
+          }
+        }
+      },
+      "description": "Chat is one stored conversation. In a listing its messages are left out."
+    },
+    "assistantChatChunk": {
+      "type": "object",
+      "properties": {
+        "delta": {
+          "type": "string",
+          "description": "delta is a piece of the answer's text, to be appended as it arrives."
+        },
+        "toolActivity": {
+          "$ref": "#/definitions/assistantToolActivity",
+          "description": "tool_activity reports that the assistant started or finished a tool."
+        },
+        "done": {
+          "$ref": "#/definitions/assistantDone",
+          "description": "done ends the answer."
+        },
+        "confirmation": {
+          "$ref": "#/definitions/assistantConfirmation",
+          "description": "confirmation asks the user to approve a tool that would change the\nproduct. The answer stops there until they do."
+        },
+        "secret": {
+          "$ref": "#/definitions/assistantSecret",
+          "description": "secret carries a credential an approved tool produced. It is delivered\nto the user and deliberately kept out of the conversation the model\nsees, so that it never reaches an LLM provider."
+        },
+        "suggestions": {
+          "$ref": "#/definitions/assistantSuggestions",
+          "description": "suggestions are follow-up questions to offer under the answer."
+        }
+      },
+      "description": "ChatChunk is one piece of the answer. Exactly one field is set."
+    },
+    "assistantChatMessage": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Role of the author: \"user\" or \"assistant\". Any other value is rejected;\ntool traffic belongs to the server side of the loop and is not replayed\nby clients."
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "assistantChatReq": {
+      "type": "object",
+      "properties": {
+        "integrationId": {
+          "type": "string",
+          "description": "Identifier of the AI integration whose model answers."
+        },
+        "conversation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChatMessage"
+          },
+          "description": "The conversation so far, oldest first, ending with the user's new message.\nNo conversation state is kept on the server: the client sends the whole\nhistory it wants the model to see."
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Optional identifier of an event the question is about. The event itself is\nnever taken from the client: the assistant reads it through the tools, so\nthat what the model sees is what the system recorded."
+        },
+        "mode": {
+          "type": "string",
+          "description": "What the assistant is being asked to do: \"chat\" (the default), \"explain\"\nfor one runtime event, \"digest\" for a summary of a period, or \"support\"\nto help the user write a support request. The mode only selects the\ninstructions the assistant is given; it never widens what it may do."
+        },
+        "confirmId": {
+          "type": "string",
+          "description": "Approval of a tool call the assistant asked about in the previous turn,\ncarrying the identifier from that Confirmation. It is the only way a tool\nthat changes anything is ever run."
+        },
+        "eventKind": {
+          "type": "string",
+          "description": "Which half of the product event_id belongs to: \"runtime\" (the default) or\n\"admission\". The two are read with different tools, and an identifier alone\ndoes not say which, so a client that opens a chat from an event page has to\nsay. Empty means runtime, for clients written before admission existed."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "Identifier of the stored conversation this turn belongs to. Empty starts a\nnew one, whose identifier comes back in the Done chunk."
+        }
+      }
+    },
+    "assistantConfirmation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identifier to send back as confirm_id to approve this exact call. It is\nvalid for a few minutes, once, and only for the user it was issued to."
+        },
+        "tool": {
+          "type": "string",
+          "description": "Name of the tool, for example create_rule."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human readable title of the tool, as the MCP server named it."
+        },
+        "arguments": {
+          "type": "string",
+          "description": "The arguments the tool would be called with, as pretty-printed JSON. They\ncome from the model, so the user is shown exactly what would be sent."
+        },
+        "destructive": {
+          "type": "boolean",
+          "description": "destructive is set when the call removes something rather than adds it."
+        }
+      },
+      "description": "Confirmation is a tool call the assistant wants to make and may not make on\nits own: it would create, change or delete something in the product."
+    },
+    "assistantDeleteChatResp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "assistantDone": {
+      "type": "object",
+      "properties": {
+        "stopReason": {
+          "type": "string",
+          "description": "stop_reason is \"end_turn\" when the assistant finished on its own,\n\"confirmation_required\" when it is waiting for the user to approve a tool\ncall, \"max_iterations\" when the agent loop ran out of steps, or \"error\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set when stop_reason is \"error\"."
+        },
+        "iterations": {
+          "type": "integer",
+          "format": "int64",
+          "description": "iterations is how many model turns the answer took."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "chat_id is the stored conversation this turn was written to, so that a\nclient which started a new one learns where to continue it."
+        }
+      }
+    },
+    "assistantListChatsResp": {
+      "type": "object",
+      "properties": {
+        "chats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChat"
+          }
+        }
+      }
+    },
+    "assistantReadChatResp": {
+      "type": "object",
+      "properties": {
+        "chat": {
+          "$ref": "#/definitions/assistantChat"
+        }
+      }
+    },
+    "assistantSecret": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "What the secret is, for example \"API token ci-bot\"."
+        },
+        "value": {
+          "type": "string",
+          "description": "The secret itself."
+        },
+        "note": {
+          "type": "string",
+          "description": "How the secret is to be handled."
+        }
+      },
+      "description": "Secret is a credential produced by an approved tool call. It is shown once:\nthe product stores only a hash of it."
+    },
+    "assistantSuggestions": {
+      "type": "object",
+      "properties": {
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Suggestions are follow-up questions to offer under the answer, written by the\nmodel from the exchange it just had. They arrive once, just before Done."
+    },
+    "assistantToolActivity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the tool, for example search_docs."
+        },
+        "phase": {
+          "type": "string",
+          "description": "Phase is \"started\" or \"finished\"."
+        },
+        "error": {
+          "type": "string",
+          "description": "error is set on a finished phase when the tool failed. The assistant\ncarries on: a failed tool is an answer the model has to account for."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

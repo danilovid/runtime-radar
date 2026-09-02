@@ -8,13 +8,15 @@ func AccessTokensToResponse(accessTokens []*model.AccessToken) []*model.AccessTo
 	resps := make([]*model.AccessTokenResp, 0, len(accessTokens))
 	for _, at := range accessTokens {
 		resps = append(resps, &model.AccessTokenResp{
-			at.ID,
-			at.Name,
-			at.UserID,
-			at.Permissions,
-			at.ExpiresAt,
-			at.CreatedAt,
-			at.InvalidatedAt,
+			ID:            at.ID,
+			Kind:          at.Kind,
+			Name:          at.Name,
+			UserID:        at.UserID,
+			Permissions:   at.Permissions,
+			Scopes:        at.Scopes,
+			ExpiresAt:     at.ExpiresAt,
+			CreatedAt:     at.CreatedAt,
+			InvalidatedAt: at.InvalidatedAt,
 		})
 	}
 

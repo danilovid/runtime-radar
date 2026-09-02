@@ -10,6 +10,26 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+var (
+	// likeEscaper neutralizes the SQL LIKE wildcards a user could inject.
+	likeEscaper = strings.NewReplacer(
+		"%", "", // avoid malicious requests
+		"_", `\_`, // escape special symbol _
+	)
+	// likeGlobs translates the globs of our own filter syntax into SQL LIKE wildcards.
+	likeGlobs = strings.NewReplacer(
+		"**", "%",
+		"*", "%",
+		"?", "_",
+	)
+)
+
+// prepareLikeTemplate converts a filter value into a pattern usable in a SQL LIKE expression.
+// Replacers keep no per-call state and are initialized once.
+func prepareLikeTemplate(s string) string {
+	return likeGlobs.Replace(likeEscaper.Replace(s))
+}
+
 // makeRuntimeEventFilter prepares values and patterns from rf to be used in SQL query and constructs gorm expression.
 // nolint:goconst
 func makeRuntimeEventFilter(rf *api.RuntimeFilter) (clause.Expr, error) {
@@ -48,23 +68,6 @@ func makeRuntimeEventFilter(rf *api.RuntimeFilter) (clause.Expr, error) {
 
 	args := make([]interface{}, 0, argsNum)
 
-	r1 := strings.NewReplacer(
-		"%", "", // avoid malicious requests
-		"_", `\_`, // escape special symbol _
-	)
-	r2 := strings.NewReplacer(
-		"**", "%",
-		"*", "%",
-		"?", "_",
-	)
-
-	// since we want to keep replacers' internal states, we initialize them once and keep this function local
-	prepareTemplate := func(s string) string {
-		tpl := r1.Replace(s)
-		tpl = r2.Replace(tpl)
-		return tpl
-	}
-
 	for _, t := range rf.GetEventType() {
 		eventTypeEq = append(eventTypeEq, "event_type = ?")
 		args = append(args, t)
@@ -72,42 +75,42 @@ func makeRuntimeEventFilter(rf *api.RuntimeFilter) (clause.Expr, error) {
 
 	for _, fn := range rf.GetKprobeFunctionName() {
 		kprobeFuncLike = append(kprobeFuncLike, "kprobe_function_name LIKE ?")
-		args = append(args, prepareTemplate(fn))
+		args = append(args, prepareLikeTemplate(fn))
 	}
 
 	for _, pns := range rf.GetProcessPodNamespace() {
 		podNamespaceLike = append(podNamespaceLike, "process_pod_namespace LIKE ?")
-		args = append(args, prepareTemplate(pns))
+		args = append(args, prepareLikeTemplate(pns))
 	}
 
 	for _, pn := range rf.GetProcessPodName() {
 		podNameLike = append(podNameLike, "process_pod_name LIKE ?")
-		args = append(args, prepareTemplate(pn))
+		args = append(args, prepareLikeTemplate(pn))
 	}
 
 	for _, nn := range rf.GetNodeName() {
 		nodeNameLike = append(nodeNameLike, "node_name LIKE ?")
-		args = append(args, prepareTemplate(nn))
+		args = append(args, prepareLikeTemplate(nn))
 	}
 
 	for _, cn := range rf.GetProcessPodContainerName() {
 		containerNameLike = append(containerNameLike, "process_pod_container_name LIKE ?")
-		args = append(args, prepareTemplate(cn))
+		args = append(args, prepareLikeTemplate(cn))
 	}
 
 	for _, in := range rf.GetProcessPodContainerImageName() {
 		imageNameLike = append(imageNameLike, "process_pod_container_image_name LIKE ?")
-		args = append(args, prepareTemplate(in))
+		args = append(args, prepareLikeTemplate(in))
 	}
 
 	for _, b := range rf.GetProcessBinary() {
 		processBinaryLike = append(processBinaryLike, "process_binary LIKE ?")
-		args = append(args, prepareTemplate(b))
+		args = append(args, prepareLikeTemplate(b))
 	}
 
 	for _, a := range rf.GetProcessArguments() {
 		processArgsLike = append(processArgsLike, "process_arguments LIKE ?")
-		args = append(args, prepareTemplate(a))
+		args = append(args, prepareLikeTemplate(a))
 	}
 
 	for _, td := range rf.GetThreatsDetectors() {
@@ -264,4 +267,132 @@ func countSortsSize(sorts []*api.Sort) int {
 		}
 	}
 	return count
+}
+
+// makeAdmissionEventFilter prepares values and patterns from af to be used in SQL query and constructs gorm expression.
+// Unlike a runtime event, an admission event describes a whole resource, so containers and images are
+// arrays and are matched with arrayExists instead of a plain LIKE.
+func makeAdmissionEventFilter(af *api.AdmissionFilter) (clause.Expr, error) {
+	var (
+		resourceKindEq        = make([]string, 0, len(af.GetResourceKind()))
+		resourceNamespaceLike = make([]string, 0, len(af.GetResourceNamespace()))
+		resourceNameLike      = make([]string, 0, len(af.GetResourceName()))
+		nodeNameLike          = make([]string, 0, len(af.GetNodeName()))
+		containerNameLike     = make([]string, 0, len(af.GetContainerNames()))
+		imageNameLike         = make([]string, 0, len(af.GetImageNames()))
+		threatsPoliciesHas    = make([]string, 0, len(af.GetThreatsPolicies()))
+		rulesHas              = make([]string, 0, len(af.GetRules()))
+	)
+
+	argsNum := len(af.GetResourceKind()) +
+		len(af.GetResourceNamespace()) +
+		len(af.GetResourceName()) +
+		len(af.GetNodeName()) +
+		len(af.GetContainerNames()) +
+		len(af.GetImageNames()) +
+		len(af.GetThreatsPolicies()) +
+		len(af.GetRules())*2 // we're searching in block_by and notify_by at the same time so x2 args are needed
+
+	args := make([]interface{}, 0, argsNum)
+
+	for _, k := range af.GetResourceKind() {
+		resourceKindEq = append(resourceKindEq, "resource_kind = ?")
+		args = append(args, k)
+	}
+
+	for _, ns := range af.GetResourceNamespace() {
+		resourceNamespaceLike = append(resourceNamespaceLike, "resource_namespace LIKE ?")
+		args = append(args, prepareLikeTemplate(ns))
+	}
+
+	for _, n := range af.GetResourceName() {
+		resourceNameLike = append(resourceNameLike, "resource_name LIKE ?")
+		args = append(args, prepareLikeTemplate(n))
+	}
+
+	for _, nn := range af.GetNodeName() {
+		nodeNameLike = append(nodeNameLike, "node_name LIKE ?")
+		args = append(args, prepareLikeTemplate(nn))
+	}
+
+	for _, cn := range af.GetContainerNames() {
+		containerNameLike = append(containerNameLike, "arrayExists(x -> x LIKE ?, container_names)")
+		args = append(args, prepareLikeTemplate(cn))
+	}
+
+	for _, in := range af.GetImageNames() {
+		imageNameLike = append(imageNameLike, "arrayExists(x -> x LIKE ?, image_names)")
+		args = append(args, prepareLikeTemplate(in))
+	}
+
+	for _, tp := range af.GetThreatsPolicies() {
+		threatsPoliciesHas = append(threatsPoliciesHas, "has(threats_policies, ?)")
+		args = append(args, tp)
+	}
+
+	for _, r := range af.GetRules() {
+		rulesHas = append(rulesHas, "has(block_by, ?) OR has(notify_by, ?)")
+		args = append(args, r, r)
+	}
+
+	sql := makeAndWhereClause(
+		resourceKindEq,
+		resourceNamespaceLike,
+		resourceNameLike,
+		nodeNameLike,
+		containerNameLike,
+		imageNameLike,
+		threatsPoliciesHas,
+		rulesHas,
+	)
+
+	if from := af.GetPeriod().GetFrom(); from != nil {
+		if sql != "" {
+			sql += " AND "
+		}
+
+		asTime := from.AsTime()
+
+		// toDateTime64 has to be used because DateTime64 cannot be automatically converted from string. See https://clickhouse.com/docs/en/sql-reference/data-types/datetime64 for details.
+		sql += "registered_at > toDateTime64(?, 9, ?)"
+		args = append(args, asTime.Format(clickhouse.DateTimeFormat), asTime.Location().String())
+	}
+
+	if to := af.GetPeriod().GetTo(); to != nil {
+		if sql != "" {
+			sql += " AND "
+		}
+
+		asTime := to.AsTime()
+
+		// toDateTime64 has to be used because DateTime64 cannot be automatically converted from string. See https://clickhouse.com/docs/en/sql-reference/data-types/datetime64 for details.
+		sql += "registered_at < toDateTime64(?, 9, ?)"
+		args = append(args, asTime.Format(clickhouse.DateTimeFormat), asTime.Location().String())
+	}
+
+	if af.Blocked != nil {
+		if sql != "" {
+			sql += " AND "
+		}
+
+		if *af.Blocked {
+			sql += "blocked"
+		} else {
+			sql += "NOT blocked"
+		}
+	}
+
+	if af.HasIncident != nil {
+		if sql != "" {
+			sql += " AND "
+		}
+
+		if *af.HasIncident {
+			sql += "is_incident"
+		} else {
+			sql += "NOT is_incident"
+		}
+	}
+
+	return gorm.Expr(sql, args...), nil
 }

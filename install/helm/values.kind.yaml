@@ -1,0 +1,154 @@
+# Runtime Radar on a local kind cluster.
+#
+# Images are built from this checkout and served from a registry running next to
+# the cluster, so nothing is pulled from the internet except the third-party
+# images (PostgreSQL, Redis, RabbitMQ, ClickHouse, Kyverno, Tetragon).
+#
+# Before installing:
+#
+#   1. Start a registry and a cluster that can read from it:
+#
+#        docker run -d --restart=always -p 127.0.0.1:5001:5000 --name kind-registry registry:2
+#        kind create cluster --config install/helm/kind-cluster.yaml
+#        docker network connect kind kind-registry
+#        docker exec runtime-radar-control-plane mkdir -p /etc/containerd/certs.d/localhost:5001
+#        docker exec runtime-radar-control-plane sh -c \
+#          'printf "[host.\"http://kind-registry:5000\"]\n" > /etc/containerd/certs.d/localhost:5001/hosts.toml'
+#
+#   2. Build the images and push them under the tag this file expects:
+#
+#        task docker-build
+#        for svc in auth-center cluster-manager cs-manager event-processor history-api \
+#                   notifier policy-enforcer public-api runtime-monitor admission-monitor \
+#                   mcp-server reverse-proxy; do
+#            docker tag "$svc:latest" "localhost:5001/runtime-radar/$svc:local"
+#            docker push "localhost:5001/runtime-radar/$svc:local"
+#        done
+#
+#   3. Install, replacing every INIT-DO-NOT-USE below (see "Secrets"):
+#
+#        helm dependency update install/helm
+#        helm upgrade --install runtime-radar -n runtime-radar install/helm \
+#          --values install/helm/values.kind.yaml --create-namespace
+#
+# The interface is then at https://localhost:32000 with a self-signed
+# certificate. Rebuilding one service is a build, a push and a restart:
+#
+#   kubectl -n runtime-radar rollout restart deploy/<service>
+#
+# Secrets. The values below are placeholders and must be replaced before the
+# stand is reachable by anyone but you:
+#
+#   global.keys.encryption:              openssl rand -hex 32
+#   global.keys.publicAccessTokenSalt:   openssl rand -hex 64
+#   global.keys.token:                   openssl rand -hex 32
+#   auth-center.administrator.password and the four database passwords: pick your own
+#
+global:
+  # The registry runs without credentials, so there is no pull secret at all.
+  # Kyverno reads this list as {name: ...} objects; an empty list suits both.
+  imagePullSecrets: []
+  imageTag: local
+  ownCsUrl: https://localhost:32000
+  keys:
+    encryption: "INIT-DO-NOT-USE"
+    publicAccessTokenSalt: "INIT-DO-NOT-USE"
+    token: "INIT-DO-NOT-USE"
+
+auth-center:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+  administrator:
+    username: admin
+    password: "INIT-DO-NOT-USE"
+
+cluster-manager:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+cs-manager:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+event-processor:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+history-api:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+notifier:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+policy-enforcer:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+public-api:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+runtime-monitor:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+admission-monitor:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+mcp-server:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+
+reverse-proxy:
+  image:
+    registry: localhost:5001/runtime-radar
+    pullPolicy: Always
+  service:
+    type: NodePort
+    nodePorts:
+      http: 32000
+
+# The databases keep their volumes: an emptyDir is lost whenever a pod is
+# recreated, and with it the ClickHouse schema, which only history-api creates
+# and only at startup. kind's default storage class provisions these locally.
+postgresql:
+  auth:
+    username: radar
+    password: "INIT-DO-NOT-USE"
+  persistence:
+    enabled: true
+
+redis:
+  auth:
+    username: radar
+    password: "INIT-DO-NOT-USE"
+  persistence:
+    enabled: true
+
+rabbitmq:
+  auth:
+    username: radar
+    password: "INIT-DO-NOT-USE"
+  persistence:
+    enabled: true
+
+clickhouse:
+  auth:
+    username: radar
+    password: "INIT-DO-NOT-USE"
+  persistence:
+    enabled: true

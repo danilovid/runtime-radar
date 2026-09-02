@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package assistant;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "./api";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Assistant API";
+  };
+};
+
+// AssistantController runs the product's built-in chat assistant: a model of a
+// configured AI integration, driving the read-only tools of MCP Server.
+service AssistantController {
+  // Chat answers one user turn. The answer arrives as a stream, so that the UI
+  // can show which tool the assistant is running while it is still working.
+  // grpc-gateway serves this as an HTTP stream of newline-delimited JSON.
+  rpc Chat(ChatReq) returns (stream ChatChunk) {
+    option (google.api.http) = {
+      post: "/api/v1/assistant/chat"
+      body: "*"
+    };
+  }
+  // ListChats returns the caller's own conversations, newest first and without
+  // their messages. A conversation holds whatever its author could read, so it
+  // is never returned to anybody else.
+  rpc ListChats(ListChatsReq) returns (ListChatsResp) {
+    option (google.api.http) = {
+      get: "/api/v1/assistant/chats"
+    };
+  }
+  // ReadChat returns one of the caller's conversations with every turn of it.
+  rpc ReadChat(ReadChatReq) returns (ReadChatResp) {
+    option (google.api.http) = {
+      get: "/api/v1/assistant/chat/{id}"
+    };
+  }
+  // DeleteChat removes one of the caller's conversations for good.
+  rpc DeleteChat(DeleteChatReq) returns (DeleteChatResp) {
+    option (google.api.http) = {
+      delete: "/api/v1/assistant/chat/{id}"
+    };
+  }
+}
+
+message ChatReq {
+  // Identifier of the AI integration whose model answers.
+  string integration_id = 1;
+  // The conversation so far, oldest first, ending with the user's new message.
+  // No conversation state is kept on the server: the client sends the whole
+  // history it wants the model to see.
+  repeated ChatMessage conversation = 2;
+  // Optional identifier of an event the question is about. The event itself is
+  // never taken from the client: the assistant reads it through the tools, so
+  // that what the model sees is what the system recorded.
+  optional string event_id = 3;
+  // What the assistant is being asked to do: "chat" (the default), "explain"
+  // for one runtime event, "digest" for a summary of a period, or "support"
+  // to help the user write a support request. The mode only selects the
+  // instructions the assistant is given; it never widens what it may do.
+  optional string mode = 4;
+  // Approval of a tool call the assistant asked about in the previous turn,
+  // carrying the identifier from that Confirmation. It is the only way a tool
+  // that changes anything is ever run.
+  optional string confirm_id = 5;
+  // Which half of the product event_id belongs to: "runtime" (the default) or
+  // "admission". The two are read with different tools, and an identifier alone
+  // does not say which, so a client that opens a chat from an event page has to
+  // say. Empty means runtime, for clients written before admission existed.
+  optional string event_kind = 6;
+  // Identifier of the stored conversation this turn belongs to. Empty starts a
+  // new one, whose identifier comes back in the Done chunk.
+  optional string chat_id = 7;
+}
+
+message ChatMessage {
+  // Role of the author: "user" or "assistant". Any other value is rejected;
+  // tool traffic belongs to the server side of the loop and is not replayed
+  // by clients.
+  string role = 1;
+  string content = 2;
+}
+
+// ChatChunk is one piece of the answer. Exactly one field is set.
+message ChatChunk {
+  oneof chunk {
+    // delta is a piece of the answer's text, to be appended as it arrives.
+    string delta = 1;
+    // tool_activity reports that the assistant started or finished a tool.
+    ToolActivity tool_activity = 2;
+    // done ends the answer.
+    Done done = 3;
+    // confirmation asks the user to approve a tool that would change the
+    // product. The answer stops there until they do.
+    Confirmation confirmation = 4;
+    // secret carries a credential an approved tool produced. It is delivered
+    // to the user and deliberately kept out of the conversation the model
+    // sees, so that it never reaches an LLM provider.
+    Secret secret = 5;
+    // suggestions are follow-up questions to offer under the answer.
+    Suggestions suggestions = 6;
+  }
+}
+
+// Suggestions are follow-up questions to offer under the answer, written by the
+// model from the exchange it just had. They arrive once, just before Done.
+message Suggestions {
+  repeated string questions = 1;
+}
+
+message ToolActivity {
+  // Name of the tool, for example search_docs.
+  string name = 1;
+  // Phase is "started" or "finished".
+  string phase = 2;
+  // error is set on a finished phase when the tool failed. The assistant
+  // carries on: a failed tool is an answer the model has to account for.
+  string error = 3;
+}
+
+// Confirmation is a tool call the assistant wants to make and may not make on
+// its own: it would create, change or delete something in the product.
+message Confirmation {
+  // Identifier to send back as confirm_id to approve this exact call. It is
+  // valid for a few minutes, once, and only for the user it was issued to.
+  string id = 1;
+  // Name of the tool, for example create_rule.
+  string tool = 2;
+  // Human readable title of the tool, as the MCP server named it.
+  string title = 3;
+  // The arguments the tool would be called with, as pretty-printed JSON. They
+  // come from the model, so the user is shown exactly what would be sent.
+  string arguments = 4;
+  // destructive is set when the call removes something rather than adds it.
+  bool destructive = 5;
+}
+
+// Secret is a credential produced by an approved tool call. It is shown once:
+// the product stores only a hash of it.
+message Secret {
+  // What the secret is, for example "API token ci-bot".
+  string label = 1;
+  // The secret itself.
+  string value = 2;
+  // How the secret is to be handled.
+  string note = 3;
+}
+
+message Done {
+  // stop_reason is "end_turn" when the assistant finished on its own,
+  // "confirmation_required" when it is waiting for the user to approve a tool
+  // call, "max_iterations" when the agent loop ran out of steps, or "error".
+  string stop_reason = 1;
+  // error is set when stop_reason is "error".
+  string error = 2;
+  // iterations is how many model turns the answer took.
+  uint32 iterations = 3;
+  // chat_id is the stored conversation this turn was written to, so that a
+  // client which started a new one learns where to continue it.
+  string chat_id = 4;
+}
+
+// Chat is one stored conversation. In a listing its messages are left out.
+message Chat {
+  string id = 1;
+  // Title is the opening of the first question.
+  string title = 2;
+  string created_at = 3;
+  string updated_at = 4;
+  // The event the conversation was opened from, when it was opened from one.
+  string event_id = 5;
+  string event_kind = 6;
+  string mode = 7;
+  // How many turns the conversation holds. Filled in listings, where the
+  // messages themselves are not returned.
+  uint32 message_count = 8;
+  repeated ChatMessage messages = 9;
+}
+
+message ListChatsReq {
+  // How many conversations to return, newest first. Zero means the default.
+  uint32 limit = 1;
+}
+
+message ListChatsResp {
+  repeated Chat chats = 1;
+}
+
+message ReadChatReq {
+  string id = 1;
+}
+
+message ReadChatResp {
+  Chat chat = 1;
+}
+
+message DeleteChatReq {
+  string id = 1;
+}
+
+message DeleteChatResp {
+  string id = 1;
+}

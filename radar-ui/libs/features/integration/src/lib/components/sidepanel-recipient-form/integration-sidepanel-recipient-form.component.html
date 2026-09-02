@@ -41,6 +41,24 @@
                 </kbq-form-field>
             </section>
 
+            <section class="kbq-form__row kbq-form-row_margin">
+                <label for="eventType" class="kbq-form__label">
+                    {{ tIntegration('Integration.RecipientForm.Label.EventType') }}
+                </label>
+                <kbq-form-field class="kbq-form__control">
+                    <kbq-select id="eventType"
+                                formControlName="eventType"
+                                data-testid="integration-recipient-eventtype-select">
+                        @for (option of integrationEventTypeOptions; track option.id) {
+                            <kbq-option [value]="option.id"
+                                        [attr.data-testid]="tCommon(option.localizationKey)">
+                                {{ tCommon(option.localizationKey) }}
+                            </kbq-option>
+                        }
+                    </kbq-select>
+                </kbq-form-field>
+            </section>
+
             @if (props.integration.type === integrationType.EMAIL) {
                 <section class="kbq-form__row kbq-form-row_margin">
                     <label for="recipients" class="kbq-form__label">

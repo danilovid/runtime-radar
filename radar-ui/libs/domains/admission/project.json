@@ -1,0 +1,23 @@
+{
+    "name": "domain-admission",
+    "projectType": "library",
+    "root": "libs/domains/admission",
+    "sourceRoot": "libs/domains/admission/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": ["libs/domains/admission/src/**/*.ts", "libs/domains/admission/src/**/*.html"]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": ["coverage/libs/domains/admission"],
+            "options": {
+                "jestConfig": "libs/domains/admission/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

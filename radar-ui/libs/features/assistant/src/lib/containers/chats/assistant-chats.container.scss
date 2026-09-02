@@ -1,0 +1,164 @@
+/* The chats page follows the same design language as the widget rather than
+   the Koobiq page chrome, so the two read as one feature. */
+$rr-primary: #0066ff;
+$rr-primary-hover: #134fb4;
+$rr-line: #d7dee4;
+$rr-muted: #6d7a86;
+$rr-surface: #f2f5f9;
+$rr-label: #808080;
+
+.assistant-chats {
+    padding: 24px 32px;
+    color: #000;
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 24px;
+        line-height: 32px;
+    }
+
+    &__subtitle {
+        margin: 8px 0 0;
+        max-width: 720px;
+        color: $rr-muted;
+        font-size: 15px;
+        line-height: 20px;
+    }
+
+    &__primary {
+        flex: 0 0 auto;
+        height: 32px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 6px;
+        background: $rr-primary;
+        color: #fff;
+        font-family: inherit;
+        font-size: 15px;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-primary-hover;
+        }
+    }
+
+    &__label {
+        margin: 32px 0 8px;
+        color: $rr-label;
+        font-size: 13px;
+        line-height: 16px;
+        text-transform: uppercase;
+    }
+
+    &__actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 8px;
+    }
+
+    &__action {
+        display: block;
+        padding: 12px 14px;
+        border: 1px solid $rr-line;
+        border-radius: 10px;
+        background: #fff;
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+
+    &__action-title {
+        display: block;
+        font-size: 15px;
+    }
+
+    &__action-hint {
+        display: block;
+        margin-top: 2px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 16px;
+    }
+
+    &__table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+
+        th {
+            padding: 8px 12px;
+            border-bottom: 1px solid $rr-line;
+            color: $rr-muted;
+            font-size: 13px;
+            font-weight: 400;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid $rr-line;
+            vertical-align: top;
+        }
+    }
+
+    &__row {
+        cursor: pointer;
+
+        &:hover {
+            background: $rr-surface;
+        }
+    }
+
+    &__row-title {
+        font-weight: 500;
+    }
+
+    &__row-snippet {
+        margin-top: 2px;
+        max-width: 640px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__delete {
+        border: 0;
+        background: none;
+        color: $rr-muted;
+        font-family: inherit;
+        font-size: 13px;
+        cursor: pointer;
+
+        &:hover {
+            color: #f00;
+        }
+    }
+
+    &__empty {
+        padding: 24px;
+        border: 1px dashed $rr-line;
+        border-radius: 10px;
+        color: $rr-muted;
+    }
+
+    &__note {
+        margin-top: 24px;
+        color: $rr-muted;
+        font-size: 13px;
+        line-height: 18px;
+    }
+}

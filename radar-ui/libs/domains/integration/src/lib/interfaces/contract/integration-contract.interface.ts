@@ -8,7 +8,17 @@ interface AbstractIntegration {
 export enum IntegrationType {
     EMAIL = 'email',
     SYSLOG = 'syslog',
-    WEBHOOK = 'webhook'
+    WEBHOOK = 'webhook',
+    AI = 'ai'
+}
+
+export enum IntegrationAIProviderType {
+    OPENAI_COMPATIBLE = 'PROVIDER_OPENAI_COMPATIBLE',
+    ANTHROPIC = 'PROVIDER_ANTHROPIC',
+    OLLAMA = 'PROVIDER_OLLAMA',
+    QWEN = 'PROVIDER_QWEN',
+    DEEPSEEK = 'PROVIDER_DEEPSEEK',
+    GLM = 'PROVIDER_GLM'
 }
 
 export enum IntegrationEmailAuthType {
@@ -57,4 +67,31 @@ export interface IntegrationWebhook extends AbstractIntegration {
     webhook: IntegrationWebhookEntity;
 }
 
-export type Integration = IntegrationEmail | IntegrationSyslog | IntegrationWebhook;
+/**
+ * IntegrationAIScope is one half of the product the built-in assistant may
+ * reach. It is a property of the integration rather than of a credential: the
+ * assistant answers with the signed-in user's own token, so there is no key to
+ * hang a limit on. An empty list offers every tool the user's role allows.
+ */
+export enum IntegrationAIScope {
+    RUNTIME_MONITOR = 'runtime_monitor',
+    ADMISSION = 'admission'
+}
+
+export interface IntegrationAIEntity {
+    provider: IntegrationAIProviderType;
+    base_url: string;
+    model: string;
+    api_key: string;
+    is_local: boolean;
+    insecure: boolean;
+    ca: string;
+    scopes?: IntegrationAIScope[];
+}
+
+export interface IntegrationAI extends AbstractIntegration {
+    type: IntegrationType.AI;
+    ai: IntegrationAIEntity;
+}
+
+export type Integration = IntegrationEmail | IntegrationSyslog | IntegrationWebhook | IntegrationAI;

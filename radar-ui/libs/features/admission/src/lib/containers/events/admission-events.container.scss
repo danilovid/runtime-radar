@@ -1,0 +1,59 @@
+.admission-feature-events {
+    padding: 32px;
+
+    &-title {
+        margin: 0;
+    }
+
+    &-wrapper {
+        position: relative;
+        margin-top: 24px;
+    }
+
+    &-list {
+        margin: 16px 0 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    &-item {
+        gap: 16px;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+        padding: 16px 24px;
+        border: 1px solid #d7dee4; // @todo: replace to koobiq token
+        border-radius: 12px;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+            background-color: #f2f5f9; // @todo: replace to koobiq token
+        }
+
+        &-time {
+            width: 160px;
+            min-width: 160px;
+        }
+
+        &-resource {
+            min-width: 0;
+        }
+
+        &-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+    }
+
+    &-paginator {
+        gap: 12px;
+        margin-top: 16px;
+    }
+}

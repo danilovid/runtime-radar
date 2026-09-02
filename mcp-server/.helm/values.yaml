@@ -1,0 +1,88 @@
+image:
+  registry: ghcr.io/runtime-radar
+  repository: mcp-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+containerPorts:
+  http: 9000
+  instrumentation: 9090
+service:
+  ports:
+    http: 9000
+containerSecurityContext:
+  enabled: true
+  seLinuxOptions: {}
+  privileged: false
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: "RuntimeDefault"
+podSecurityContext:
+  enabled: true
+  fsGroupChangePolicy: Always
+  sysctls: []
+  supplementalGroups: []
+env:
+  - name: "HISTORY_API_GRPC_ADDR"
+    value: "history-api:8000"
+  - name: "EVENT_PROCESSOR_GRPC_ADDR"
+    value: "event-processor:8000"
+  # Where the rule tools create and delete policy rules.
+  - name: "POLICY_ENFORCER_GRPC_ADDR"
+    value: "policy-enforcer:8000"
+  # Where the notification tools read services and create templates.
+  - name: "NOTIFIER_GRPC_ADDR"
+    value: "notifier:8000"
+  # Where the admission tools read the Kyverno sources and switch them.
+  - name: "ADMISSION_MONITOR_GRPC_ADDR"
+    value: "admission-monitor:8000"
+  # Where the MCP keys issued in the interface are exchanged for a session of
+  # the user they belong to, and where the API token tools manage tokens. The
+  # scheme follows the deployment's TLS setting.
+  - name: "PUBLIC_API_URL"
+    value: '{{ printf "%s://public-api:9000" (include "common.cs.http-scheme" .) }}'
+serviceAccount:
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+    ephemeral-storage: 250Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+    ephemeral-storage: 1Mi
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /live
+    scheme: HTTP
+    port: instrumentation
+  periodSeconds: 60
+  successThreshold: 1
+  failureThreshold: 2
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    scheme: HTTP
+    port: instrumentation
+  periodSeconds: 60
+  successThreshold: 1
+  failureThreshold: 3
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    scheme: HTTP
+    port: instrumentation
+  initialDelaySeconds: 10
+  periodSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3

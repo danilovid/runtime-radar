@@ -227,6 +227,7 @@ require (
 )
 
 replace (
+	github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 	github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 	github.com/runtime-radar/runtime-radar/history-api => ../history-api
 	github.com/runtime-radar/runtime-radar/lib => ../lib

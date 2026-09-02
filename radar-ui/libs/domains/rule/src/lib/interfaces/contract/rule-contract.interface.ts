@@ -1,7 +1,8 @@
 import { OneOf } from '@cs/core';
 
 export enum RuleType {
-    TYPE_RUNTIME = 'TYPE_RUNTIME'
+    TYPE_RUNTIME = 'TYPE_RUNTIME',
+    TYPE_ADMISSION = 'TYPE_ADMISSION'
 }
 
 export enum RuleSeverity {

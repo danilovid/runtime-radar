@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func AccessTokenCreate(svc service.AccessToken) http.Handler {
+func AccessTokenCreate(svc service.AccessToken, kind model.TokenKind) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req := &model.CreateAccessTokenReq{}
 		err := json.NewDecoder(r.Body).Decode(&req)
@@ -27,6 +27,10 @@ func AccessTokenCreate(svc service.AccessToken) http.Handler {
 			handler.StatusJSONResp(w, status)
 			return
 		}
+
+		// The kind follows the route, never the request body: a caller must
+		// not be able to mint an MCP key through the access token endpoint.
+		req.Kind = kind
 
 		id, token, err := svc.Create(r.Context(), req)
 		if err != nil {
@@ -44,7 +48,7 @@ func AccessTokenCreate(svc service.AccessToken) http.Handler {
 	})
 }
 
-func AccessTokenListPage(svc service.AccessToken) http.Handler {
+func AccessTokenListPage(svc service.AccessToken, kind model.TokenKind) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pageSize := service.DefaultPageSize
 		order := service.DefaultOrder
@@ -83,7 +87,7 @@ func AccessTokenListPage(svc service.AccessToken) http.Handler {
 			order = orderParam
 		}
 
-		tokens, total, err := svc.ListPage(r.Context(), pageNumber, pageSize, order)
+		tokens, total, err := svc.ListPage(r.Context(), pageNumber, pageSize, order, kind)
 		if err != nil {
 			if st, ok := status.FromError(err); ok {
 				handler.StatusJSONResp(w, st)
@@ -170,5 +174,32 @@ func AccessTokenInvalidateAll(svc service.AccessToken) http.Handler {
 		}
 
 		handler.SendJSONResp(w, struct{}{})
+	})
+}
+
+// MCPKeyExchange answers MCP Server's request to turn a key its caller
+// presented into a short-lived JWT. It is served on an internal route that the
+// reverse proxy does not expose, and the caller is a service of the product.
+func MCPKeyExchange(exchanger service.MCPKeyExchanger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req := &model.ExchangeMCPKeyReq{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			st := errcommon.StatusWithReason(codes.InvalidArgument, errcommon.CodeBadRequest, err.Error())
+			handler.StatusJSONResp(w, st)
+
+			return
+		}
+
+		resp, err := exchanger.ExchangeMCPKey(r.Context(), req.Key)
+		if err != nil {
+			// The reason never reaches the agent: a key that is unknown,
+			// expired, revoked or of the wrong kind all look the same from
+			// outside, so the endpoint cannot be used to probe for valid keys.
+			handler.StatusJSONResp(w, status.New(codes.Unauthenticated, "invalid mcp key"))
+
+			return
+		}
+
+		handler.SendJSONResp(w, resp)
 	})
 }

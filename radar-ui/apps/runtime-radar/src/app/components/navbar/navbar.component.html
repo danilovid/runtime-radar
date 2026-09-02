@@ -92,6 +92,19 @@
                 <span>{{ tCommon('Common.Pseudo.Menu.Token') }}</span>
             </a>
         </li>
+        <li>
+            <a kbq-button
+               kbqStyle="transparent"
+               color="contrast"
+               [routerLink]="routerName.MCP_KEYS"
+               routerLinkActive="active"
+               class="kbq-button-icon navbar-profile-menu-list-link"
+               (click)="hidePopover()"
+               data-testid="mcp-keys-navbar-link">
+                <i kbq-icon="kbq-sparkles_16" class="navbar-profile-menu-list-icon"></i>
+                <span>{{ tCommon('Common.Pseudo.Menu.McpKey') }}</span>
+            </a>
+        </li>
         @if (credentials.authType === 'internal') {
             <li>
                 <button kbq-button

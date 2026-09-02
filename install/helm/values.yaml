@@ -73,8 +73,10 @@ global:
       existingSecret: ""
 
   # -- Names of the secrets of the global container registry as an array
+  # Objects rather than bare names: that is Kubernetes' own shape and the one the
+  # bundled Kyverno chart requires. Runtime Radar's own charts accept either.
   imagePullSecrets:
-    - regcred
+    - name: regcred
 
   # -- URL of primary installation
   ownCsUrl: ""
@@ -151,6 +153,8 @@ history-api:
   rabbitmq:
     # -- RabbitMQ queue name
     queue: history_events
+    # -- RabbitMQ admission events queue name
+    admissionEventsQueue: admission_events
 
 # @section Container-registry-integrator component parameters
 cluster-manager:
@@ -270,6 +274,50 @@ runtime-monitor:
       cpu: 100m
       ephemeral-storage: 1Mi
       memory: 128Mi
+
+# @section Admission-monitor component parameters
+admission-monitor:
+  # -- Template to specify the labels of nodes for pod assignment
+  nodeSelector: {}
+  # -- Number of replicas for the admission-monitor component. Kyverno policies are applied and
+  # policy reports are consumed by every instance, so more than one replica means duplicated events
+  replicas: 1
+  # -- Interval to update the stored configuration
+  configUpdateInterval: 30s
+  # -- Namespace Kyverno is installed in. Empty means the release namespace, where the
+  # bundled Kyverno is installed; set it to point at a Kyverno installed elsewhere
+  kyvernoNamespace: ""
+  # RabbitMQ connection parameters
+  rabbitmq:
+    # -- RabbitMQ admission events queue name
+    admissionEventsQueue: admission_events
+
+# @section Kyverno parameters
+kyverno:
+  # -- Deploy Kyverno together with Runtime Radar. Set to false to use an already installed one
+  deploy: true
+
+  # The "Binding the cluster-admin role" source inspects ClusterRoleBindings, which the
+  # reports controller may not read by default. Without this the policy still blocks or
+  # audits at admission, but never appears in policy reports, so its findings are lost.
+  reportsController:
+    rbac:
+      clusterRole:
+        extraResources:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            resources:
+              - clusterrolebindings
+              - rolebindings
+            verbs:
+              - get
+              - list
+              - watch
+  # Kyverno must not review Runtime Radar's own workloads, otherwise a simultaneous restart of both
+  # leaves the cluster unable to schedule either of them. Kyverno excludes its own namespace by
+  # default (config.excludeKyvernoNamespace), which is the release namespace here, so the default
+  # resource filters are left alone: replacing them would also drop the exclusions for kube-system
+  # and for the cluster-wide kinds Kyverno must not review.
 
 # @section Event-processor component parameters
 event-processor:

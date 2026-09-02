@@ -11,7 +11,7 @@ Create the name of the service account to use
 */}}
 {{- define "common.cs.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-    {{ default (include "common.basename" .) .Values.serviceAccount.name }}
+    {{ default (include "common.cs.basename" .) .Values.serviceAccount.name }}
 {{- else -}}
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}

@@ -8,7 +8,7 @@ import { ApiPathService } from '@cs/api';
 import { DetectorStoreService } from '@cs/domains/detector';
 import { I18nService } from '@cs/i18n';
 import { ClusterStoreService, RegisteredCluster } from '@cs/domains/cluster';
-import { CreateRuleRequest, Rule, RuleStoreService, RuleType, UpdateRuleRequest } from '@cs/domains/rule';
+import { CreateRuleRequest, Rule, RuleStoreService, UpdateRuleRequest } from '@cs/domains/rule';
 import { LoadStatus, CoreUtilsService as utils } from '@cs/core';
 import { Notification, NotificationRequestService } from '@cs/domains/notification';
 import { PermissionName, PermissionType, RolePermissionMap } from '@cs/domains/role';
@@ -116,7 +116,7 @@ export class RuleFeatureListContainer {
             .subscribe((form: RuleForm) => {
                 const request: CreateRuleRequest = {
                     name: form.name,
-                    type: RuleType.TYPE_RUNTIME,
+                    type: form.type,
                     rule: {
                         version: '1', // @todo: create environment constant
                         notify: ruleHelper.convertFormValuesToNotifyEntity(form),
@@ -155,7 +155,7 @@ export class RuleFeatureListContainer {
             .subscribe((form: RuleForm) => {
                 const request: UpdateRuleRequest = {
                     name: form.name,
-                    type: RuleType.TYPE_RUNTIME,
+                    type: form.type,
                     rule: {
                         version: '1', // @todo: create environment constant
                         notify: ruleHelper.convertFormValuesToNotifyEntity(form),

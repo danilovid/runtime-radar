@@ -166,6 +166,7 @@ require (
 	github.com/raeperd/recvcheck v0.2.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/runtime-radar/runtime-radar/admission-monitor v0.0.0-00010101000000-000000000000 // indirect
 	github.com/ryancurrah/gomodguard v1.3.5 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
@@ -225,8 +226,6 @@ require (
 	golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
-	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -238,6 +237,7 @@ require (
 
 replace (
 	github.com/planetscale/vtprotobuf => github.com/planetscale/vtprotobuf v0.4.0
+	github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 	github.com/runtime-radar/runtime-radar/history-api => ../history-api
 	github.com/runtime-radar/runtime-radar/lib => ../lib
 	github.com/runtime-radar/runtime-radar/notifier => ../notifier

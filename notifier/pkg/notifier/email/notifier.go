@@ -154,6 +154,8 @@ func (n *Notifier) Notify(ctx context.Context, notification *model.Notification,
 	switch ev := event.(type) {
 	case *api.Message_RuntimeEvent:
 		subject, text, err = messageFromRuntimeMonitorEvent(notification, ev.RuntimeEvent)
+	case *api.Message_AdmissionEvent:
+		subject, text, err = messageFromAdmissionEvent(notification, ev.AdmissionEvent)
 	default:
 		return fmt.Errorf("invalid event type given: %w", err)
 	}
@@ -193,6 +195,24 @@ func messageFromRuntimeMonitorEvent(n *model.Notification, event *api.RuntimeEve
 		}
 	} else {
 		subject = "CS: threats detected in the runtime event."
+	}
+
+	text, err = renderText(n, event)
+	if err != nil {
+		return "", "", err
+	}
+
+	return subject, text, nil
+}
+
+func messageFromAdmissionEvent(n *model.Notification, event *api.AdmissionEvent) (subject, text string, err error) {
+	if conf := n.EmailConfig; conf != nil && conf.SubjectTemplate != "" {
+		subject, err = renderSubject(n, event)
+		if err != nil {
+			return "", "", fmt.Errorf("can't render subject: %w", err)
+		}
+	} else {
+		subject = "CS: threats detected in the admission event."
 	}
 
 	text, err = renderText(n, event)

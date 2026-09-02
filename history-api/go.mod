@@ -11,6 +11,7 @@ require (
 	github.com/justinas/alice v1.2.0
 	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.34.0
+	github.com/runtime-radar/runtime-radar/admission-monitor v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/event-processor v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/lib v0.0.24
 	github.com/runtime-radar/runtime-radar/policy-enforcer v0.4.8
@@ -248,6 +249,7 @@ require (
 )
 
 replace (
+	github.com/runtime-radar/runtime-radar/admission-monitor => ../admission-monitor
 	github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 	github.com/runtime-radar/runtime-radar/lib => ../lib
 	github.com/runtime-radar/runtime-radar/policy-enforcer => ../policy-enforcer

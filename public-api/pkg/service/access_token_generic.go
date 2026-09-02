@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,13 +41,13 @@ func (ac *AccessTokenGeneric) Create(ctx context.Context, req *model.CreateAcces
 	token := hex.EncodeToString(security.Rand(AccessTokenSizeBytes))
 	hashed := security.HashSaltedSHA512AsHex([]byte(token), ac.AccessTokenSalt)
 	at := &model.AccessToken{
-		model.Base{},
-		req.Name,
-		req.UserID,
-		hashed,
-		req.Permissions,
-		req.ExpiresAt,
-		nil,
+		Name:        req.Name,
+		UserID:      req.UserID,
+		Kind:        req.Kind,
+		Hash:        hashed,
+		Permissions: req.Permissions,
+		Scopes:      req.Scopes,
+		ExpiresAt:   req.ExpiresAt,
 	}
 
 	if err := ac.AccessTokenRepository.Add(ctx, at); err != nil {
@@ -58,7 +60,7 @@ func (ac *AccessTokenGeneric) Create(ctx context.Context, req *model.CreateAcces
 	return at.ID, token, nil
 }
 
-func (ac *AccessTokenGeneric) ListPage(ctx context.Context, pageNum, pageSize int, order string) ([]*model.AccessTokenResp, int, error) {
+func (ac *AccessTokenGeneric) ListPage(ctx context.Context, pageNum, pageSize int, order string, kind model.TokenKind) ([]*model.AccessTokenResp, int, error) {
 	userID, err := userIDFromContext(ctx)
 	if err != nil {
 		return nil, 0, status.Errorf(codes.Unauthenticated, "can't get user id: %v", err)
@@ -72,7 +74,7 @@ func (ac *AccessTokenGeneric) ListPage(ctx context.Context, pageNum, pageSize in
 		pageNum = DefaultPageNum
 	}
 
-	filter := gorm.Expr("user_id = ?", userID)
+	filter := gorm.Expr("user_id = ? AND kind = ?", userID, kind)
 	total, err := ac.AccessTokenRepository.GetCount(ctx, filter)
 	if err != nil {
 		return nil, 0, status.Errorf(codes.Internal, "can't get access token count: %v", err)
@@ -100,13 +102,14 @@ func (ac *AccessTokenGeneric) GetByID(ctx context.Context, id uuid.UUID) (*model
 	}
 
 	return &model.AccessTokenResp{
-		at.ID,
-		at.Name,
-		at.UserID,
-		at.Permissions,
-		at.ExpiresAt,
-		at.CreatedAt,
-		at.InvalidatedAt,
+		ID:            at.ID,
+		Kind:          at.Kind,
+		Name:          at.Name,
+		UserID:        at.UserID,
+		Permissions:   at.Permissions,
+		ExpiresAt:     at.ExpiresAt,
+		CreatedAt:     at.CreatedAt,
+		InvalidatedAt: at.InvalidatedAt,
 	}, nil
 }
 
@@ -141,6 +144,19 @@ func (ac *AccessTokenGeneric) validateCreateReq(req *model.CreateAccessTokenReq)
 		}
 		if req.ExpiresAt.Before(time.Now()) {
 			return "expired token", false
+		}
+	}
+
+	// Scopes narrow an MCP key inside MCP Server. A public API token never
+	// reaches it, so accepting scopes there would promise a limit nothing
+	// applies.
+	if len(req.Scopes) > 0 && req.Kind != model.TokenKindMCP {
+		return "scopes only apply to an mcp key", false
+	}
+
+	for _, scope := range req.Scopes {
+		if !model.IsKnownScope(scope) {
+			return fmt.Sprintf("unknown scope %q, expected one of %s", scope, strings.Join(model.KnownScopes, ", ")), false
 		}
 	}
 

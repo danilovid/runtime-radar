@@ -6,6 +6,26 @@
     <kbq-sidepanel-body class="shared-rule-sidepanel-form"
                         *transloco="let tCommon; prefix: 'common'">
         <form [formGroup]="form" class="kbq-form-vertical" *ngrxLet="notifications$ as notifications">
+            @if (!isTypeFixed) {
+                <section class="kbq-form__row kbq-form-row_margin">
+                    <label for="type" class="kbq-form__label">
+                        {{ tRule('Rule.CreateForm.Label.Type') }}
+                    </label>
+                    <kbq-form-field class="kbq-form__control">
+                        <kbq-select id="type"
+                                    formControlName="type"
+                                    data-testid="rule-type-select">
+                            @for (option of ruleTypeOptions; track option.id) {
+                                <kbq-option [value]="option.id"
+                                            [attr.data-testid]="tCommon(option.localizationKey)">
+                                    {{ tCommon(option.localizationKey) }}
+                                </kbq-option>
+                            }
+                        </kbq-select>
+                    </kbq-form-field>
+                </section>
+            }
+
             <section class="kbq-form__row kbq-form-row_margin">
                 <label for="name" class="kbq-form__label">
                     {{ tRule('Rule.CreateForm.Label.Name') }}
@@ -256,19 +276,49 @@
                     {{ tRule('Rule.CreateForm.WhiteList.SubTitle.Exception') }}
                 </h4>
                 <span class="kbq-text-compact cs-text-gray">
-                    {{ tRule('Rule.CreateForm.WhiteList.Text.Exception.Runtime') }}
+                    {{ form.getRawValue().type === ruleTypes.TYPE_RUNTIME
+                        ? tRule('Rule.CreateForm.WhiteList.Text.Exception.Runtime')
+                        : tRule('Rule.CreateForm.WhiteList.Text.Exception.Admission') }}
                 </span>
             </section>
 
-            <section class="kbq-form__row layout-margin-top-l">
-                <cs-detector-tree-select-component
-                        id="detectors"
-                        formControlName="detectors"
-                        [detectors]="detectors$ | async"
-                        [runtimeExtras]="props.rule?.rule?.whitelist?.threats"
-                        testLocator="rule-detector-select"></cs-detector-tree-select-component>
-            </section>
+            @if (form.getRawValue().type === ruleTypes.TYPE_RUNTIME) {
+                <section class="kbq-form__row layout-margin-top-l">
+                    <cs-detector-tree-select-component
+                            id="detectors"
+                            formControlName="detectors"
+                            [detectors]="detectors$ | async"
+                            [runtimeExtras]="props.rule?.rule?.whitelist?.threats"
+                            testLocator="rule-detector-select"></cs-detector-tree-select-component>
+                </section>
+            } @else {
+                <section class="kbq-form__row layout-margin-top-l">
+                    <label for="policies" class="kbq-form__label">
+                        {{ tRule('Rule.CreateForm.Label.Policies') }}
+                        <i kbq-icon="kbq-question-circle_16"
+                           class="cs-help-hover"
+                           kbqTooltip="{{ tRule('Rule.CreateForm.Hint.Policies') }}"></i>
+                    </label>
+                    <kbq-form-field class="kbq-form__control">
+                        <kbq-tag-list #policiesRef data-testid="rule-policies-tag-list">
+                            @for (policy of form.value.policies; track policy; let i = $index) {
+                                <kbq-tag [value]="policy"
+                                         (removed)="removeEntity(policiesControl, i)">
+                                    {{ policy }} <i kbq-icon="kbq-xmark-s_16" kbqTagRemove [attr.data-testid]="policy"></i>
+                                </kbq-tag>
+                            }
+                            <input id="policies"
+                                   [kbqTagInputFor]="policiesRef"
+                                   [kbqTagInputSeparatorKeyCodes]="separatorKeyCodes"
+                                   (kbqTagInputTokenEnd)="addEntity($event, policiesControl)"
+                                   placeholder="{{ !form.value.policies?.length ? tRule('Rule.CreateForm.Placeholder.Policies') : '' }}"
+                                   data-testid="rule-policies-input">
+                        </kbq-tag-list>
+                    </kbq-form-field>
+                </section>
+            }
 
+            @if (form.getRawValue().type === ruleTypes.TYPE_RUNTIME) {
             <section class="kbq-form__row layout-margin-top-l">
                 <label for="binaries" class="kbq-form__label">
                     {{ tRule('Rule.CreateForm.Label.Binaries') }}
@@ -297,6 +347,7 @@
                     }
                 </kbq-form-field>
             </section>
+            }
         </form>
     </kbq-sidepanel-body>
 

@@ -48,6 +48,8 @@ func RuleTypeFromProto(pbrt api.Rule_Type) model.RuleType {
 	switch pbrt {
 	case api.Rule_TYPE_RUNTIME:
 		return model.RuleTypeRuntime
+	case api.Rule_TYPE_ADMISSION:
+		return model.RuleTypeAdmission
 	default: // normally should not happen
 		panic(fmt.Sprintf("invalid rule type given: %s", pbrt))
 	}
@@ -57,6 +59,8 @@ func RuleTypeToProto(rt model.RuleType) api.Rule_Type {
 	switch rt {
 	case model.RuleTypeRuntime:
 		return api.Rule_TYPE_RUNTIME
+	case model.RuleTypeAdmission:
+		return api.Rule_TYPE_ADMISSION
 	default: // normally should not happen
 		panic(fmt.Sprintf("invalid rule type given: %s", rt))
 	}

@@ -28,6 +28,13 @@ podSecurityContext:
 env:
   - name: "POLICY_ENFORCER_GRPC_ADDR"
     value: "policy-enforcer:8000"
+  - name: "HISTORY_API_GRPC_ADDR"
+    value: "history-api:8000"
+  # The chat assistant talks to MCP Server directly (not through Caddy). The
+  # scheme must match the cluster TLS setting: with TLS on, mcp-server serves
+  # HTTPS, and a plaintext HTTP request fails the TLS handshake.
+  - name: "MCP_SERVER_URL"
+    value: '{{ include "common.cs.http-scheme" . }}://mcp-server:9000/mcp'
 encryption:
   enabled: true
 postgresql:

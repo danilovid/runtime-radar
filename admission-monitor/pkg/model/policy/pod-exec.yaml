@@ -1,0 +1,22 @@
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: pod-exec
+spec:
+  # validationActions is overwritten by admission-monitor from the source's action.
+  validationActions:
+    - Audit
+  evaluation:
+    background:
+      # There is nothing to scan in background: exec is an action, not a state.
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CONNECT"]
+        resources: ["pods/exec"]
+  validations:
+    - expression: "false"
+      message: >-
+        Running arbitrary processes in a container with kubectl exec is not allowed.

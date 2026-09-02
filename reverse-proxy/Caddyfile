@@ -7,6 +7,14 @@
 		reverse_proxy {$GRAFANA}
 	}
 
+	# mcp-server: Model Context Protocol endpoint for AI agents (read-only).
+	# Matched exactly rather than by prefix: mcp-server serves only /mcp and
+	# /mcp/, while /mcp* would also swallow UI routes such as /mcp-keys.
+	@mcp path /mcp /mcp/*
+	handle @mcp {
+		reverse_proxy {args[0]}://mcp-server:9000
+	}
+
 	handle /api/* {
 		# route is needed to respond with 404 if no route matches
 		# about precedence: https://caddyserver.com/docs/caddyfile/directives#directive-order
@@ -76,6 +84,7 @@
 			reverse_proxy /api/v1/event/* {args[0]}://history-api:9000
 			reverse_proxy /api/v1/stats/* {args[0]}://history-api:9000
 			reverse_proxy /api/v1/runtime-event/* {args[0]}://history-api:9000
+			reverse_proxy /api/v1/admission-event/* {args[0]}://history-api:9000
 
 			# vuln-scanner
 			reverse_proxy /api/v1/remote_scan {args[0]}://vuln-scanner:9000
@@ -89,6 +98,11 @@
 			reverse_proxy /api/v1/remote_malware_scan {args[0]}://av-scanner:9000
 
 			# notifier
+			# The assistant answers as a stream of chunks, so this one route
+			# must not buffer: the widget shows the answer while it is written.
+			reverse_proxy /api/v1/assistant/* {args[0]}://notifier:9000 {
+				flush_interval -1
+			}
 			reverse_proxy /api/v1/integration {args[0]}://notifier:9000
 			reverse_proxy /api/v1/integration/* {args[0]}://notifier:9000
 			reverse_proxy /api/v1/notification {args[0]}://notifier:9000
@@ -107,6 +121,9 @@
 			# runtime-monitor
 			reverse_proxy /api/v1/config/runtime-monitor {args[0]}://runtime-monitor:9000
 
+			# admission-monitor
+			reverse_proxy /api/v1/config/admission-monitor {args[0]}://admission-monitor:9000
+
 			# event-processor
 			reverse_proxy /api/v1/config/event-processor {args[0]}://event-processor:9000
 			reverse_proxy /api/v1/detector/event-processor {args[0]}://event-processor:9000
@@ -117,6 +134,8 @@
 			reverse_proxy /api/v1/cluster/* {args[0]}://cluster-manager:9000
 
 			# public-api
+			reverse_proxy /api/v1/mcp-key {args[0]}://public-api:9000
+			reverse_proxy /api/v1/mcp-key/* {args[0]}://public-api:9000
 			reverse_proxy /api/v1/access-token {args[0]}://public-api:9000
 			reverse_proxy /api/v1/access-token/* {args[0]}://public-api:9000
 			reverse_proxy /api/v1/public-api/* {args[0]}://public-api:9000

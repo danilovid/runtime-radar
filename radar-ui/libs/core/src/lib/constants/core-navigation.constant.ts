@@ -1,7 +1,6 @@
 import { NavigationMenu } from '../interfaces/core-navigation.interface';
 import { RouterName } from './core-router.constant';
 
-// If navigation items are going to be changed, it needs to update $menu-height into navbar component.
 export const NAVIGATION: NavigationMenu[] = [
     {
         path: RouterName.DEFAULT,
@@ -17,6 +16,18 @@ export const NAVIGATION: NavigationMenu[] = [
                 localizationKey: 'Common.Pseudo.Menu.Runtime',
                 testId: 'runtime-navbar-link',
                 icon: 'kbq-play-rewind_16'
+            },
+            {
+                path: RouterName.ADMISSION,
+                localizationKey: 'Common.Pseudo.Menu.Admission',
+                testId: 'admission-navbar-link',
+                icon: 'kbq-shield-check_16'
+            },
+            {
+                path: RouterName.CHATS,
+                localizationKey: 'Common.Pseudo.Menu.Chats',
+                testId: 'chats-navbar-link',
+                icon: 'kbq-message-square_16'
             }
         ]
     },

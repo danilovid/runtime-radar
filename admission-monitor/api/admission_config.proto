@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+// Package is called "admission_config" in order to distinguish it from "runtime_config"
+// exposed by runtime-monitor and event-processor.
+package admission_config;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+option go_package = "./api";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Admission Monitor Config API";
+  };
+};
+
+// The ConfigController service definition.
+service ConfigController {
+    rpc Add(Config) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/config/admission-monitor"
+            body: "*"
+        };
+    }
+    rpc Read(google.protobuf.Empty) returns (Config)  {
+        option (google.api.http) = {
+            get: "/api/v1/config/admission-monitor"
+        };
+    }
+}
+
+message Config {
+    string id = 1;
+    reserved 2,3; // reserved for created_at, updated_at in case we decide to expose them
+
+    message ConfigJSON {
+        string version = 1;
+
+        // policies maps a policy key to the Kyverno policy which admission-monitor keeps applied in cluster.
+        // It is an exact analogue of runtime-monitor's tracing_policies: the key is stable and is used
+        // as an identifier of the source, the value is fully editable in expert mode.
+        map<string, KyvernoPolicy> policies = 2;
+
+        enum HistoryControl {
+            // Do not save processed events
+            NONE = 0;
+            // Save only events with at least one threat detected
+            WITH_THREATS = 1;
+            // Save all events after processing
+            ALL = 2;
+        }
+        HistoryControl history_control = 3;
+    }
+    ConfigJSON config = 4;
+}
+
+message KyvernoPolicy {
+    // action defines what Kyverno does with a request violating the policy.
+    enum Action {
+        // AUDIT only records the violation in a policy report, the request is allowed.
+        AUDIT = 0;
+        // ENFORCE denies the request. Kyverno reports blocked requests via Kubernetes events only,
+        // see https://kyverno.io/docs/guides/reports/.
+        ENFORCE = 1;
+    }
+
+    string name = 1;
+    string description = 2;
+    // yaml is a manifest of a Kyverno policy (ValidatingPolicy or ImageValidatingPolicy).
+    // Its spec.validationActions is always overwritten from action before applying, so that
+    // enabling enforcement never requires editing the manifest itself.
+    string yaml = 3;
+    bool enabled = 4;
+    Action action = 5;
+    // severity is assigned to every threat produced by this policy. Kyverno puts severity into
+    // policy reports as a free-form annotation only, so we keep the authoritative value here.
+    string severity = 6;
+}

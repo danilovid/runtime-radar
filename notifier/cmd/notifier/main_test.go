@@ -24,6 +24,7 @@ import (
 	"github.com/runtime-radar/runtime-radar/lib/util/retry"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
 	"github.com/runtime-radar/runtime-radar/notifier/internal/mailpit"
+	"github.com/runtime-radar/runtime-radar/notifier/pkg/assistant"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/client"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/config"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/database"
@@ -143,12 +144,29 @@ func TestMain(m *testing.M) {
 		log.Fatal().Msgf("### Failed to connect to Policy Enforcer: %v", err)
 	}
 
+	runtimeHistory, closeRH, err := client.NewRuntimeHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+
+	admissionHistory, _, err := client.NewAdmissionHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+
 	grpcSrv := grpc.NewServer(opts...)
-	notifier, notification, email := composeServices(db, ruleController, crypter, verifier, cfg.Auth, cfg.CSVersion)
+	assistantRunner := assistant.NewRunner(
+		assistant.NewMCPToolBoxFactory(cfg.MCPServerURL, tlsConfig),
+		cfg.AssistantMaxIterations,
+		cfg.AssistantTimeout,
+		cfg.AssistantMaxChats,
+	)
+	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, admissionHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
 
 	api.RegisterNotifierServer(grpcSrv, notifier)
 	api.RegisterNotificationControllerServer(grpcSrv, notification)
 	api.RegisterIntegrationControllerServer(grpcSrv, email)
+	api.RegisterAssistantControllerServer(grpcSrv, assistantService)
 
 	go func() {
 		if err := grpcSrv.Serve(lis); err != nil {
@@ -168,6 +186,7 @@ func TestMain(m *testing.M) {
 	grpcSrv.GracefulStop()
 	closeDB()
 	closeRC()
+	closeRH()
 
 	os.Exit(res)
 }

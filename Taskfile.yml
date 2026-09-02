@@ -32,6 +32,9 @@ includes:
   runtime-monitor:
     taskfile: ./runtime-monitor/Taskfile.yml
     dir: ./runtime-monitor
+  admission-monitor:
+    taskfile: ./admission-monitor/Taskfile.yml
+    dir: ./admission-monitor
   auth-center:
     taskfile: ./auth-center/Taskfile.yml
     dir: ./auth-center
@@ -41,6 +44,9 @@ includes:
   cs-manager:
     taskfile: ./cs-manager/Taskfile.yml
     dir: ./cs-manager
+  mcp-server:
+    taskfile: ./mcp-server/Taskfile.yml
+    dir: ./mcp-server
 
 tasks:
   proto:
@@ -54,6 +60,7 @@ tasks:
           - notifier
           - event-processor
           - runtime-monitor
+          - admission-monitor
           - cs-manager
           - public-api
         task: "{{.ITEM}}:proto"
@@ -75,9 +82,11 @@ tasks:
           - notifier
           - event-processor
           - runtime-monitor
+          - admission-monitor
           - public-api
           - cs-manager
           - reverse-proxy
+          - mcp-server
         task: "{{.ITEM}}:docker-build"
 
   docker-push:
@@ -96,6 +105,9 @@ tasks:
     cmds:
       - for: *backend-services
         task: "{{.ITEM}}:test-docker"
+      # mcp-server has no proto files and no infrastructure to spin up: its
+      # tests are unit tests over mocked gRPC clients.
+      - task: mcp-server:test
 
   tools:
     status:
@@ -111,3 +123,4 @@ tasks:
     cmds:
       - for: *backend-services
         task: "{{.ITEM}}:lint"
+      - task: mcp-server:lint

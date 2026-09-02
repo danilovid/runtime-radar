@@ -8,3 +8,8 @@ tasks:
     cmds:
       - rm -rf ../reverse-proxy/build && mkdir ../reverse-proxy/build
       - docker build --target exporter -o ../reverse-proxy/build .
+
+  test:
+    desc: "Run unit tests for all Nx projects (requires yarn install)"
+    cmds:
+      - yarn nx run-many --target=test {{.CLI_ARGS}}

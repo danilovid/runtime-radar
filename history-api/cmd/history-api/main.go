@@ -105,6 +105,14 @@ func main() {
 
 	go eventsConsumer(mb, clickhouseDB, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
 
+	admissionMB, err := rabbit.NewMessageBroker(cfg.RabbitAddr, cfg.RabbitUser, cfg.RabbitPassword, cfg.RabbitAdmissionQueue, rabbit.WithConsumer(build.AppName, cfg.RabbitQueuePrefetchCount))
+	if err != nil {
+		log.Fatal().Msgf("Failed to init message broker: %v", err)
+	}
+	defer admissionMB.Close()
+
+	go admissionEventsConsumer(admissionMB, clickhouseDB)
+
 	var tlsConfig *tls.Config
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(interceptor.Recovery, interceptor.Correlation),
@@ -122,10 +130,11 @@ func main() {
 
 	grpcSrv := grpc.NewServer(opts...)
 
-	runtimeHistorySvc, runtimeStatsSvc := composeServices(clickhouseDB, verifier, cfg.Auth, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
+	runtimeHistorySvc, runtimeStatsSvc, admissionHistorySvc := composeServices(clickhouseDB, verifier, cfg.Auth, cfg.RuntimeEventsBatchSize, cfg.RuntimeEventsSaveInterval)
 
 	api.RegisterRuntimeHistoryServer(grpcSrv, runtimeHistorySvc)
 	api.RegisterRuntimeStatsServer(grpcSrv, runtimeStatsSvc)
+	api.RegisterAdmissionHistoryServer(grpcSrv, admissionHistorySvc)
 
 	// Register reflection service on gRPC server
 	reflection.Register(grpcSrv)
@@ -189,7 +198,7 @@ func composeServices(
 	isAuth bool,
 	runtimeBatchSize int,
 	runtimeFlushInterval time.Duration,
-) (historySvc api.RuntimeHistoryServer, statsSvc api.RuntimeStatsServer) {
+) (historySvc api.RuntimeHistoryServer, statsSvc api.RuntimeStatsServer, admissionSvc api.AdmissionHistoryServer) {
 	statsSvc = &service.RuntimeStatsGeneric{
 		StatsRepository: &clickhouse.StatsDatabase{clickhouseDB},
 	}
@@ -202,6 +211,10 @@ func composeServices(
 		),
 	}
 
+	admissionSvc = &service.AdmissionHistoryGeneric{
+		AdmissionEventRepository: &clickhouse.AdmissionEventDatabase{clickhouseDB},
+	}
+
 	if isAuth {
 		historySvc = &service.RuntimeHistoryAuth{
 			RuntimeHistoryServer: historySvc,
@@ -212,9 +225,15 @@ func composeServices(
 			RuntimeStatsServer: statsSvc,
 			Verifier:           verifier,
 		}
+
+		admissionSvc = &service.AdmissionHistoryAuth{
+			AdmissionHistoryServer: admissionSvc,
+			Verifier:               verifier,
+		}
 	}
 
 	historySvc = &service.RuntimeHistoryLogging{RuntimeHistoryServer: historySvc}
+	admissionSvc = &service.AdmissionHistoryLogging{AdmissionHistoryServer: admissionSvc}
 	statsSvc = &service.RuntimeStatsLogging{RuntimeStatsServer: statsSvc}
 
 	return
@@ -224,6 +243,15 @@ func eventsConsumer(mb *rabbit.MessageBroker, clickhouseDB *gorm.DB, batchSize i
 	c := &consumer.Consumer{
 		PublishConsumer:        mb,
 		RuntimeEventRepository: clickhouse.NewRuntimeEventBatchingDatabase(batchSize, flushInterval, clickhouseDB),
+	}
+
+	c.Run(shutdown)
+}
+
+func admissionEventsConsumer(mb *rabbit.MessageBroker, clickhouseDB *gorm.DB) {
+	c := &consumer.AdmissionConsumer{
+		PublishConsumer:          mb,
+		AdmissionEventRepository: &clickhouse.AdmissionEventDatabase{clickhouseDB},
 	}
 
 	c.Run(shutdown)

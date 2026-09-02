@@ -1,0 +1,21 @@
+# kind cluster for the local stand described in values.kind.yaml.
+#
+#   kind create cluster --config install/helm/kind-cluster.yaml
+#
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: runtime-radar
+containerdConfigPatches:
+  # Lets the node resolve localhost:5001 to the registry container. The
+  # per-registry hosts.toml is written after the cluster is up; see
+  # values.kind.yaml.
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # reverse-proxy, published as a NodePort so the interface opens on the host
+      - containerPort: 32000
+        hostPort: 32000
+        protocol: TCP

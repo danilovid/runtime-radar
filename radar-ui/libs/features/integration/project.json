@@ -13,7 +13,7 @@
         },
         "test": {
             "executor": "@nx/jest:jest",
-            "outputs": ["coverage/libs/features/integration"],
+            "outputs": ["{workspaceRoot}/coverage/libs/features/integration"],
             "options": {
                 "jestConfig": "libs/features/integration/jest.config.ts",
                 "passWithNoTests": true

@@ -1,0 +1,146 @@
+<div class="admission-feature-events" *transloco="let tAdmission; prefix: 'admission'">
+    <header class="layout-row layout-align-space-between-center layout-margin-bottom-3xl">
+        <h1 class="kbq-display-compact admission-feature-events-title">{{ tAdmission('Admission.Pseudo.Header.Title') }}</h1>
+        <cs-cluster-select-component
+                [clusters]="clusters$ | async"
+                [activeClusterHost]="activeClusterHost$ | async"
+                (selectClusterId)="switchCluster($event)"
+                testLocator="admission-events-cluster-select"></cs-cluster-select-component>
+    </header>
+
+    <cs-tabs-component
+            [tabs]="admissionNavigationTabs"
+            [localizationFn]="tAdmission"
+            (tabChange)="tabChange($event)"
+            testId="admission-navigation-tab-group">
+        <button kbq-button
+                type="button"
+                class="kbq-button-icon layout-margin-left-l"
+                (click)="goToStartPage()"
+                data-testid="admission-paginator-refresh-button">
+            <i kbq-icon="kbq-arrows-rotate-reverse_16"></i>
+        </button>
+    </cs-tabs-component>
+
+    <section class="admission-feature-events-wrapper" *ngrxLet="{
+        loadStatus: (loadStatus$ | async),
+        isFilterExist: (isFilterExist$ | async)
+    } as srxlet">
+        @if (srxlet.loadStatus === loadStatus.IN_PROGRESS) {
+            <kbq-loader-overlay [transparent]="true"></kbq-loader-overlay>
+        }
+
+        <ng-container *ngrxLet="eventsResponse$ as eventsResponse">
+            @if (srxlet.isFilterExist || eventsResponse.admission_events.length) {
+                <cs-admission-feature-filter-popover-component
+                        [filters]="filters$ | async"
+                        (filterChange)="changeFilter($event)"></cs-admission-feature-filter-popover-component>
+            }
+
+            @if (eventsResponse.admission_events.length) {
+                <ul class="admission-feature-events-list">
+                    @for (event of eventsResponse.admission_events; track event.id) {
+                        <li>
+                            <button type="button"
+                                    class="layout-row layout-align-start-center admission-feature-events-item"
+                                    (click)="openEvent(event.id)"
+                                    [attr.data-testid]="'admission-event-' + event.id">
+                                <span class="kbq-text-compact cs-text-gray admission-feature-events-item-time">
+                                    {{ event.registered_at | dateFormatter: dateTimeShortFormat }}
+                                </span>
+
+                                <cs-severity-component [severity]="event.incident_severity"></cs-severity-component>
+
+                                <span class="flex admission-feature-events-item-resource">
+                                    <span class="kbq-text-normal">{{ event.resource.kind }} {{ event.resource.name }}</span>
+                                    @if (event.resource.namespace) {
+                                        <span class="kbq-text-compact cs-text-gray"> · {{ event.resource.namespace }}</span>
+                                    }
+                                </span>
+
+                                <ul class="admission-feature-events-item-badges">
+                                    @for (threat of event.threats; track threat.policy.id) {
+                                        <li>
+                                            <kbq-badge [badgeColor]="badgeColors.FadeContrast" [outline]="true">
+                                                {{ threat.policy.name }}
+                                            </kbq-badge>
+                                        </li>
+                                    }
+                                </ul>
+
+                                @if (event.blocked) {
+                                    <kbq-badge [badgeColor]="badgeColors.FadeError">
+                                        {{ tAdmission('Admission.EventsPage.Badge.Blocked') }}
+                                    </kbq-badge>
+                                }
+                                @if (event.is_incident) {
+                                    <kbq-badge [badgeColor]="badgeColors.FadeWarning">
+                                        {{ tAdmission('Admission.EventsPage.Badge.Incident') }}
+                                    </kbq-badge>
+                                }
+                            </button>
+                        </li>
+                    }
+                </ul>
+
+                <div class="layout-row layout-align-start-center admission-feature-events-paginator">
+                    <button kbq-button
+                            kbqStyle="transparent"
+                            color="contrast"
+                            type="button"
+                            (click)="goToStartPage()"
+                            data-testid="admission-paginator-start-button">
+                        {{ tAdmission('Admission.EventsPage.Paginator.Button.Start') }}
+                    </button>
+                    <button kbq-button
+                            kbqStyle="transparent"
+                            color="contrast"
+                            type="button"
+                            [disabled]="!eventsResponse.left_cursor"
+                            (click)="changePage(admissionEventCursorDirection.LEFT, eventsResponse.left_cursor)"
+                            data-testid="admission-paginator-prev-button">
+                        <i kbq-icon="kbq-chevron-left_16"></i>
+                        {{ tAdmission('Admission.EventsPage.Paginator.Button.Prev') }}
+                    </button>
+                    <button kbq-button
+                            kbqStyle="transparent"
+                            color="contrast"
+                            type="button"
+                            [disabled]="!eventsResponse.right_cursor"
+                            (click)="changePage(admissionEventCursorDirection.RIGHT, eventsResponse.right_cursor)"
+                            data-testid="admission-paginator-next-button">
+                        {{ tAdmission('Admission.EventsPage.Paginator.Button.Next') }}
+                        <i kbq-icon="kbq-chevron-right_16"></i>
+                    </button>
+                </div>
+            }
+
+            @if (srxlet.loadStatus === loadStatus.LOADED) {
+                @if (!eventsResponse.admission_events.length && !srxlet.isFilterExist) {
+                    <cs-empty-screen-component
+                            imageUrl="/assets/koobiq/light/empty_256@2x.png"
+                            [title]="tAdmission('Admission.EventsPage.SubHeading.EmptyResult')"
+                            [description]="tAdmission('Admission.EventsPage.Text.EmptyResult')">
+                        <button kbq-button
+                                type="button"
+                                [routerLink]="['..', admissionRouterName.SETTINGS]">
+                            {{ tAdmission('Admission.EventsPage.Button.EmptyResult') }}
+                        </button>
+                    </cs-empty-screen-component>
+                } @else if (!eventsResponse.admission_events.length && srxlet.isFilterExist) {
+                    <cs-empty-screen-component
+                            imageUrl="/assets/koobiq/light/empty_256@2x.png"
+                            [title]="tAdmission('Admission.EventsPage.WithFilters.SubHeading.EmptyResult')"
+                            [description]="tAdmission('Admission.EventsPage.WithFilters.Text.EmptyResult')">
+                    </cs-empty-screen-component>
+                }
+            } @else if (srxlet.loadStatus === loadStatus.ERROR) {
+                <cs-empty-screen-component
+                        imageUrl="/assets/koobiq/light/bad_256@2x.png"
+                        [title]="tAdmission('Admission.EventsPage.SubHeading.ServerError')"
+                        [description]="tAdmission('Admission.EventsPage.Text.ServerError')">
+                </cs-empty-screen-component>
+            }
+        </ng-container>
+    </section>
+</div>

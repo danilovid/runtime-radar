@@ -51,6 +51,15 @@ func IntegrationToPB(mi model.Integration, maskSensitive bool) *api.Integration 
 				Syslog: SyslogToPB(i),
 			},
 		}
+	case *model.AI:
+		return &api.Integration{
+			Id:   i.ID.String(),
+			Name: i.Name,
+			Type: model.IntegrationAI,
+			Config: &api.Integration_Ai{
+				Ai: AIToPB(i),
+			},
+		}
 	default:
 		panic(fmt.Sprintf("unsupported integration type: %T", i)) // normally should not happen
 	}
@@ -140,6 +149,19 @@ func SyslogToPB(w *model.Syslog) *api.Syslog {
 	}
 }
 
+func AIToPB(a *model.AI) *api.AI {
+	return &api.AI{
+		Provider: AIProviderToPB(a.Provider),
+		BaseUrl:  a.BaseURL,
+		Model:    a.Model,
+		ApiKey:   a.EncryptedAPIKey,
+		IsLocal:  a.IsLocal,
+		Insecure: a.Insecure,
+		Ca:       a.CA,
+		Scopes:   a.Scopes,
+	}
+}
+
 func EmailAuthTypeFromPB(proto api.Email_AuthType) model.EmailAuthType {
 	switch proto {
 	case api.Email_AUTH_TYPE_PLAIN:
@@ -163,6 +185,40 @@ func EmailAuthTypeToPB(at model.EmailAuthType) api.Email_AuthType {
 		return api.Email_AUTH_TYPE_CRAM_MD5
 	default:
 		return api.Email_AUTH_TYPE_NONE
+	}
+}
+
+func AIProviderFromPB(provider api.AI_Provider) model.AIProvider {
+	switch provider {
+	case api.AI_PROVIDER_ANTHROPIC:
+		return model.AIProviderAnthropic
+	case api.AI_PROVIDER_OLLAMA:
+		return model.AIProviderOllama
+	case api.AI_PROVIDER_QWEN:
+		return model.AIProviderQwen
+	case api.AI_PROVIDER_DEEPSEEK:
+		return model.AIProviderDeepSeek
+	case api.AI_PROVIDER_GLM:
+		return model.AIProviderGLM
+	default:
+		return model.AIProviderOpenAICompatible
+	}
+}
+
+func AIProviderToPB(provider model.AIProvider) api.AI_Provider {
+	switch provider {
+	case model.AIProviderAnthropic:
+		return api.AI_PROVIDER_ANTHROPIC
+	case model.AIProviderOllama:
+		return api.AI_PROVIDER_OLLAMA
+	case model.AIProviderQwen:
+		return api.AI_PROVIDER_QWEN
+	case model.AIProviderDeepSeek:
+		return api.AI_PROVIDER_DEEPSEEK
+	case model.AIProviderGLM:
+		return api.AI_PROVIDER_GLM
+	default:
+		return api.AI_PROVIDER_OPENAI_COMPATIBLE
 	}
 }
 
@@ -215,6 +271,21 @@ func IntegrationFromPB(req *api.Integration) (model.Integration, error) {
 			Base:    model.Base{ID: id},
 			Name:    req.GetName(),
 			Address: syslogConf.GetAddress(),
+		}, nil
+	case *api.Integration_Ai:
+		aiConf := conf.Ai
+
+		return &model.AI{
+			Base:     model.Base{ID: id},
+			Name:     req.GetName(),
+			Provider: AIProviderFromPB(aiConf.GetProvider()),
+			BaseURL:  aiConf.GetBaseUrl(),
+			Model:    aiConf.GetModel(),
+			APIKey:   aiConf.GetApiKey(),
+			IsLocal:  aiConf.GetIsLocal(),
+			Insecure: aiConf.GetInsecure(),
+			CA:       aiConf.GetCa(),
+			Scopes:   aiConf.GetScopes(),
 		}, nil
 	default:
 		return nil, errors.New("can't parse integration type")

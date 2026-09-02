@@ -1,0 +1,32 @@
+apiVersion: policies.kyverno.io/v1
+kind: ImageValidatingPolicy
+metadata:
+  name: image-signature
+spec:
+  validationActions:
+    - Audit
+  evaluation:
+    background:
+      # Background scan would re-verify signatures of every image every hour.
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchImageReferences:
+    - glob: "*"
+  attestors:
+    - name: cosign
+      cosign:
+        key:
+          # Replace with the public key of your signing key pair before enabling the source.
+          data: |
+            -----BEGIN PUBLIC KEY-----
+            -----END PUBLIC KEY-----
+  validations:
+    - expression: >-
+        images.containers.all(image, verifyImageSignatures(image, [attestors.cosign]) > 0)
+      message: >-
+        Container image is not signed by a trusted key.

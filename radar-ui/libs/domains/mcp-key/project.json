@@ -1,0 +1,28 @@
+{
+    "name": "domain-mcp-key",
+    "projectType": "library",
+    "root": "libs/domains/mcp-key",
+    "sourceRoot": "libs/domains/mcp-key/src",
+    "prefix": "runtime-radar",
+    "targets": {
+        "lint": {
+            "executor": "@nx/linter:eslint",
+            "options": {
+                "lintFilePatterns": [
+                    "libs/domains/mcp-key/src/**/*.ts",
+                    "libs/domains/mcp-key/src/**/*.html"
+                ]
+            }
+        },
+        "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": [
+                "coverage/libs/domains/mcp-key"
+            ],
+            "options": {
+                "jestConfig": "libs/domains/mcp-key/jest.config.ts",
+                "passWithNoTests": true
+            }
+        }
+    }
+}

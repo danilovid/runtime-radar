@@ -58,6 +58,7 @@ service RuleController {
 message Rule {
     enum Type {
         TYPE_RUNTIME = 0;
+        TYPE_ADMISSION = 1;
     }
 
     message Scope {
@@ -98,7 +99,7 @@ message Rule {
 
     RuleJSON rule = 3;
     reserved 4;
-    // type indicates what type of enforcement rule is used for (now support just runtime.)
+    // type indicates what type of enforcement rule is used for (runtime or admission)
     Type type = 5;
     Scope scope = 6;
 }

@@ -16,9 +16,14 @@
                         <i kbq-icon="{{ expandedCollection.get(item.id) ? 'kbq-chevron-up_16' : 'kbq-chevron-down_16' }}"></i>
                         <p class="integration-feature-collapse-card-header-title">
                             <strong class="kbq-text-normal-strong">{{ item.name }}</strong>
-                            <span class="integration-feature-collapse-card-header-title-counter">({{ notifications.length }})</span>
+                            @if (item.type !== integrationType.AI) {
+                                <span class="integration-feature-collapse-card-header-title-counter">({{ notifications.length }})</span>
+                            }
                             <span class="kbq-text-compact cs-text-gray integration-feature-collapse-card-header-title-caption">
                                 @switch (item.type) {
+                                    @case (integrationType.AI) {
+                                        {{ item.ai.model }}
+                                    }
                                     @case (integrationType.EMAIL) {
                                         {{ item.email.server }}
                                     }
@@ -34,16 +39,18 @@
                     </button>
 
                     <section class="integration-feature-collapse-card-action">
-                        <button kbq-button
-                                kbqStyle="transparent"
-                                color="contrast"
-                                type="button"
-                                class="kbq-button-icon"
-                                [disabled]="!permissions[permissionName.NOTIFICATIONS].has(permissionType.CREATE)"
-                                (click)="openCreateRecipientSidepanel(item)"
-                                data-testid="integration-recipient-open-sidepanel-form-button">
-                            <i kbq-icon="kbq-plus_16"></i>
-                        </button>
+                        @if (item.type !== integrationType.AI) {
+                            <button kbq-button
+                                    kbqStyle="transparent"
+                                    color="contrast"
+                                    type="button"
+                                    class="kbq-button-icon"
+                                    [disabled]="!permissions[permissionName.NOTIFICATIONS].has(permissionType.CREATE)"
+                                    (click)="openCreateRecipientSidepanel(item)"
+                                    data-testid="integration-recipient-open-sidepanel-form-button">
+                                <i kbq-icon="kbq-plus_16"></i>
+                            </button>
+                        }
                         <button kbq-button
                                 kbqStyle="transparent"
                                 color="contrast"
@@ -56,7 +63,32 @@
                     </section>
 
                     <section class="integration-feature-collapse-card-body" [hidden]="!expandedCollection.get(item.id)">
-                        @if (notifications.length) {
+                        @if (item.type === integrationType.AI) {
+                            <kbq-dl [vertical]="false" [wide]="false">
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.Provider') }}:</kbq-dt>
+                                <kbq-dd>{{ tIntegration(item.ai.provider | integrationAIProviderTypeLocalization) }}</kbq-dd>
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.BaseUrl') }}:</kbq-dt>
+                                <kbq-dd>{{ item.ai.base_url || '—' }}</kbq-dd>
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.Model') }}:</kbq-dt>
+                                <kbq-dd>{{ item.ai.model }}</kbq-dd>
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.Local') }}:</kbq-dt>
+                                <kbq-dd>{{ item.ai.is_local ? tIntegration('Integration.Card.Value.Yes') : tIntegration('Integration.Card.Value.No') }}</kbq-dd>
+                                <kbq-dt>{{ tIntegration('Integration.Card.Label.Scopes') }}:</kbq-dt>
+                                <kbq-dd>
+                                    @if (item.ai.scopes?.length) {
+                                        @for (scope of item.ai.scopes; track scope) {
+                                            <span class="cs-separator">
+                                                {{ scope === integrationAIScope.ADMISSION
+                                                    ? tIntegration('Integration.Pseudo.Scope.Admission')
+                                                    : tIntegration('Integration.Pseudo.Scope.RuntimeMonitor') }}
+                                            </span>
+                                        }
+                                    } @else {
+                                        {{ tIntegration('Integration.Card.Value.AllScopes') }}
+                                    }
+                                </kbq-dd>
+                            </kbq-dl>
+                        } @else if (notifications.length) {
                             <table kbq-table [border]="true" class="integration-feature-collapse-card-body-table">
                                 <thead>
                                     <tr>
@@ -128,19 +160,21 @@
                         }
 
                         <footer class="layout-row layout-margin-top-l">
-                            <button kbq-button
-                                    type="button"
-                                    [disabled]="!permissions[permissionName.NOTIFICATIONS].has(permissionType.CREATE)"
-                                    (click)="openCreateRecipientSidepanel(item)"
-                                    data-testid="integration-recipient-open-sidepanel-form-footer-button">
-                                <i kbq-icon="kbq-plus_16"></i>
-                                {{ tIntegration('Integration.Card.Button.CreateRecipient') }}
-                            </button>
+                            @if (item.type !== integrationType.AI) {
+                                <button kbq-button
+                                        type="button"
+                                        [disabled]="!permissions[permissionName.NOTIFICATIONS].has(permissionType.CREATE)"
+                                        (click)="openCreateRecipientSidepanel(item)"
+                                        data-testid="integration-recipient-open-sidepanel-form-footer-button">
+                                    <i kbq-icon="kbq-plus_16"></i>
+                                    {{ tIntegration('Integration.Card.Button.CreateRecipient') }}
+                                </button>
+                            }
                             <button kbq-button
                                     kbqStyle="transparent"
                                     color="contrast"
                                     type="button"
-                                    class="layout-margin-left-l"
+                                    [class.layout-margin-left-l]="item.type !== integrationType.AI"
                                     (click)="toogleCardExpand(item.id)"
                                     data-testid="integration-collapse-card-button">
                                 <i kbq-icon="kbq-chevron-up_16"></i>

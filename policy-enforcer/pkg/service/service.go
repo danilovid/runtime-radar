@@ -3,6 +3,10 @@ package service
 const (
 	defaultPageSize = 10
 	defaultOrder    = "created_at desc"
+
+	// Validation reasons shared by the policy evaluators.
+	reasonNoAction = "no action"
+	reasonNoArgs   = "no args"
 )
 
 // gRPC errdetails.ErrorInfo.Reason codes used in service responses.

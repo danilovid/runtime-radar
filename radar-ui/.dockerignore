@@ -1,0 +1,8 @@
+# Build state of the host: copying it in makes the image build depend on this
+# machine. Nx refuses a cache written elsewhere, so .nx breaks the build outright.
+.nx
+.angular
+node_modules
+dist
+tmp
+out-tsc

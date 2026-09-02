@@ -9,7 +9,7 @@ import { DetectorStoreService } from '@cs/domains/detector';
 import { I18nService } from '@cs/i18n';
 import { CoreUtilsService as utils } from '@cs/core';
 import { ClusterStoreService, RegisteredCluster } from '@cs/domains/cluster';
-import { Integration, IntegrationStoreService, IntegrationType } from '@cs/domains/integration';
+import { Integration, IntegrationAIScope, IntegrationStoreService, IntegrationType } from '@cs/domains/integration';
 import { Notification, NotificationStoreService } from '@cs/domains/notification';
 import { PermissionName, PermissionType, RolePermissionMap } from '@cs/domains/role';
 import { Rule, RuleStoreService } from '@cs/domains/rule';
@@ -63,6 +63,8 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
 
     readonly integrationType = IntegrationType;
 
+    readonly integrationAIScope = IntegrationAIScope;
+
     readonly tooltipPlacements = PopUpPlacements;
 
     constructor(
@@ -105,6 +107,8 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
             .pipe(take(1), filter(utils.isDefined))
             .subscribe((form: IntegrationRecipientForm) => {
                 switch (this.type) {
+                    case IntegrationType.AI:
+                        break;
                     case IntegrationType.EMAIL:
                         this.notificationStoreService.createNotification({
                             integration_id: integration.id,
@@ -178,6 +182,8 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
             .pipe(take(1), filter(utils.isDefined))
             .subscribe((form: IntegrationRecipientForm) => {
                 switch (this.type) {
+                    case IntegrationType.AI:
+                        break;
                     case IntegrationType.EMAIL:
                         this.notificationStoreService.updateNotification(notification.id, {
                             integration_id: integration.id,
@@ -250,6 +256,7 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
             hasBackdrop: true,
             data: {
                 type: item.type,
+                ai: item.type === IntegrationType.AI ? item : undefined,
                 email: item.type === IntegrationType.EMAIL ? item : undefined,
                 syslog: item.type === IntegrationType.SYSLOG ? item : undefined,
                 webhook: item.type === IntegrationType.WEBHOOK ? item : undefined,
@@ -263,6 +270,23 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
             .pipe(take(1), filter(utils.isDefined))
             .subscribe((outputs: IntegrationSidepanelFormOutputs) => {
                 switch (outputs.type) {
+                    case IntegrationType.AI:
+                        this.integrationStoreService.updateAIIntegration(item.id, {
+                            type: outputs.type,
+                            name: outputs.ai.name,
+                            skip_check: outputs.hasSkipCheck,
+                            ai: {
+                                provider: outputs.ai.provider,
+                                base_url: outputs.ai.baseUrl,
+                                model: outputs.ai.model,
+                                api_key: outputs.ai.apiKey,
+                                ca: outputs.ai.ca,
+                                is_local: outputs.ai.isLocal,
+                                insecure: !outputs.ai.isInsecure,
+                                scopes: outputs.ai.scopes
+                            }
+                        });
+                        break;
                     case IntegrationType.EMAIL:
                         this.integrationStoreService.updateEmailIntegration(item.id, {
                             type: outputs.type,
@@ -317,6 +341,9 @@ export class IntegrationFeatureCollapseCardContainer implements OnInit {
             cancelText: this.i18nService.translate('Integration.DeleteModal.Button.Cancel'),
             confirmHandler: () => {
                 switch (this.type) {
+                    case IntegrationType.AI:
+                        this.integrationStoreService.deleteAIIntegration(id);
+                        break;
                     case IntegrationType.EMAIL:
                         this.integrationStoreService.deleteEmailIntegration(id);
                         break;

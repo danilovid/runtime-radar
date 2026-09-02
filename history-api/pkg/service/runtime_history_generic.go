@@ -144,7 +144,7 @@ func (rhg *RuntimeHistoryGeneric) validateListRuntimeEventSliceReq(req *api.List
 
 	cursor := req.GetCursor()
 	if cursor == nil {
-		return "missing cursor", false
+		return reasonMissingCursor, false
 	}
 
 	if err := cursor.CheckValid(); err != nil {
@@ -161,7 +161,7 @@ func (rhg *RuntimeHistoryGeneric) validateFilterRuntimeEventsReq(req *api.Filter
 
 	cursor := req.GetCursor()
 	if cursor == nil {
-		return "missing cursor", false
+		return reasonMissingCursor, false
 	}
 
 	if err := cursor.CheckValid(); err != nil {
@@ -193,7 +193,7 @@ func (rhg *RuntimeHistoryGeneric) validateRuntimeEventFilter(rf *api.RuntimeFilt
 		len(rf.GetThreatsDetectors()) == 0 &&
 		len(rf.GetRules()) == 0 &&
 		rf.HasIncident == nil {
-		return "at least one filter should be set", false
+		return reasonEmptyFilter, false
 	}
 
 	for _, t := range rf.GetEventType() {

@@ -93,6 +93,61 @@ func (il *IntegrationLogging) List(ctx context.Context, req *api.ListIntegration
 	return
 }
 
+func (il *IntegrationLogging) TestAI(ctx context.Context, req *api.TestAIReq) (resp *emptypb.Empty, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Interface("args", hidePassword(req.GetIntegration())).
+			Interface("result", resp).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.TestAI")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.TestAI(ctx, req)
+	return
+}
+
+func (il *IntegrationLogging) ExplainRuntimeEvent(ctx context.Context, req *api.ExplainRuntimeEventReq) (resp *api.ExplainRuntimeEventResp, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		// The event JSON carries process command lines and the response carries
+		// free-form model output, so only the call's shape is audited.
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Str("integration_id", req.GetIntegrationId()).
+			Str("event_id", req.GetEventId()).
+			Int("event_json_bytes", len(req.GetEventJson())).
+			Str("risk", resp.GetRisk()).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.ExplainRuntimeEvent")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.ExplainRuntimeEvent(ctx, req)
+	return
+}
+
+func (il *IntegrationLogging) ExplainAdmissionEvent(ctx context.Context, req *api.ExplainAdmissionEventReq) (resp *api.ExplainAdmissionEventResp, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		// The event JSON carries process command lines and the response carries
+		// free-form model output, so only the call's shape is audited.
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Str("integration_id", req.GetIntegrationId()).
+			Str("event_id", req.GetEventId()).
+			Str("risk", resp.GetRisk()).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.ExplainAdmissionEvent")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.ExplainAdmissionEvent(ctx, req)
+	return
+}
+
 func hidePassword(req *api.Integration) *api.Integration {
 	if req == nil {
 		return nil
@@ -110,6 +165,10 @@ func hidePassword(req *api.Integration) *api.Integration {
 
 	if webhook := clone.GetWebhook(); webhook != nil {
 		webhook.Password = mask
+	}
+
+	if ai := clone.GetAi(); ai != nil {
+		ai.ApiKey = mask
 	}
 
 	return clone
