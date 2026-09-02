@@ -24,14 +24,19 @@ Read-only tools:
 - list_admission_sources lists the Kyverno policies Runtime Radar applies: whether each is on, and whether it records a violation or denies the request.
 - search_admission_events finds what Kyverno reported when resources were admitted, by namespace, kind, image and policy.
 - get_admission_event explains one admission finding in full: the resource, every policy that fired with its reason, and the rules that made it an incident.
+- list_notification_services lists the services messages go out through — email, webhook, syslog, AI — without their credentials.
+- list_notification_templates lists the templates that turn a detected threat into a message, and who receives each one.
 
 Tools that change Runtime Radar:
 - create_rule adds a policy rule. A blocking rule kills pods, so its scope and severity matter.
+- set_rule_notify_targets points an existing rule at the services it notifies through. A rule with no targets fires silently, which is the usual reason nothing ever arrives.
 - delete_rule removes a policy rule, which removes the protection it provided.
 - create_api_token issues a credential for the product's public API and returns its secret once.
 - delete_api_token revokes such a credential; whatever authenticates with it stops working.
 - create_admission_source adds a Kyverno policy as a source. It is added switched off, so nothing changes in the cluster until it is enabled.
 - set_admission_source switches a source on or off and chooses its mode. In the block mode Kyverno denies matching requests, which stops deployments.
+- create_notification_service connects a syslog or webhook service. Email and AI are not offered: they are configured with a credential, which has no business travelling through a model.
+- create_notification_template adds a template to an existing notification service. It cannot add the service itself: that would mean carrying an SMTP password or an API key through a model, so the user configures services in the interface.
 
 A typical runtime investigation: get_runtime_stats to size the window, search_runtime_events with ` +
 	`has_threats=true to find what was flagged, get_runtime_event for the details of the interesting ones, then ` +

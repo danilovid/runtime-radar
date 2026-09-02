@@ -7,6 +7,7 @@ replace (
 	github.com/runtime-radar/runtime-radar/event-processor => ../event-processor
 	github.com/runtime-radar/runtime-radar/history-api => ../history-api
 	github.com/runtime-radar/runtime-radar/lib => ../lib
+	github.com/runtime-radar/runtime-radar/notifier => ../notifier
 	github.com/runtime-radar/runtime-radar/policy-enforcer => ../policy-enforcer
 )
 
@@ -21,6 +22,7 @@ require (
 	github.com/runtime-radar/runtime-radar/event-processor v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/history-api v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/lib v0.0.24
+	github.com/runtime-radar/runtime-radar/notifier v0.0.0-00010101000000-000000000000
 	github.com/runtime-radar/runtime-radar/policy-enforcer v0.4.8
 	go.uber.org/automaxprocs v1.6.0
 	google.golang.org/grpc v1.79.3

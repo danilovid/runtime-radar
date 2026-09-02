@@ -31,6 +31,12 @@ env:
   # Where the rule tools create and delete policy rules.
   - name: "POLICY_ENFORCER_GRPC_ADDR"
     value: "policy-enforcer:8000"
+  # Where the notification tools read services and create templates.
+  - name: "NOTIFIER_GRPC_ADDR"
+    value: "notifier:8000"
+  # Where the admission tools read the Kyverno sources and switch them.
+  - name: "ADMISSION_MONITOR_GRPC_ADDR"
+    value: "admission-monitor:8000"
   # Where the MCP keys issued in the interface are exchanged for a session of
   # the user they belong to, and where the API token tools manage tokens. The
   # scheme follows the deployment's TLS setting.

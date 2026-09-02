@@ -61,11 +61,17 @@ func TestRegister(t *testing.T) {
 		"search_admission_events": true,
 		"get_admission_event":     true,
 		"create_rule":             false,
+		"set_rule_notify_targets": false,
 		"delete_rule":             false,
 		"create_api_token":        false,
 		"delete_api_token":        false,
 		"set_admission_source":    false,
 		"create_admission_source": false,
+		// Notifications belong to neither half: a template can report either.
+		"list_notification_services":   true,
+		"list_notification_templates":  true,
+		"create_notification_service":  false,
+		"create_notification_template": false,
 	}
 
 	// The tools that belong to one half of the product, and the half they belong to.

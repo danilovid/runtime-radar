@@ -43,7 +43,7 @@ type SearchRuntimeEventsArgs struct {
 	HasThreats  *bool    `json:"has_threats,omitempty" jsonschema:"true returns only events a detector reported a threat on, false only events without threats. Omit to return both"`
 	DetectorIDs []string `json:"detector_ids,omitempty" jsonschema:"identifiers of the detectors that reported a threat, for example CS_RT_CRYPTOMINER. Exact match, no globs. Call list_detectors to discover them"`
 	Since       string   `json:"since,omitempty" jsonschema:"start of the time window, RFC3339. Defaults to 24 hours before now"`
-	Until       string   `json:"until,omitempty" jsonschema:"end of the time window, RFC3339. Defaults to now"`
+	Until       string   `json:"until,omitempty" jsonschema:"end of the time window, RFC3339. Leave it out for a window that ends now, which is almost always what is meant: setting it to the start of today excludes everything recorded today"`
 	Limit       int      `json:"limit,omitempty" jsonschema:"maximum number of events to return, 1 to 50. Defaults to 20, larger values are capped at 50"`
 }
 

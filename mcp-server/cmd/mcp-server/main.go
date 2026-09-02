@@ -100,7 +100,8 @@ func main() {
 		log.Info().Msgf("MCP keys are accepted, exchanged through %s", cfg.PublicAPIURL)
 	}
 
-	clients, closeClients, err := client.New(cfg.HistoryAPIGRPCAddr, cfg.EventProcessorGRPCAddr, cfg.PolicyEnforcerGRPCAddr, cfg.AdmissionMonitorGRPCAddr, tlsConfig)
+	clients, closeClients, err := client.New(cfg.HistoryAPIGRPCAddr, cfg.EventProcessorGRPCAddr, cfg.PolicyEnforcerGRPCAddr, cfg.AdmissionMonitorGRPCAddr,
+		cfg.NotifierGRPCAddr, tlsConfig)
 	if err != nil {
 		log.Fatal().Msgf("### Failed to connect to gRPC services: %v", err)
 	}

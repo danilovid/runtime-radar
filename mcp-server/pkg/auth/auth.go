@@ -200,9 +200,36 @@ func CreateRules() Permission {
 	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionCreate}}
 }
 
+// UpdateRules is the permission required to change a policy rule.
+func UpdateRules() Permission {
+	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionUpdate}}
+}
+
 // DeleteRules is the permission required to remove a policy rule.
 func DeleteRules() Permission {
 	return Permission{Type: jwt.PermissionRules, Actions: []jwt.Action{jwt.ActionDelete}}
+}
+
+// ReadNotifications is the permission required to list notification templates.
+func ReadNotifications() Permission {
+	return Permission{Type: jwt.PermissionNotifications, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// CreateNotifications is the permission required to add a notification template.
+func CreateNotifications() Permission {
+	return Permission{Type: jwt.PermissionNotifications, Actions: []jwt.Action{jwt.ActionCreate}}
+}
+
+// ReadIntegrations is the permission required to list the notification services
+// templates are sent through. It never exposes their credentials.
+func ReadIntegrations() Permission {
+	return Permission{Type: jwt.PermissionIntegrations, Actions: []jwt.Action{jwt.ActionRead}}
+}
+
+// CreateIntegrations is the permission required to connect a notification
+// service.
+func CreateIntegrations() Permission {
+	return Permission{Type: jwt.PermissionIntegrations, Actions: []jwt.Action{jwt.ActionCreate}}
 }
 
 // ReadAPITokens is the permission required to list the caller's API tokens.

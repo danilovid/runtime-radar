@@ -12,6 +12,7 @@ import (
 	monitor_api "github.com/runtime-radar/runtime-radar/admission-monitor/api"
 	processor_api "github.com/runtime-radar/runtime-radar/event-processor/api"
 	history_api "github.com/runtime-radar/runtime-radar/history-api/api"
+	notifier_api "github.com/runtime-radar/runtime-radar/notifier/api"
 	enf_api "github.com/runtime-radar/runtime-radar/policy-enforcer/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -23,8 +24,10 @@ const MaxRecvMsgSize = 10 * 1024 * 1024 // 10MB
 
 // New dials the services the tools read from and write to, and returns their
 // clients along with a function closing every connection.
-func New(historyAddr, processorAddr, enforcerAddr, admissionAddr string, tlsConfig *tls.Config) (*Clients, func() error, error) {
-	conns := make([]*grpc.ClientConn, 0, 4)
+func New(
+	historyAddr, processorAddr, enforcerAddr, admissionAddr, notifierAddr string, tlsConfig *tls.Config,
+) (*Clients, func() error, error) {
+	conns := make([]*grpc.ClientConn, 0, 5)
 
 	closeAll := func() error {
 		var err error
@@ -67,6 +70,14 @@ func New(historyAddr, processorAddr, enforcerAddr, admissionAddr string, tlsConf
 	}
 	conns = append(conns, admissionConn)
 
+	notifierConn, err := dial(notifierAddr, tlsConfig)
+	if err != nil {
+		_ = closeAll()
+
+		return nil, nil, fmt.Errorf("can't connect to Notifier: %w", err)
+	}
+	conns = append(conns, notifierConn)
+
 	clients := &Clients{
 		RuntimeHistory:   history_api.NewRuntimeHistoryClient(historyConn),
 		RuntimeStats:     history_api.NewRuntimeStatsClient(historyConn),
@@ -74,6 +85,8 @@ func New(historyAddr, processorAddr, enforcerAddr, admissionAddr string, tlsConf
 		Detectors:        processor_api.NewDetectorControllerClient(processorConn),
 		Rules:            enf_api.NewRuleControllerClient(enforcerConn),
 		AdmissionConfig:  monitor_api.NewConfigControllerClient(admissionConn),
+		Notifications:    notifier_api.NewNotificationControllerClient(notifierConn),
+		Integrations:     notifier_api.NewIntegrationControllerClient(notifierConn),
 	}
 
 	return clients, closeAll, nil
@@ -90,6 +103,11 @@ type Clients struct {
 	// and writes the set of Kyverno policies admission-monitor keeps applied.
 	AdmissionHistory history_api.AdmissionHistoryClient
 	AdmissionConfig  monitor_api.ConfigControllerClient
+
+	// Notifications are the templates that turn a detected threat into a
+	// message; Integrations are the services those messages go out through.
+	Notifications notifier_api.NotificationControllerClient
+	Integrations  notifier_api.IntegrationControllerClient
 }
 
 func dial(address string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {

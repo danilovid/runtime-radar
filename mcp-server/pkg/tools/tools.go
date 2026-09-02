@@ -103,6 +103,7 @@ func Register(server *mcp.Server, deps *Deps) {
 	registerDocsTools(server, deps)
 	registerRuleTools(server, deps)
 	registerAdmissionTools(server, deps)
+	registerNotificationTools(server, deps)
 
 	if deps.PublicAPI != nil {
 		registerTokenTools(server, deps)

@@ -25,7 +25,7 @@ var countableEventTypes = []string{
 // GetRuntimeStatsArgs are the arguments of get_runtime_stats.
 type GetRuntimeStatsArgs struct {
 	Since     string `json:"since,omitempty" jsonschema:"start of the time window, RFC3339. Defaults to 24 hours before now"`
-	Until     string `json:"until,omitempty" jsonschema:"end of the time window, RFC3339. Defaults to now"`
+	Until     string `json:"until,omitempty" jsonschema:"end of the time window, RFC3339. Leave it out for a window that ends now, which is almost always what is meant: setting it to the start of today excludes everything recorded today"`
 	EventType string `json:"event_type,omitempty" jsonschema:"count only events of this type: PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_TRACEPOINT, PROCESS_LOADER or PROCESS_UPROBE. Omit to also get a breakdown by type"`
 }
 

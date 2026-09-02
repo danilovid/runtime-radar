@@ -90,6 +90,22 @@ type CreateRuleResult struct {
 	Note string `json:"note" jsonschema:"what the user should check now that the rule exists"`
 }
 
+// SetRuleNotifyTargetsArgs are the arguments of set_rule_notify_targets. Only
+// the delivery is changed: what a rule matches and how loudly it reacts are not
+// things to adjust while doing something else.
+type SetRuleNotifyTargetsArgs struct {
+	ID            string   `json:"id" jsonschema:"identifier of the rule, as returned by list_rules. Required"`
+	NotifyTargets []string `json:"notify_targets" jsonschema:"identifiers of the notification services the rule sends through, as returned by list_notification_services. An empty list makes the rule fire silently. Required"`
+}
+
+// SetRuleNotifyTargetsResult is the answer of set_rule_notify_targets.
+type SetRuleNotifyTargetsResult struct {
+	ID            string   `json:"id" jsonschema:"identifier of the rule that was changed"`
+	Name          string   `json:"name" jsonschema:"name of the rule that was changed"`
+	NotifyTargets []string `json:"notify_targets" jsonschema:"the notification services the rule now sends through"`
+	Note          string   `json:"note" jsonschema:"what the user should check now"`
+}
+
 // DeleteRuleArgs are the arguments of delete_rule.
 type DeleteRuleArgs struct {
 	ID string `json:"id" jsonschema:"identifier of the rule to delete, as returned by list_rules. Required"`
@@ -125,6 +141,15 @@ func registerRuleTools(server *mcp.Server, deps *Deps) {
 			"is required. A blocking rule stops workloads, so state its scope and severity to the user and get " +
 			"their agreement before calling this.",
 	}, []auth.Permission{auth.CreateRules()}, createRule(deps))
+
+	addTool(server, deps, &mcp.Tool{
+		Name:        "set_rule_notify_targets",
+		Annotations: write("Choose where a rule sends its notifications", false),
+		Description: "Point an existing rule at the notification services it should send through, or at none. A " +
+			"rule that notifies nobody fires silently, which is the usual reason a rule looks configured and " +
+			"nothing ever arrives. This changes delivery only: it does not touch what the rule matches, its " +
+			"severities or its scope.",
+	}, []auth.Permission{auth.UpdateRules()}, setRuleNotifyTargets(deps))
 
 	addTool(server, deps, &mcp.Tool{
 		Name:        "delete_rule",
@@ -193,6 +218,53 @@ func createRule(deps *Deps) func(context.Context, CreateRuleArgs) (CreateRuleRes
 		}
 
 		return CreateRuleResult{ID: resp.GetId(), Name: rule.GetName(), Note: createdRuleNote}, nil
+	}
+}
+
+// setRuleNotifyTargets reads the rule back and writes it again with new
+// targets: the enforcer's Update takes a whole rule, and building one from the
+// arguments alone would quietly reset everything that was not passed.
+func setRuleNotifyTargets(deps *Deps) func(context.Context, SetRuleNotifyTargetsArgs) (SetRuleNotifyTargetsResult, error) {
+	return func(ctx context.Context, args SetRuleNotifyTargetsArgs) (SetRuleNotifyTargetsResult, error) {
+		id := strings.TrimSpace(args.ID)
+		if id == "" {
+			return SetRuleNotifyTargetsResult{}, fmt.Errorf("id is required")
+		}
+
+		resp, err := deps.Clients.Rules.Read(ctx, &enf_api.ReadRuleReq{Id: id})
+		if err != nil {
+			return SetRuleNotifyTargetsResult{}, fmt.Errorf("can't read the rule: %w", err)
+		}
+
+		rule := resp.GetRule()
+		if rule == nil {
+			return SetRuleNotifyTargetsResult{}, fmt.Errorf("no rule with id %s", id)
+		}
+
+		notify := rule.GetRule().GetNotify()
+		if notify == nil {
+			return SetRuleNotifyTargetsResult{}, fmt.Errorf(
+				"the rule %q does not notify at all: it has no notify severity, so there is nothing to deliver",
+				rule.GetName())
+		}
+
+		notify.Targets = args.NotifyTargets
+
+		if _, err := deps.Clients.Rules.Update(ctx, rule); err != nil {
+			return SetRuleNotifyTargetsResult{}, fmt.Errorf("can't update the rule: %w", err)
+		}
+
+		note := "the rule now sends through these services; a notification template for the event type has to exist too"
+		if len(args.NotifyTargets) == 0 {
+			note = "the rule now notifies nobody and fires silently"
+		}
+
+		return SetRuleNotifyTargetsResult{
+			ID:            id,
+			Name:          rule.GetName(),
+			NotifyTargets: args.NotifyTargets,
+			Note:          note,
+		}, nil
 	}
 }
 

@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package integration;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "./api";
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Integration API";
+  };
+};
+
+service IntegrationController {
+  rpc Create(Integration) returns (CreateIntegrationResp) {
+    option (google.api.http) = {
+      post: "/api/v1/integration"
+      body: "*"
+    };
+  }
+  rpc Read(ReadIntegrationReq) returns (Integration)  {
+    option (google.api.http) = {
+      get: "/api/v1/integration/{type}/{id}"
+    };
+  }
+  rpc Update(Integration) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      patch: "/api/v1/integration/{id}"
+      body: "*"
+    };
+  }
+  rpc Delete(DeleteIntegrationReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/integration/{type}/{id}"
+    };
+  }
+  rpc List(ListIntegrationReq) returns (ListIntegrationResp) {
+    option (google.api.http) = {
+      get: "/api/v1/integration/{type}/list"
+    };
+  }
+  rpc TestAI(TestAIReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/test"
+      body: "*"
+    };
+  }
+  rpc ExplainRuntimeEvent(ExplainRuntimeEventReq) returns (ExplainRuntimeEventResp) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/explain-runtime-event"
+      body: "*"
+    };
+  }
+  rpc ExplainAdmissionEvent(ExplainAdmissionEventReq) returns (ExplainAdmissionEventResp) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/explain-admission-event"
+      body: "*"
+    };
+  }
+}
+
+message Integration {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  // Skip check on add
+  bool skip_check = 4;
+  oneof config {
+    Email email = 5;
+    Webhook webhook = 6;
+    Syslog syslog = 7;
+    AI ai = 8;
+  }
+}
+
+message AI {
+  enum Provider {
+    PROVIDER_OPENAI_COMPATIBLE = 0;
+    PROVIDER_ANTHROPIC = 1;
+    PROVIDER_OLLAMA = 2;
+    // Qwen (DashScope), DeepSeek and GLM (Zhipu) all speak the OpenAI chat
+    // completions protocol; they are separate entries only so that the form
+    // can offer their endpoints and the operator sees what they picked.
+    PROVIDER_QWEN = 3;
+    PROVIDER_DEEPSEEK = 4;
+    PROVIDER_GLM = 5;
+  }
+
+  Provider provider = 1;
+  string base_url = 2;
+  string model = 3;
+  string api_key = 4;
+  bool is_local = 5;
+  bool insecure = 6;
+  string ca = 7;
+  // scopes limit which halves of the product the built-in assistant may reach
+  // through MCP Server: "runtime_monitor", "admission", or both. An empty list
+  // offers it every tool the signed-in user's role allows, which is what an
+  // integration created before scopes existed does.
+  repeated string scopes = 8;
+}
+
+message Email {
+  enum AuthType {
+    AUTH_TYPE_PLAIN = 0;
+    AUTH_TYPE_LOGIN = 1;
+    AUTH_TYPE_CRAM_MD5 = 2;
+    AUTH_TYPE_NONE = 3;
+  }
+
+  string from = 1;
+  string server = 2;
+  AuthType auth_type = 3;
+  string username = 4;
+  string password = 5;
+  // Send over TLS
+  bool use_tls = 6;
+  // Send with STARTTLS
+  bool use_start_tls = 7;
+  // InsecureSkipVerify
+  bool insecure = 8;
+  string ca = 9;
+}
+
+message Webhook {
+  string url = 1;
+  string login = 2;
+  string password = 3;
+  bool insecure = 4;
+  string ca = 5;
+}
+
+message Syslog {
+  string address = 1;
+}
+
+message CreateIntegrationResp {
+  string id = 1;
+}
+
+message ReadIntegrationReq {
+  string type = 1;
+  string id = 2;
+}
+
+message DeleteIntegrationReq {
+  string type = 1;
+  string id = 2;
+}
+
+message ListIntegrationReq {
+  string order = 1;
+  string type = 2;
+}
+
+message ListIntegrationResp {
+  repeated Integration integrations = 1;
+}
+
+message TestAIReq {
+  Integration integration = 1;
+}
+
+message ExplainRuntimeEventReq {
+  string integration_id = 1;
+  // Identifier of the event to explain. The event itself is read from History API.
+  string event_id = 2;
+  // Deprecated: kept only as a fallback for clients that can't be read back from
+  // History API. Client-supplied event data is never trusted when event_id is set.
+  string event_json = 3;
+}
+
+message ExplainRuntimeEventResp {
+  string summary = 1;
+  string risk = 2;
+  string possible_cause = 3;
+  repeated string next_steps = 4;
+  string raw_text = 5;
+}
+
+message ExplainAdmissionEventReq {
+  string integration_id = 1;
+  // Identifier of the finding to explain. It is read from History API rather
+  // than taken from the request, for the same reason the runtime one is.
+  string event_id = 2;
+}
+
+message ExplainAdmissionEventResp {
+  string summary = 1;
+  string risk = 2;
+  string possible_cause = 3;
+  repeated string next_steps = 4;
+  string raw_text = 5;
+}
