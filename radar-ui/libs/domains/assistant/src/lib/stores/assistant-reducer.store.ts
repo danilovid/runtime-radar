@@ -11,8 +11,10 @@ import {
     SET_ASSISTANT_ACTION_STATE_DOC_ACTION,
     SET_ASSISTANT_ACTIVE_CONVERSATION_DOC_ACTION,
     SET_ASSISTANT_ATTACHMENTS_DOC_ACTION,
+    SET_ASSISTANT_CHATS_DOC_ACTION,
     SET_ASSISTANT_INTEGRATION_DOC_ACTION,
     SET_ASSISTANT_OPEN_DOC_ACTION,
+    SET_ASSISTANT_SUGGESTIONS_DOC_ACTION,
     SET_ASSISTANT_VIEW_DOC_ACTION,
     UPDATE_ASSISTANT_TOOL_DOC_ACTION
 } from './assistant-action.store';
@@ -30,6 +32,7 @@ export const assistantInitialState: AssistantState = {
     isOpen: false,
     view: AssistantView.HOME,
     integrationId: '',
+    suggestions: [],
     conversations: [],
     activeConversationId: '',
     isStreaming: false,
@@ -126,17 +129,27 @@ export const assistantReducer = createReducer(
     ),
     // An answer that stopped to ask for approval is not an error: the action
     // card it carries is the thing the user is meant to act on.
-    on(FINISH_ASSISTANT_MESSAGE_DOC_ACTION, (state, { stopReason, error }) => ({
-        ...updateLastMessage(state, (message) => ({
-            ...message,
-            isPending: false,
-            stopReason: stopReason ?? (error ? AssistantStopReason.ERROR : message.stopReason),
-            error: error ?? message.error,
-            // A tool left running when the answer ended never reported back.
-            tools: message.tools.map((tool) => ({ ...tool, isRunning: false }))
-        })),
-        isStreaming: false
-    })),
+    on(FINISH_ASSISTANT_MESSAGE_DOC_ACTION, (state, { stopReason, error, chatId }) => {
+        const finished = {
+            ...updateLastMessage(state, (message) => ({
+                ...message,
+                isPending: false,
+                stopReason: stopReason ?? (error ? AssistantStopReason.ERROR : message.stopReason),
+                error: error ?? message.error,
+                // A tool left running when the answer ended never reported back.
+                tools: message.tools.map((tool) => ({ ...tool, isRunning: false }))
+            })),
+            isStreaming: false
+        };
+
+        // Where the server stored the turn, so that the next one continues the
+        // same conversation instead of starting another.
+        if (!chatId) {
+            return finished;
+        }
+
+        return updateActive(finished, (conversation) => ({ ...conversation, chatId }));
+    }),
     on(SET_ASSISTANT_ATTACHMENTS_DOC_ACTION, (state, { attachments }) => ({
         ...state,
         pendingAttachments: attachments
@@ -154,6 +167,10 @@ export const assistantReducer = createReducer(
             )
         }))
     ),
+    on(SET_ASSISTANT_SUGGESTIONS_DOC_ACTION, (state, { suggestions }) => ({ ...state, suggestions })),
+    // The stored conversations replace what this tab held: the server is the
+    // record, and a tab that has just opened has nothing of its own to keep.
+    on(SET_ASSISTANT_CHATS_DOC_ACTION, (state, { conversations }) => ({ ...state, conversations })),
     on(ADD_ASSISTANT_SECRET_DOC_ACTION, (state, { secret }) =>
         updateLastMessage(state, (message) => ({ ...message, secrets: [...message.secrets, secret] }))
     )

@@ -1,7 +1,6 @@
 import { NavigationMenu } from '../interfaces/core-navigation.interface';
 import { RouterName } from './core-router.constant';
 
-// If navigation items are going to be changed, it needs to update $menu-height into navbar component.
 export const NAVIGATION: NavigationMenu[] = [
     {
         path: RouterName.DEFAULT,

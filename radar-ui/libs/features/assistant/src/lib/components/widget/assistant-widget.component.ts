@@ -71,7 +71,10 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
 
     readonly tourTopics = ASSISTANT_TOUR_TOPICS;
 
-    readonly suggestions = ASSISTANT_SUGGESTION_KEYS;
+    /** The canned questions, used until the model has proposed its own. */
+    readonly fallbackSuggestions = ASSISTANT_SUGGESTION_KEYS;
+
+    readonly suggestions$: Observable<string[]> = this.assistantStoreService.suggestions$;
 
     readonly attachmentAccept = ASSISTANT_ATTACHMENT_ACCEPT;
 
@@ -97,6 +100,11 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
     ) {}
 
     ngOnInit() {
+        // The widget is part of the shell, so the conversations are read back
+        // here rather than by the chats page: they have to survive a reload
+        // wherever the user happens to be.
+        this.assistantStoreService.loadChats();
+
         // The integrations page loads these through its route guard, and the
         // widget is on every page, so it asks for them once itself.
         if (this.canReadIntegrations) {
@@ -194,6 +202,20 @@ export class AssistantFeatureWidgetComponent implements OnInit, AfterViewChecked
      */
     askKey(localizationKey: string) {
         this.assistantStoreService.startChat(this.i18nService.translate(localizationKey));
+    }
+
+    /**
+     * Asks a follow-up inside the conversation already on screen. The
+     * suggestions are shown under an answer and refer to it — "what do I do
+     * with this?" means nothing in a chat that has just been started.
+     */
+    askInThread(localizationKey: string) {
+        this.ask(this.i18nService.translate(localizationKey));
+    }
+
+    /** Asks a question already written out, as the model's follow-ups are. */
+    ask(question: string) {
+        this.assistantStoreService.send(question);
     }
 
     openChatsPage() {

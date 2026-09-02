@@ -122,16 +122,17 @@
         </section>
 
         <section class="kbq-form__row kbq-form-row_margin">
-            <kbq-checkbox-group formControlName="scopes"
-                                class="layout-column integration-feature-ai-form-scopes"
-                                data-testid="integration-ai-scopes-checkbox-group">
+            <div class="layout-column integration-feature-ai-form-scopes"
+                 data-testid="integration-ai-scopes-checkbox-group">
                 @for (scope of scopeOptions; track scope.id) {
-                    <kbq-checkbox [value]="scope.id" [attr.data-testid]="scope.id">
+                    <kbq-checkbox [checked]="isScopeSelected(scope.id)"
+                                  (change)="toggleScope(scope.id)"
+                                  [attr.data-testid]="scope.id">
                         {{ tIntegration(scope.localizationKey) }}
                         <div class="kbq-text-compact cs-text-gray">{{ tIntegration(scope.descriptionLocalizationKey) }}</div>
                     </kbq-checkbox>
                 }
-            </kbq-checkbox-group>
+            </div>
         </section>
 
         <section class="kbq-form__row">

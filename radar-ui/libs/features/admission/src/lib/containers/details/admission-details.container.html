@@ -26,12 +26,34 @@
         }
 
         @if (event$ | async; as event) {
+            @if (hasIntegration$ | async) {
+                <div class="layout-row admission-feature-details-actions">
+                    <button kbq-button
+                            kbqStyle="outline"
+                            color="theme-fade"
+                            type="button"
+                            class="layout-margin-right-s"
+                            (click)="explainEvent(event)"
+                            data-testid="admission-details-explain-event-button">
+                        {{ tAdmission('Admission.DetailsPage.Button.ExplainEvent') }}
+                    </button>
+                    <button kbq-button
+                            kbqStyle="transparent"
+                            color="theme"
+                            type="button"
+                            (click)="askAssistant(event)"
+                            data-testid="admission-details-ask-assistant-button">
+                        {{ tAdmission('Admission.DetailsPage.Button.AskAssistant') }}
+                    </button>
+                </div>
+            }
+
             <section class="admission-feature-details-card">
                 <div class="layout-row admission-feature-details-row">
                     <span class="kbq-text-compact cs-text-gray admission-feature-details-row-label">
                         {{ tAdmission('Admission.DetailsPage.Label.RegisteredAt') }}
                     </span>
-                    <span class="kbq-text-normal">{{ event.registered_at | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
+                    <span class="kbq-text-normal">{{ event.registered_at | dateFormatter: dateTimeFullFormat }}</span>
                 </div>
 
                 <div class="layout-row admission-feature-details-row">

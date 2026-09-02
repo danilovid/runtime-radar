@@ -5,6 +5,7 @@ import {
     AssistantActionState,
     AssistantAttachment,
     AssistantConversation,
+    AssistantEventKind,
     AssistantMessage,
     AssistantMode,
     AssistantSecret,
@@ -15,7 +16,7 @@ import {
 
 export const OPEN_ASSISTANT_TODO_ACTION = createAction(
     '[Assistant] Open',
-    props<{ eventId?: string; question?: string; mode?: AssistantMode }>()
+    props<{ eventId?: string; eventKind?: AssistantEventKind; question?: string; mode?: AssistantMode }>()
 );
 
 export const CLOSE_ASSISTANT_TODO_ACTION = createAction('[Assistant] Close');
@@ -25,7 +26,7 @@ export const SHOW_ASSISTANT_VIEW_TODO_ACTION = createAction('[Assistant] Show Vi
 /** Starts a conversation, optionally asking its first question straight away. */
 export const START_ASSISTANT_CHAT_TODO_ACTION = createAction(
     '[Assistant] Start Chat',
-    props<{ question?: string; eventId?: string; mode?: AssistantMode }>()
+    props<{ question?: string; eventId?: string; eventKind?: AssistantEventKind; mode?: AssistantMode }>()
 );
 
 /**
@@ -114,7 +115,15 @@ export const UPDATE_ASSISTANT_TOOL_DOC_ACTION = createAction(
 
 export const FINISH_ASSISTANT_MESSAGE_DOC_ACTION = createAction(
     '[Assistant] (Doc) Finish Message',
-    props<{ stopReason?: AssistantStopReason; error?: string }>()
+    props<{ stopReason?: AssistantStopReason; error?: string; chatId?: string }>()
+);
+
+/** The conversations the server keeps for this user, read back on load. */
+export const LOAD_ASSISTANT_CHATS_TODO_ACTION = createAction('[Assistant] (Todo) Load Chats');
+
+export const SET_ASSISTANT_CHATS_DOC_ACTION = createAction(
+    '[Assistant] (Doc) Set Chats',
+    props<{ conversations: AssistantConversation[] }>()
 );
 
 export const SET_ASSISTANT_ATTACHMENTS_DOC_ACTION = createAction(
@@ -131,6 +140,12 @@ export const SET_ASSISTANT_ACTION_DOC_ACTION = createAction(
 export const SET_ASSISTANT_ACTION_STATE_DOC_ACTION = createAction(
     '[Assistant] (Doc) Set Action State',
     props<{ messageId: string; state: AssistantActionState }>()
+);
+
+/** Follow-up questions the model proposed for the answer just given. */
+export const SET_ASSISTANT_SUGGESTIONS_DOC_ACTION = createAction(
+    '[Assistant] (Doc) Set Suggestions',
+    props<{ suggestions: string[] }>()
 );
 
 /** A credential an approved action produced, delivered to the user only. */

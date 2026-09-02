@@ -21,6 +21,11 @@ export const getAssistantIntegrationId = createSelector(
     (state: AssistantState) => state.integrationId
 );
 
+export const getAssistantSuggestions = createSelector(
+    selectAssistantState,
+    (state: AssistantState) => state.suggestions
+);
+
 export const getAssistantConversations = createSelector(
     selectAssistantState,
     (state: AssistantState) => state.conversations

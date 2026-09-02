@@ -5,66 +5,86 @@
                 <h1 class="assistant-chats__title">{{ tAssistant('Assistant.Page.Title') }}</h1>
                 <p class="assistant-chats__subtitle">{{ tAssistant('Assistant.Page.Subtitle') }}</p>
             </div>
-            <button type="button"
-                    class="assistant-chats__primary"
-                    (click)="startChat()"
-                    data-testid="assistant-page-new-chat">
-                {{ tAssistant('Assistant.Widget.Button.NewChat') }}
-            </button>
-        </header>
-
-        <div class="assistant-chats__label">{{ tAssistant('Assistant.Widget.Label.PopularActions') }}</div>
-        <div class="assistant-chats__actions">
-            @for (action of quickActions; track action.titleKey) {
-                <button type="button" class="assistant-chats__action" (click)="askKey(action.titleKey)">
-                    <span class="assistant-chats__action-title">{{ tAssistant(action.titleKey) }}</span>
-                    <span class="assistant-chats__action-hint">{{ tAssistant(action.hintKey) }}</span>
+            @if (hasIntegration$ | async) {
+                <button type="button"
+                        class="assistant-chats__primary"
+                        (click)="startChat()"
+                        data-testid="assistant-page-new-chat">
+                    {{ tAssistant('Assistant.Widget.Button.NewChat') }}
                 </button>
             }
-        </div>
+        </header>
 
-        <div class="assistant-chats__label">{{ tAssistant('Assistant.Page.Label.Recent') }}</div>
+        @if ((hasIntegration$ | async) === false) {
+            <cs-empty-screen-component
+                    imageUrl="/assets/koobiq/light/folder-plus_256@2x.png"
+                    [title]="tAssistant('Assistant.Page.SubHeading.NoIntegration')"
+                    [description]="canReadIntegrations
+                        ? tAssistant('Assistant.Page.Text.NoIntegration')
+                        : tAssistant('Assistant.Page.Text.NoIntegrationForbidden')">
+                @if (canReadIntegrations) {
+                    <button type="button"
+                            class="assistant-chats__primary"
+                            (click)="openIntegrations()"
+                            data-testid="assistant-page-open-integrations">
+                        {{ tAssistant('Assistant.Page.Button.OpenIntegrations') }}
+                    </button>
+                }
+            </cs-empty-screen-component>
+        } @else {
+            <div class="assistant-chats__label">{{ tAssistant('Assistant.Widget.Label.PopularActions') }}</div>
+            <div class="assistant-chats__actions">
+                @for (action of quickActions; track action.titleKey) {
+                    <button type="button" class="assistant-chats__action" (click)="askKey(action.titleKey)">
+                        <span class="assistant-chats__action-title">{{ tAssistant(action.titleKey) }}</span>
+                        <span class="assistant-chats__action-hint">{{ tAssistant(action.hintKey) }}</span>
+                    </button>
+                }
+            </div>
 
-        @if (conversations$ | async; as conversations) {
-            @if (conversations.length) {
-                <table class="assistant-chats__table">
-                    <thead>
-                        <tr>
-                            <th>{{ tAssistant('Assistant.Page.Column.Chat') }}</th>
-                            <th>{{ tAssistant('Assistant.Page.Column.Messages') }}</th>
-                            <th>{{ tAssistant('Assistant.Page.Column.Date') }}</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (conversation of conversations; track conversation.id) {
-                            <tr class="assistant-chats__row"
-                                (click)="openConversation(conversation.id)"
-                                data-testid="assistant-page-row">
-                                <td>
-                                    <div class="assistant-chats__row-title">
-                                        {{ conversation.title || tAssistant('Assistant.Page.Text.Untitled') }}
-                                    </div>
-                                    <div class="assistant-chats__row-snippet">{{ snippet(conversation) }}</div>
-                                </td>
-                                <td>{{ conversation.messages.length }}</td>
-                                <td>{{ conversation.updatedAt | date: 'yyyy-MM-dd HH:mm' }}</td>
-                                <td>
-                                    <button type="button"
-                                            class="assistant-chats__delete"
-                                            (click)="deleteConversation($event, conversation.id)">
-                                        {{ tAssistant('Assistant.Page.Button.Delete') }}
-                                    </button>
-                                </td>
+            <div class="assistant-chats__label">{{ tAssistant('Assistant.Page.Label.Recent') }}</div>
+
+            @if (conversations$ | async; as conversations) {
+                @if (conversations.length) {
+                    <table class="assistant-chats__table">
+                        <thead>
+                            <tr>
+                                <th>{{ tAssistant('Assistant.Page.Column.Chat') }}</th>
+                                <th>{{ tAssistant('Assistant.Page.Column.Messages') }}</th>
+                                <th>{{ tAssistant('Assistant.Page.Column.Date') }}</th>
+                                <th></th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            } @else {
-                <div class="assistant-chats__empty">{{ tAssistant('Assistant.Page.Text.Empty') }}</div>
+                        </thead>
+                        <tbody>
+                            @for (conversation of conversations; track conversation.id) {
+                                <tr class="assistant-chats__row"
+                                    (click)="openConversation(conversation.id)"
+                                    data-testid="assistant-page-row">
+                                    <td>
+                                        <div class="assistant-chats__row-title">
+                                            {{ conversation.title || tAssistant('Assistant.Page.Text.Untitled') }}
+                                        </div>
+                                        <div class="assistant-chats__row-snippet">{{ snippet(conversation) }}</div>
+                                    </td>
+                                    <td>{{ conversation.messages.length }}</td>
+                                    <td>{{ conversation.updatedAt | dateFormatter: dateTimeShortFormat }}</td>
+                                    <td>
+                                        <button type="button"
+                                                class="assistant-chats__delete"
+                                                (click)="deleteConversation($event, conversation.id)">
+                                            {{ tAssistant('Assistant.Page.Button.Delete') }}
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                } @else {
+                    <div class="assistant-chats__empty">{{ tAssistant('Assistant.Page.Text.Empty') }}</div>
+                }
             }
-        }
 
-        <p class="assistant-chats__note">{{ tAssistant('Assistant.Page.Text.NotPersisted') }}</p>
+            <p class="assistant-chats__note">{{ tAssistant('Assistant.Page.Text.NotPersisted') }}</p>
+        }
     </section>
 </ng-container>

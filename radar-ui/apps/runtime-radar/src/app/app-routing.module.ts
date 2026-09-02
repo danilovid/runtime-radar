@@ -49,8 +49,15 @@ const routes: Routes = [
         path: RouterName.CHATS,
         loadChildren: () => import('@cs/features/assistant').then((m) => m.AssistantPageFeatureModule),
         canActivate: [authSuccessRouteActivateGuard, i18nTranslationActivateGuard],
+        resolve: {
+            permissions: rolePermissionsResolver
+        },
         data: {
-            translateDicts: [TranslationDict.ASSISTANT]
+            // Without an AI integration the page has nothing to answer with, so it
+            // offers a way to the page where one is added. The permission decides
+            // whether that offer is a link or just an explanation.
+            translateDicts: [TranslationDict.ASSISTANT],
+            permissions: [PermissionName.INTEGRATIONS]
         }
     },
     {
@@ -145,7 +152,9 @@ const routes: Routes = [
         },
         data: {
             translateDicts: [TranslationDict.MCP_KEY],
-            permissions: [PermissionName.TOKENS],
+            // The create form offers a key the permissions its own tools need, so every one of
+            // them has to be resolved, not just the permission that guards the page.
+            permissions: [PermissionName.RULES, PermissionName.EVENTS, PermissionName.SYSTEM, PermissionName.TOKENS],
             guards: [PermissionName.TOKENS]
         }
     },

@@ -1,4 +1,4 @@
-<ng-container *transloco="let tMcpKey; prefix: 'mcp-key'">
+<ng-container *transloco="let tMcpKey; prefix: 'mcpKey'">
     <kbq-sidepanel-header [closeable]="true">{{ tMcpKey('McpKey.CreateForm.Title.Create') }}</kbq-sidepanel-header>
 
     <kbq-sidepanel-body>
@@ -64,16 +64,17 @@
             </section>
 
             <section class="kbq-form__row kbq-form-row_margin">
-                <kbq-checkbox-group formControlName="scopes"
-                                    class="layout-column mcp-key-feature-sidepanel-form-scopes"
-                                    data-testid="mcp-key-scopes-checkbox-group">
+                <div class="layout-column mcp-key-feature-sidepanel-form-scopes"
+                     data-testid="mcp-key-scopes-checkbox-group">
                     @for (scope of mcpKeyScopeOptions; track scope.id) {
-                        <kbq-checkbox [value]="scope.id" [attr.data-testid]="scope.id">
+                        <kbq-checkbox [checked]="isScopeSelected(scope.id)"
+                                      (change)="toggleScope(scope.id)"
+                                      [attr.data-testid]="scope.id">
                             {{ tMcpKey(scope.localizationKey) }}
                             <div class="kbq-text-compact cs-text-gray">{{ tMcpKey(scope.descriptionLocalizationKey) }}</div>
                         </kbq-checkbox>
                     }
-                </kbq-checkbox-group>
+                </div>
             </section>
 
             <section class="kbq-form__row kbq-form-row_margin">

@@ -12,6 +12,11 @@ export interface AssistantState {
     /** The AI integration answering. Empty until one is picked or defaulted. */
     integrationId: string;
     /**
+     * Follow-up questions the model proposed for the answer on screen. They are
+     * replaced on every turn and are empty until one has been answered.
+     */
+    suggestions: string[];
+    /**
      * Every conversation of this session, newest first. They live for as long
      * as the page does — the chats page reads them from here.
      *

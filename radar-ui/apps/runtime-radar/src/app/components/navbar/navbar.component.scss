@@ -1,5 +1,3 @@
-$menu-height: 1 * 60px + 5 * 35px + 90px + 50px; // title + children + logo + userbar
-
 :host {
     display: block;
     position: relative;
@@ -13,8 +11,12 @@ $menu-height: 1 * 60px + 5 * 35px + 90px + 50px; // title + children + logo + us
 }
 
 .navbar {
+    // A column so that the footer can be pushed below whatever the menu holds.
+    // It used to be positioned at a height computed from the number of menu
+    // items, which left it covering the last one whenever an item was added.
+    display: flex;
+    flex-direction: column;
     width: 170px;
-    min-height: $menu-height + 70px;
 
     @media (min-height: 600px) {
         position: sticky;
@@ -167,9 +169,7 @@ $menu-height: 1 * 60px + 5 * 35px + 90px + 50px; // title + children + logo + us
 
     &-footer {
         width: 100%;
-        height: calc(100% - $menu-height);
-        position: absolute;
-        top: $menu-height;
+        margin-top: auto;
 
         .active {
             background-color: #e5e9ed; // @todo: replace to koobiq token

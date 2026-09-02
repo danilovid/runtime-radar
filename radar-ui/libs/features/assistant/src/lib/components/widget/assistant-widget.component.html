@@ -207,13 +207,25 @@
 
                                     @if (rxlet.messages.length && !rxlet.isStreaming) {
                                         <div class="assistant-thread__suggestions">
-                                            @for (suggestion of suggestions; track suggestion) {
-                                                <button type="button"
-                                                        class="assistant-thread__suggestion"
-                                                        (click)="askKey(suggestion)"
-                                                        data-testid="assistant-suggestion">
-                                                    {{ tAssistant(suggestion) }}
-                                                </button>
+                                            @if (suggestions$ | async; as followUps) {
+                                                @for (followUp of followUps; track followUp) {
+                                                    <button type="button"
+                                                            class="assistant-thread__suggestion"
+                                                            (click)="ask(followUp)"
+                                                            data-testid="assistant-suggestion">
+                                                        {{ followUp }}
+                                                    </button>
+                                                }
+                                                @if (!followUps.length) {
+                                                    @for (suggestion of fallbackSuggestions; track suggestion) {
+                                                        <button type="button"
+                                                                class="assistant-thread__suggestion"
+                                                                (click)="askInThread(suggestion)"
+                                                                data-testid="assistant-suggestion">
+                                                            {{ tAssistant(suggestion) }}
+                                                        </button>
+                                                    }
+                                                }
                                             }
                                         </div>
                                     }

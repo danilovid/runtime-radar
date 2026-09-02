@@ -135,6 +135,20 @@ export class IntegrationFeatureAIFormComponent implements AfterViewInit, OnInit 
             });
     }
 
+    /** Whether the assistant is limited to the given half of the product. */
+    isScopeSelected(scope: IntegrationAIScope): boolean {
+        return (this.form.controls.scopes.value ?? []).includes(scope);
+    }
+
+    // The checkboxes carry a list rather than a boolean each, so the control is
+    // maintained by hand: there is no form control for a single scope to bind.
+    toggleScope(scope: IntegrationAIScope) {
+        const control = this.form.controls.scopes;
+        const selected = control.value ?? [];
+
+        control.setValue(selected.includes(scope) ? selected.filter((item) => item !== scope) : [...selected, scope]);
+    }
+
     ngAfterViewInit() {
         if (this.values) {
             this.form.patchValue({

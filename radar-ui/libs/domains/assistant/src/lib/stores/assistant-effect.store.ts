@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Action, Store } from '@ngrx/store';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { EMPTY, Observable, concat, from, of } from 'rxjs';
 import { KbqToastService, KbqToastStyle } from '@koobiq/components/toast';
-import { Observable, concat, from, of } from 'rxjs';
 import { catchError, filter, map, mergeMap, switchMap, withLatestFrom } from 'rxjs/operators';
 
 import { I18nService } from '@cs/i18n';
@@ -22,6 +22,7 @@ import {
     DELETE_ASSISTANT_CONVERSATION_DOC_ACTION,
     DELETE_ASSISTANT_CONVERSATION_TODO_ACTION,
     FINISH_ASSISTANT_MESSAGE_DOC_ACTION,
+    LOAD_ASSISTANT_CHATS_TODO_ACTION,
     OPEN_ASSISTANT_CONVERSATION_TODO_ACTION,
     OPEN_ASSISTANT_TODO_ACTION,
     REMOVE_ASSISTANT_ATTACHMENT_TODO_ACTION,
@@ -31,8 +32,10 @@ import {
     SET_ASSISTANT_ACTION_STATE_DOC_ACTION,
     SET_ASSISTANT_ACTIVE_CONVERSATION_DOC_ACTION,
     SET_ASSISTANT_ATTACHMENTS_DOC_ACTION,
+    SET_ASSISTANT_CHATS_DOC_ACTION,
     SET_ASSISTANT_INTEGRATION_DOC_ACTION,
     SET_ASSISTANT_OPEN_DOC_ACTION,
+    SET_ASSISTANT_SUGGESTIONS_DOC_ACTION,
     SET_ASSISTANT_VIEW_DOC_ACTION,
     SHOW_ASSISTANT_VIEW_TODO_ACTION,
     START_ASSISTANT_CHAT_TODO_ACTION,
@@ -45,14 +48,17 @@ import {
     AssistantChatMessageRequest,
     AssistantChatRequest,
     AssistantConversation,
+    AssistantEventKind,
     AssistantMessage,
     AssistantMode,
     AssistantRole,
     AssistantState,
-    AssistantStopReason
+    AssistantStopReason,
+    AssistantStoredChat
 } from '../interfaces';
 import {
     getAssistantActiveConversation,
+    getAssistantConversations,
     getAssistantIntegrationId,
     getAssistantPendingAttachments
 } from './assistant-selector.store';
@@ -77,7 +83,9 @@ export class AssistantEffectStore {
         this.actions$.pipe(
             ofType(OPEN_ASSISTANT_TODO_ACTION),
             filter(({ question, eventId }) => !!question || !!eventId),
-            map(({ question, eventId, mode }) => START_ASSISTANT_CHAT_TODO_ACTION({ question, eventId, mode }))
+            map(({ question, eventId, eventKind, mode }) =>
+                START_ASSISTANT_CHAT_TODO_ACTION({ question, eventId, eventKind, mode })
+            )
         )
     );
 
@@ -98,7 +106,7 @@ export class AssistantEffectStore {
     readonly startChat$: Observable<Action> = createEffect(() =>
         this.actions$.pipe(
             ofType(START_ASSISTANT_CHAT_TODO_ACTION),
-            mergeMap(({ question, eventId, mode }) => {
+            mergeMap(({ question, eventId, eventKind, mode }) => {
                 const now = new Date().toISOString();
                 const conversation: AssistantConversation = {
                     id: this.identifier(),
@@ -107,6 +115,8 @@ export class AssistantEffectStore {
                     updatedAt: now,
                     messages: [],
                     eventId: eventId ?? '',
+                    eventKind: eventKind ?? AssistantEventKind.RUNTIME,
+                    chatId: '',
                     mode: mode ?? AssistantMode.CHAT
                 };
 
@@ -127,10 +137,71 @@ export class AssistantEffectStore {
         )
     );
 
+    // A conversation is deleted where it is kept. It leaves the screen either
+    // way: a chat the server could not drop is still one the user asked to be
+    // rid of, and it will come back on the next load rather than be lost.
     readonly deleteConversation$: Observable<Action> = createEffect(() =>
         this.actions$.pipe(
             ofType(DELETE_ASSISTANT_CONVERSATION_TODO_ACTION),
-            map(({ conversationId }) => DELETE_ASSISTANT_CONVERSATION_DOC_ACTION({ conversationId }))
+            withLatestFrom(this.store.select(getAssistantConversations)),
+            mergeMap(([{ conversationId }, conversations]) => {
+                const chatId = conversations.find((item) => item.id === conversationId)?.chatId;
+                const removed = DELETE_ASSISTANT_CONVERSATION_DOC_ACTION({ conversationId });
+
+                if (!chatId) {
+                    return of(removed);
+                }
+
+                return this.assistantRequestService.deleteChat(chatId).pipe(
+                    map(() => removed),
+                    catchError(() => of(removed))
+                );
+            })
+        )
+    );
+
+    /** Reads back what the server kept, so a reload does not lose the chats. */
+    readonly loadChats$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(LOAD_ASSISTANT_CHATS_TODO_ACTION),
+            switchMap(() =>
+                this.assistantRequestService.listChats().pipe(
+                    map((response) =>
+                        SET_ASSISTANT_CHATS_DOC_ACTION({
+                            conversations: (response.chats ?? []).map((chat) => storedChat(chat))
+                        })
+                    ),
+                    // A listing that fails leaves the tab with what it has;
+                    // there is nothing useful to tell the user about it.
+                    catchError(() => of(SET_ASSISTANT_CHATS_DOC_ACTION({ conversations: [] })))
+                )
+            )
+        )
+    );
+
+    /** Loads the turns of a stored conversation the first time it is opened. */
+    readonly readChat$: Observable<Action> = createEffect(() =>
+        this.actions$.pipe(
+            ofType(OPEN_ASSISTANT_CONVERSATION_TODO_ACTION),
+            withLatestFrom(this.store.select(getAssistantConversations)),
+            mergeMap(([{ conversationId }, conversations]) => {
+                const conversation = conversations.find((item) => item.id === conversationId);
+
+                if (!conversation?.chatId || conversation.messages.length) {
+                    return EMPTY;
+                }
+
+                return this.assistantRequestService.readChat(conversation.chatId).pipe(
+                    map((response) =>
+                        SET_ASSISTANT_CHATS_DOC_ACTION({
+                            conversations: conversations.map((item) =>
+                                item.id === conversationId && response.chat ? storedChat(response.chat) : item
+                            )
+                        })
+                    ),
+                    catchError(() => EMPTY)
+                );
+            })
         )
     );
 
@@ -215,7 +286,10 @@ export class AssistantEffectStore {
                     this.stream({
                         integration_id: integrationId,
                         conversation: this.payload([...history, question]),
-                        ...(conversation?.eventId ? { event_id: conversation.eventId } : {}),
+                        ...(conversation?.eventId
+                            ? { event_id: conversation.eventId, event_kind: conversation.eventKind }
+                            : {}),
+                        ...(conversation?.chatId ? { chat_id: conversation.chatId } : {}),
                         ...(conversation?.mode ? { mode: conversation.mode } : {})
                     })
                 );
@@ -249,7 +323,10 @@ export class AssistantEffectStore {
                         integration_id: integrationId,
                         conversation: this.payload(conversation?.messages ?? []),
                         confirm_id: actionId,
-                        ...(conversation?.eventId ? { event_id: conversation.eventId } : {}),
+                        ...(conversation?.eventId
+                            ? { event_id: conversation.eventId, event_kind: conversation.eventKind }
+                            : {}),
+                        ...(conversation?.chatId ? { chat_id: conversation.chatId } : {}),
                         ...(conversation?.mode ? { mode: conversation.mode } : {})
                     })
                 );
@@ -351,9 +428,14 @@ export class AssistantEffectStore {
             return ADD_ASSISTANT_SECRET_DOC_ACTION({ secret: chunk.secret });
         }
 
+        if (chunk.suggestions) {
+            return SET_ASSISTANT_SUGGESTIONS_DOC_ACTION({ suggestions: chunk.suggestions.questions ?? [] });
+        }
+
         if (chunk.done) {
             return FINISH_ASSISTANT_MESSAGE_DOC_ACTION({
                 stopReason: chunk.done.stop_reason as AssistantStopReason,
+                chatId: chunk.done.chat_id,
                 error: chunk.done.error
             });
         }
@@ -364,4 +446,31 @@ export class AssistantEffectStore {
     private identifier(): string {
         return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     }
+}
+
+/**
+ * A stored conversation as the widget holds it. The server's identifier is kept
+ * in both fields: the list is keyed by id, and chatId is what the next turn and
+ * a delete are addressed to.
+ */
+function storedChat(chat: AssistantStoredChat): AssistantConversation {
+    return {
+        id: chat.id,
+        chatId: chat.id,
+        title: chat.title,
+        createdAt: chat.created_at,
+        updatedAt: chat.updated_at,
+        eventId: chat.event_id ?? '',
+        eventKind: (chat.event_kind as AssistantEventKind) || AssistantEventKind.RUNTIME,
+        mode: (chat.mode as AssistantMode) || AssistantMode.CHAT,
+        messages: (chat.messages ?? []).map((message, index) => ({
+            id: `${chat.id}-${index}`,
+            role: message.role as AssistantRole,
+            content: message.content,
+            tools: [],
+            attachments: [],
+            secrets: [],
+            isPending: false
+        }))
+    };
 }

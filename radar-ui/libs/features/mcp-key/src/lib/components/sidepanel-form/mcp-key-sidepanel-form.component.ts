@@ -183,6 +183,20 @@ export class McpKeyFeatureSidepanelFormComponent implements OnInit {
         this.permissionsFormGroup.addControl(McpKeyPermissionName.SYSTEM_SETTINGS, systemSettingsPermissionsForm);
     }
 
+    /** Whether the key is limited to the given half of the product. */
+    isScopeSelected(scope: McpKeyScope): boolean {
+        return (this.form.controls.scopes.value ?? []).includes(scope);
+    }
+
+    // The checkboxes carry a list rather than a boolean each, so the control is
+    // maintained by hand: there is no form control for a single scope to bind.
+    toggleScope(scope: McpKeyScope) {
+        const control = this.form.controls.scopes;
+        const selected = control.value ?? [];
+
+        control.setValue(selected.includes(scope) ? selected.filter((item) => item !== scope) : [...selected, scope]);
+    }
+
     confirm() {
         const formValues = utils.getFormValues<McpKeyForm>(this.form.controls);
         this.sidepanelRef.close(utils.getTrimmedFormValues<McpKeyForm>(formValues));

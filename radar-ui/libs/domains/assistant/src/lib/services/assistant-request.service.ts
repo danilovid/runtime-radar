@@ -1,12 +1,19 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { ApiPathService } from '@cs/api';
 import { CoreWindowService } from '@cs/core';
+import { ApiEmptyRequest, ApiPathService, ApiService } from '@cs/api';
 
-import { AssistantChatChunk, AssistantChatRequest, AssistantChatStreamEnvelope } from '../interfaces';
+import {
+    AssistantChatChunk,
+    AssistantChatRequest,
+    AssistantChatResponse,
+    AssistantChatStreamEnvelope,
+    AssistantChatsResponse
+} from '../interfaces';
 
 const ASSISTANT_CHAT_PATH = 'assistant/chat';
+const ASSISTANT_CHATS_PATH = 'assistant/chats';
 
 // The header the access token is sent in, which is also the key it is stored
 // under. It mirrors AuthTokenName.ACCESS from @cs/domains/auth, which is
@@ -28,8 +35,23 @@ const AUTHORIZATION_HEADER = 'Authorization';
 export class AssistantRequestService {
     constructor(
         private readonly apiPathService: ApiPathService,
+        private readonly apiService: ApiService,
         private readonly coreWindowService: CoreWindowService
     ) {}
+
+    /** The conversations of the signed-in user, newest first, without turns. */
+    listChats(): Observable<AssistantChatsResponse> {
+        return this.apiService.get<ApiEmptyRequest, AssistantChatsResponse>(ASSISTANT_CHATS_PATH);
+    }
+
+    /** One conversation with every turn of it. */
+    readChat(id: string): Observable<AssistantChatResponse> {
+        return this.apiService.get<ApiEmptyRequest, AssistantChatResponse>(`${ASSISTANT_CHAT_PATH}/${id}`);
+    }
+
+    deleteChat(id: string): Observable<unknown> {
+        return this.apiService.delete<unknown>(`${ASSISTANT_CHAT_PATH}/${id}`);
+    }
 
     /**
      * Streams the answer to one question. Unsubscribing aborts the request,

@@ -62,6 +62,10 @@
                 &-list {
                     gap: 32px;
                     margin-top: 16px;
+                    // The process card shares its row with the assistant
+                    // buttons, so the columns wrap onto the next line rather
+                    // than being squeezed to nothing.
+                    flex-wrap: wrap;
 
                     .kbq-dd {
                         word-wrap: break-word;
@@ -74,7 +78,10 @@
                     }
 
                     &-dlb {
-                        grid-template-columns: 135px 1fr;
+                        // A timestamp is one unbreakable token: without a floor
+                        // under the value column, break-word tears it into
+                        // single characters down the page.
+                        grid-template-columns: 135px minmax(200px, 1fr);
                     }
                 }
             }

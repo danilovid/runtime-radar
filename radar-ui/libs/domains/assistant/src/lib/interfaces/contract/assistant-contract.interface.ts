@@ -13,12 +13,15 @@ export interface AssistantChatRequest {
     integration_id: string;
     conversation: AssistantChatMessageRequest[];
     event_id?: string;
+    event_kind?: string;
     mode?: AssistantMode;
     /**
      * Approval of the action the assistant proposed in the previous turn. It is
      * the only way a tool that changes anything is ever run.
      */
     confirm_id?: string;
+    /** The stored conversation this turn belongs to. Empty starts a new one. */
+    chat_id?: string;
 }
 
 export interface AssistantConfirmationResponse {
@@ -45,16 +48,44 @@ export interface AssistantDoneResponse {
     stop_reason: string;
     error?: string;
     iterations?: number;
+    /** Where the turn was stored, so that the next one continues it. */
+    chat_id?: string;
 }
 
 /**
  * One chunk of an answer. Exactly one field is set, mirroring the proto oneof.
  */
+/** One stored conversation as the server keeps it. */
+export interface AssistantStoredChat {
+    id: string;
+    title: string;
+    created_at: string;
+    updated_at: string;
+    event_id?: string;
+    event_kind?: string;
+    mode?: string;
+    message_count?: number;
+    messages?: { role: string; content: string }[];
+}
+
+export interface AssistantChatsResponse {
+    chats?: AssistantStoredChat[];
+}
+
+export interface AssistantChatResponse {
+    chat?: AssistantStoredChat;
+}
+
+export interface AssistantSuggestionsResponse {
+    questions?: string[];
+}
+
 export interface AssistantChatChunk {
     delta?: string;
     tool_activity?: AssistantToolActivityResponse;
     confirmation?: AssistantConfirmationResponse;
     secret?: AssistantSecretResponse;
+    suggestions?: AssistantSuggestionsResponse;
     done?: AssistantDoneResponse;
 }
 

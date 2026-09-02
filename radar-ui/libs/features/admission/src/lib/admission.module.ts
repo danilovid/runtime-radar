@@ -3,7 +3,9 @@ import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { AdmissionDomainModule } from '@cs/domains/admission';
+import { AssistantDomainModule } from '@cs/domains/assistant';
 import { I18nModule } from '@cs/i18n';
+import { IntegrationDomainModule } from '@cs/domains/integration';
 import { SharedModule } from '@cs/shared';
 
 import { AdmissionFeatureDetailsContainer } from './containers/details/admission-details.container';
@@ -21,6 +23,8 @@ import { AdmissionFeatureSidepanelPolicyFormComponent } from './components/sidep
         I18nModule,
         AdmissionDomainModule,
         AdmissionFeatureRoutingModule,
+        AssistantDomainModule,
+        IntegrationDomainModule,
         ReactiveFormsModule,
         SharedModule
     ],

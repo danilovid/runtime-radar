@@ -33,6 +33,8 @@ const EMPTY_RESPONSE: GetAdmissionEventsResponse = {
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdmissionFeatureEventsContainer {
+    readonly dateTimeShortFormat = DateTime.DATETIME_SHORT;
+
     readonly clusters$: Observable<RegisteredCluster[]> = this.clusterStoreService.registeredClusters$;
 
     readonly activeClusterHost$ = this.apiPathService.host$;

@@ -8,6 +8,7 @@ import {
     CONFIRM_ASSISTANT_ACTION_TODO_ACTION,
     DECLINE_ASSISTANT_ACTION_TODO_ACTION,
     DELETE_ASSISTANT_CONVERSATION_TODO_ACTION,
+    LOAD_ASSISTANT_CHATS_TODO_ACTION,
     OPEN_ASSISTANT_CONVERSATION_TODO_ACTION,
     OPEN_ASSISTANT_TODO_ACTION,
     REMOVE_ASSISTANT_ATTACHMENT_TODO_ACTION,
@@ -19,6 +20,7 @@ import {
 import {
     AssistantAttachment,
     AssistantConversation,
+    AssistantEventKind,
     AssistantMessage,
     AssistantMode,
     AssistantState,
@@ -32,6 +34,7 @@ import {
     getAssistantIsStreaming,
     getAssistantMessages,
     getAssistantPendingAttachments,
+    getAssistantSuggestions,
     getAssistantView
 } from '../stores/assistant-selector.store';
 
@@ -46,6 +49,9 @@ export class AssistantStoreService {
     readonly view$: Observable<AssistantView> = this.store.select(getAssistantView);
 
     readonly integrationId$: Observable<string> = this.store.select(getAssistantIntegrationId);
+
+    /** Follow-ups the model proposed for the answer on screen. */
+    readonly suggestions$: Observable<string[]> = this.store.select(getAssistantSuggestions);
 
     readonly conversations$: Observable<AssistantConversation[]> = this.store.select(getAssistantConversations);
 
@@ -63,7 +69,12 @@ export class AssistantStoreService {
      * what the entry points outside the widget use: "Explain event", the
      * summary on the events page, and "Report a problem".
      */
-    open(options: { eventId?: string; question?: string; mode?: AssistantMode } = {}) {
+    /** Reads back the conversations the server kept for this user. */
+    loadChats() {
+        this.store.dispatch(LOAD_ASSISTANT_CHATS_TODO_ACTION());
+    }
+
+    open(options: { eventId?: string; eventKind?: AssistantEventKind; question?: string; mode?: AssistantMode } = {}) {
         this.store.dispatch(OPEN_ASSISTANT_TODO_ACTION(options));
     }
 

@@ -21,6 +21,16 @@ export enum AssistantStopReason {
  * What the assistant was opened to do. The server gives itself different
  * instructions per mode; it never gains new powers from one.
  */
+/**
+ * Which half of the product an event identifier belongs to. The two are read
+ * with different tools and an identifier alone does not say which, so the page
+ * that opens the chat has to.
+ */
+export enum AssistantEventKind {
+    RUNTIME = 'runtime',
+    ADMISSION = 'admission'
+}
+
 export enum AssistantMode {
     CHAT = 'chat',
     DIGEST = 'digest',
@@ -146,6 +156,12 @@ export interface AssistantConversation {
     messages: AssistantMessage[];
     /** The runtime event this conversation was opened from, if any. */
     eventId: string;
+    eventKind: AssistantEventKind;
+    /**
+     * Where the server stored this conversation. Empty until the first answer
+     * comes back: a chat that has not been answered yet has nothing stored.
+     */
+    chatId: string;
     /** What this conversation was opened to do. */
     mode: AssistantMode;
 }
