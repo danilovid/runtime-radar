@@ -15,12 +15,13 @@ service:
 configUpdateInterval: ""
 # Namespace Kyverno is installed in. Policy reports of this namespace are never reported,
 # admission-monitor also reads the version of Kyverno from the deployment in it.
-kyvernoNamespace: kyverno
+# Empty means the release namespace, where the bundled Kyverno is installed.
+kyvernoNamespace: ""
 env:
   - name: CONFIG_UPDATE_INTERVAL
     value: "{{ .Values.configUpdateInterval }}"
   - name: KYVERNO_NAMESPACE
-    value: "{{ .Values.kyvernoNamespace }}"
+    value: "{{ .Values.kyvernoNamespace | default .Release.Namespace }}"
   - name: POLICY_ENFORCER_GRPC_ADDR
     value: "policy-enforcer:8000"
   - name: NOTIFIER_GRPC_ADDR

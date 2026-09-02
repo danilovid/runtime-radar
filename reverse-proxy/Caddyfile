@@ -8,7 +8,10 @@
 	}
 
 	# mcp-server: Model Context Protocol endpoint for AI agents (read-only).
-	handle /mcp* {
+	# Matched exactly rather than by prefix: mcp-server serves only /mcp and
+	# /mcp/, while /mcp* would also swallow UI routes such as /mcp-keys.
+	@mcp path /mcp /mcp/*
+	handle @mcp {
 		reverse_proxy {args[0]}://mcp-server:9000
 	}
 

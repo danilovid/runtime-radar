@@ -180,12 +180,29 @@
                 },
                 "imagePullSecrets": {
                     "type": "array",
-                    "description": "Names of the secrets of the global container registry as an array",
+                    "description": "Secrets of the global container registry, each either a name or a {name: ...} object. The bundled Kyverno chart understands only the object form, so that is what the default uses",
                     "default": [
-                        "regcred"
+                        {
+                            "name": "regcred"
+                        }
                     ],
                     "items": {
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ]
+                            }
+                        ]
                     }
                 },
                 "ownCsUrl": {

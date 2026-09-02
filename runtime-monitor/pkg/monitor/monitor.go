@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -205,11 +206,26 @@ func (t *Tetra) initTracingPolicies(ctx context.Context, cfg *model.Config) erro
 		log.Info().Msgf("Tetragon tracing policy '%s' deleted", tps.Name)
 	}
 
+	// A policy Tetragon refuses is usually a kernel that has no symbol it hooks,
+	// which says nothing about the other policies: a hardened or trimmed kernel
+	// costs one source, not the whole monitor. The failure is loud rather than
+	// fatal, and it is only fatal when nothing at all could be loaded, because
+	// then the fault is with Tetragon itself and not with a single policy.
+	var rejected []string
+
 	for name, tp := range cfg.Config.TracingPolicies {
 		if _, err := t.sensorsClient.AddTracingPolicy(ctx, &tetragon.AddTracingPolicyRequest{Yaml: tp.GetYaml()}); err != nil {
-			return fmt.Errorf("can't add tracing policy '%s': %w", name, err)
+			rejected = append(rejected, name)
+
+			log.Error().Err(err).Msgf("Tetragon rejected tracing policy '%s', its events will not be reported", name)
+
+			continue
 		}
 		log.Info().Str("policy", tp.GetYaml()).Msgf("Tetragon tracing policy '%s' added", name)
+	}
+
+	if len(rejected) > 0 && len(rejected) == len(cfg.Config.TracingPolicies) {
+		return fmt.Errorf("tetragon rejected every tracing policy: %s", strings.Join(rejected, ", "))
 	}
 
 	return nil
