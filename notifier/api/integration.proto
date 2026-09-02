@@ -53,6 +53,12 @@ service IntegrationController {
       body: "*"
     };
   }
+  rpc ExplainAdmissionEvent(ExplainAdmissionEventReq) returns (ExplainAdmissionEventResp) {
+    option (google.api.http) = {
+      post: "/api/v1/integration/ai/explain-admission-event"
+      body: "*"
+    };
+  }
 }
 
 message Integration {
@@ -167,6 +173,21 @@ message ExplainRuntimeEventReq {
 }
 
 message ExplainRuntimeEventResp {
+  string summary = 1;
+  string risk = 2;
+  string possible_cause = 3;
+  repeated string next_steps = 4;
+  string raw_text = 5;
+}
+
+message ExplainAdmissionEventReq {
+  string integration_id = 1;
+  // Identifier of the finding to explain. It is read from History API rather
+  // than taken from the request, for the same reason the runtime one is.
+  string event_id = 2;
+}
+
+message ExplainAdmissionEventResp {
   string summary = 1;
   string risk = 2;
   string possible_cause = 3;

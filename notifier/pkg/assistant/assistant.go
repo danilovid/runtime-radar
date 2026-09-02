@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -85,7 +86,10 @@ type Chunk struct {
 	Tool         *ToolEvent
 	Confirmation *ConfirmationRequest
 	Secret       *SecretValue
-	Done         *DoneInfo
+	// Suggestions are follow-up questions to offer under the answer. They are
+	// sent once, just before Done.
+	Suggestions []string
+	Done        *DoneInfo
 }
 
 // Emit delivers a chunk to the client. Returning an error stops the run: it
@@ -99,8 +103,10 @@ type Request struct {
 	// Conversation is the history the client sent, oldest first, ending with
 	// the user's new message.
 	Conversation []ai.Message
-	// EventID, when set, is the runtime event the question is about.
+	// EventID, when set, is the event the question is about.
 	EventID string
+	// EventKind says which half of the product EventID belongs to.
+	EventKind EventKind
 	// Mode selects the instructions the assistant is given for this turn. It
 	// never widens what the assistant may do.
 	Mode Mode
@@ -175,7 +181,15 @@ func (r *Runner) Run(ctx context.Context, req Request, emit Emit) error {
 
 	started := time.Now()
 
-	tools, iterations, confirming, err := r.run(ctx, req, emit)
+	answer := &strings.Builder{}
+
+	tools, iterations, confirming, err := r.run(ctx, req, func(chunk Chunk) error {
+		if chunk.Delta != "" {
+			answer.WriteString(chunk.Delta)
+		}
+
+		return emit(chunk)
+	})
 
 	// A client that disconnected can't be told anything, so the run just ends.
 	if errors.Is(err, errEmitFailed) {
@@ -205,6 +219,16 @@ func (r *Runner) Run(ctx context.Context, req Request, emit Emit) error {
 	}
 
 	metrics.ObserveAssistantChat(stopReason, iterations, time.Since(started))
+
+	// Follow-ups are offered only under a finished answer: after a refusal, an
+	// error or a pending confirmation there is nothing to follow up on yet.
+	if stopReason == StopReasonEndTurn {
+		if followUps := r.suggest(ctx, req, answer.String()); len(followUps) != 0 {
+			if err := emit(Chunk{Suggestions: followUps}); err != nil {
+				return err
+			}
+		}
+	}
 
 	return emit(Chunk{Done: &DoneInfo{StopReason: stopReason, Iterations: iterations}})
 }
@@ -439,7 +463,7 @@ func buildMessages(req Request) []ai.Message {
 	}
 
 	if req.EventID != "" {
-		messages = append(messages, ai.Message{Role: ai.RoleSystem, Content: eventContextPrompt(req.EventID)})
+		messages = append(messages, ai.Message{Role: ai.RoleSystem, Content: eventContextPrompt(req.EventID, req.EventKind)})
 	}
 
 	return append(messages, req.Conversation...)

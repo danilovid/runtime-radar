@@ -149,6 +149,11 @@ func TestMain(m *testing.M) {
 		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
 	}
 
+	admissionHistory, _, err := client.NewAdmissionHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+
 	grpcSrv := grpc.NewServer(opts...)
 	assistantRunner := assistant.NewRunner(
 		assistant.NewMCPToolBoxFactory(cfg.MCPServerURL, tlsConfig),
@@ -156,7 +161,7 @@ func TestMain(m *testing.M) {
 		cfg.AssistantTimeout,
 		cfg.AssistantMaxChats,
 	)
-	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
+	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, admissionHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
 
 	api.RegisterNotifierServer(grpcSrv, notifier)
 	api.RegisterNotificationControllerServer(grpcSrv, notification)

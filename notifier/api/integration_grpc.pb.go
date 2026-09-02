@@ -20,13 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IntegrationController_Create_FullMethodName              = "/integration.IntegrationController/Create"
-	IntegrationController_Read_FullMethodName                = "/integration.IntegrationController/Read"
-	IntegrationController_Update_FullMethodName              = "/integration.IntegrationController/Update"
-	IntegrationController_Delete_FullMethodName              = "/integration.IntegrationController/Delete"
-	IntegrationController_List_FullMethodName                = "/integration.IntegrationController/List"
-	IntegrationController_TestAI_FullMethodName              = "/integration.IntegrationController/TestAI"
-	IntegrationController_ExplainRuntimeEvent_FullMethodName = "/integration.IntegrationController/ExplainRuntimeEvent"
+	IntegrationController_Create_FullMethodName                = "/integration.IntegrationController/Create"
+	IntegrationController_Read_FullMethodName                  = "/integration.IntegrationController/Read"
+	IntegrationController_Update_FullMethodName                = "/integration.IntegrationController/Update"
+	IntegrationController_Delete_FullMethodName                = "/integration.IntegrationController/Delete"
+	IntegrationController_List_FullMethodName                  = "/integration.IntegrationController/List"
+	IntegrationController_TestAI_FullMethodName                = "/integration.IntegrationController/TestAI"
+	IntegrationController_ExplainRuntimeEvent_FullMethodName   = "/integration.IntegrationController/ExplainRuntimeEvent"
+	IntegrationController_ExplainAdmissionEvent_FullMethodName = "/integration.IntegrationController/ExplainAdmissionEvent"
 )
 
 // IntegrationControllerClient is the client API for IntegrationController service.
@@ -40,6 +41,7 @@ type IntegrationControllerClient interface {
 	List(ctx context.Context, in *ListIntegrationReq, opts ...grpc.CallOption) (*ListIntegrationResp, error)
 	TestAI(ctx context.Context, in *TestAIReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ExplainRuntimeEvent(ctx context.Context, in *ExplainRuntimeEventReq, opts ...grpc.CallOption) (*ExplainRuntimeEventResp, error)
+	ExplainAdmissionEvent(ctx context.Context, in *ExplainAdmissionEventReq, opts ...grpc.CallOption) (*ExplainAdmissionEventResp, error)
 }
 
 type integrationControllerClient struct {
@@ -120,6 +122,16 @@ func (c *integrationControllerClient) ExplainRuntimeEvent(ctx context.Context, i
 	return out, nil
 }
 
+func (c *integrationControllerClient) ExplainAdmissionEvent(ctx context.Context, in *ExplainAdmissionEventReq, opts ...grpc.CallOption) (*ExplainAdmissionEventResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExplainAdmissionEventResp)
+	err := c.cc.Invoke(ctx, IntegrationController_ExplainAdmissionEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IntegrationControllerServer is the server API for IntegrationController service.
 // All implementations must embed UnimplementedIntegrationControllerServer
 // for forward compatibility.
@@ -131,6 +143,7 @@ type IntegrationControllerServer interface {
 	List(context.Context, *ListIntegrationReq) (*ListIntegrationResp, error)
 	TestAI(context.Context, *TestAIReq) (*emptypb.Empty, error)
 	ExplainRuntimeEvent(context.Context, *ExplainRuntimeEventReq) (*ExplainRuntimeEventResp, error)
+	ExplainAdmissionEvent(context.Context, *ExplainAdmissionEventReq) (*ExplainAdmissionEventResp, error)
 	mustEmbedUnimplementedIntegrationControllerServer()
 }
 
@@ -161,6 +174,9 @@ func (UnimplementedIntegrationControllerServer) TestAI(context.Context, *TestAIR
 }
 func (UnimplementedIntegrationControllerServer) ExplainRuntimeEvent(context.Context, *ExplainRuntimeEventReq) (*ExplainRuntimeEventResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExplainRuntimeEvent not implemented")
+}
+func (UnimplementedIntegrationControllerServer) ExplainAdmissionEvent(context.Context, *ExplainAdmissionEventReq) (*ExplainAdmissionEventResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExplainAdmissionEvent not implemented")
 }
 func (UnimplementedIntegrationControllerServer) mustEmbedUnimplementedIntegrationControllerServer() {}
 func (UnimplementedIntegrationControllerServer) testEmbeddedByValue()                               {}
@@ -309,6 +325,24 @@ func _IntegrationController_ExplainRuntimeEvent_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IntegrationController_ExplainAdmissionEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExplainAdmissionEventReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IntegrationControllerServer).ExplainAdmissionEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IntegrationController_ExplainAdmissionEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IntegrationControllerServer).ExplainAdmissionEvent(ctx, req.(*ExplainAdmissionEventReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IntegrationController_ServiceDesc is the grpc.ServiceDesc for IntegrationController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -343,6 +377,10 @@ var IntegrationController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExplainRuntimeEvent",
 			Handler:    _IntegrationController_ExplainRuntimeEvent_Handler,
+		},
+		{
+			MethodName: "ExplainAdmissionEvent",
+			Handler:    _IntegrationController_ExplainAdmissionEvent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

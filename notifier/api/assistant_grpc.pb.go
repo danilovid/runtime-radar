@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AssistantController_Chat_FullMethodName = "/assistant.AssistantController/Chat"
+	AssistantController_Chat_FullMethodName       = "/assistant.AssistantController/Chat"
+	AssistantController_ListChats_FullMethodName  = "/assistant.AssistantController/ListChats"
+	AssistantController_ReadChat_FullMethodName   = "/assistant.AssistantController/ReadChat"
+	AssistantController_DeleteChat_FullMethodName = "/assistant.AssistantController/DeleteChat"
 )
 
 // AssistantControllerClient is the client API for AssistantController service.
@@ -33,6 +36,14 @@ type AssistantControllerClient interface {
 	// can show which tool the assistant is running while it is still working.
 	// grpc-gateway serves this as an HTTP stream of newline-delimited JSON.
 	Chat(ctx context.Context, in *ChatReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatChunk], error)
+	// ListChats returns the caller's own conversations, newest first and without
+	// their messages. A conversation holds whatever its author could read, so it
+	// is never returned to anybody else.
+	ListChats(ctx context.Context, in *ListChatsReq, opts ...grpc.CallOption) (*ListChatsResp, error)
+	// ReadChat returns one of the caller's conversations with every turn of it.
+	ReadChat(ctx context.Context, in *ReadChatReq, opts ...grpc.CallOption) (*ReadChatResp, error)
+	// DeleteChat removes one of the caller's conversations for good.
+	DeleteChat(ctx context.Context, in *DeleteChatReq, opts ...grpc.CallOption) (*DeleteChatResp, error)
 }
 
 type assistantControllerClient struct {
@@ -62,6 +73,36 @@ func (c *assistantControllerClient) Chat(ctx context.Context, in *ChatReq, opts 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AssistantController_ChatClient = grpc.ServerStreamingClient[ChatChunk]
 
+func (c *assistantControllerClient) ListChats(ctx context.Context, in *ListChatsReq, opts ...grpc.CallOption) (*ListChatsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListChatsResp)
+	err := c.cc.Invoke(ctx, AssistantController_ListChats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assistantControllerClient) ReadChat(ctx context.Context, in *ReadChatReq, opts ...grpc.CallOption) (*ReadChatResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadChatResp)
+	err := c.cc.Invoke(ctx, AssistantController_ReadChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *assistantControllerClient) DeleteChat(ctx context.Context, in *DeleteChatReq, opts ...grpc.CallOption) (*DeleteChatResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteChatResp)
+	err := c.cc.Invoke(ctx, AssistantController_DeleteChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AssistantControllerServer is the server API for AssistantController service.
 // All implementations must embed UnimplementedAssistantControllerServer
 // for forward compatibility.
@@ -73,6 +114,14 @@ type AssistantControllerServer interface {
 	// can show which tool the assistant is running while it is still working.
 	// grpc-gateway serves this as an HTTP stream of newline-delimited JSON.
 	Chat(*ChatReq, grpc.ServerStreamingServer[ChatChunk]) error
+	// ListChats returns the caller's own conversations, newest first and without
+	// their messages. A conversation holds whatever its author could read, so it
+	// is never returned to anybody else.
+	ListChats(context.Context, *ListChatsReq) (*ListChatsResp, error)
+	// ReadChat returns one of the caller's conversations with every turn of it.
+	ReadChat(context.Context, *ReadChatReq) (*ReadChatResp, error)
+	// DeleteChat removes one of the caller's conversations for good.
+	DeleteChat(context.Context, *DeleteChatReq) (*DeleteChatResp, error)
 	mustEmbedUnimplementedAssistantControllerServer()
 }
 
@@ -85,6 +134,15 @@ type UnimplementedAssistantControllerServer struct{}
 
 func (UnimplementedAssistantControllerServer) Chat(*ChatReq, grpc.ServerStreamingServer[ChatChunk]) error {
 	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
+}
+func (UnimplementedAssistantControllerServer) ListChats(context.Context, *ListChatsReq) (*ListChatsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChats not implemented")
+}
+func (UnimplementedAssistantControllerServer) ReadChat(context.Context, *ReadChatReq) (*ReadChatResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadChat not implemented")
+}
+func (UnimplementedAssistantControllerServer) DeleteChat(context.Context, *DeleteChatReq) (*DeleteChatResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteChat not implemented")
 }
 func (UnimplementedAssistantControllerServer) mustEmbedUnimplementedAssistantControllerServer() {}
 func (UnimplementedAssistantControllerServer) testEmbeddedByValue()                             {}
@@ -118,13 +176,80 @@ func _AssistantController_Chat_Handler(srv interface{}, stream grpc.ServerStream
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AssistantController_ChatServer = grpc.ServerStreamingServer[ChatChunk]
 
+func _AssistantController_ListChats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssistantControllerServer).ListChats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssistantController_ListChats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssistantControllerServer).ListChats(ctx, req.(*ListChatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssistantController_ReadChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadChatReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssistantControllerServer).ReadChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssistantController_ReadChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssistantControllerServer).ReadChat(ctx, req.(*ReadChatReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AssistantController_DeleteChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteChatReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AssistantControllerServer).DeleteChat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AssistantController_DeleteChat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AssistantControllerServer).DeleteChat(ctx, req.(*DeleteChatReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AssistantController_ServiceDesc is the grpc.ServiceDesc for AssistantController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AssistantController_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "assistant.AssistantController",
 	HandlerType: (*AssistantControllerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListChats",
+			Handler:    _AssistantController_ListChats_Handler,
+		},
+		{
+			MethodName: "ReadChat",
+			Handler:    _AssistantController_ReadChat_Handler,
+		},
+		{
+			MethodName: "DeleteChat",
+			Handler:    _AssistantController_DeleteChat_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Chat",

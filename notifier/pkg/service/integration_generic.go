@@ -33,6 +33,7 @@ type IntegrationGeneric struct {
 	NotificationRepository database.NotificationRepository
 	RuleController         enforcer_api.RuleControllerClient
 	RuntimeHistory         history_api.RuntimeHistoryClient
+	AdmissionHistory       history_api.AdmissionHistoryClient
 	Crypter                cipher.Crypter
 }
 
@@ -297,6 +298,98 @@ func (ig *IntegrationGeneric) ExplainRuntimeEvent(ctx context.Context, req *api.
 		NextSteps:     result.NextSteps,
 		RawText:       result.RawText,
 	}, nil
+}
+
+func (ig *IntegrationGeneric) ExplainAdmissionEvent(
+	ctx context.Context, req *api.ExplainAdmissionEventReq,
+) (*api.ExplainAdmissionEventResp, error) {
+	if req.GetIntegrationId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "integration ID is empty")
+	}
+	if req.GetEventId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "event ID is empty")
+	}
+	if _, err := uuid.Parse(req.GetEventId()); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse event ID: %v", err)
+	}
+
+	eventJSON, err := ig.readAdmissionEventJSON(ctx, req.GetEventId())
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := ig.explainClient(ctx, req.GetIntegrationId())
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.ExplainAdmissionEvent(ctx, req.GetEventId(), eventJSON)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "can't explain admission event: %v", err)
+	}
+
+	return &api.ExplainAdmissionEventResp{
+		Summary:       result.Summary,
+		Risk:          result.Risk,
+		PossibleCause: result.PossibleCause,
+		NextSteps:     result.NextSteps,
+		RawText:       result.RawText,
+	}, nil
+}
+
+// explainClient builds the model client of the chosen AI integration.
+func (ig *IntegrationGeneric) explainClient(ctx context.Context, integrationID string) (aiclient.Client, error) {
+	id, err := uuid.Parse(integrationID)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse integration ID: %v", err)
+	}
+
+	integration, err := ig.IntegrationRepository.GetByTypeAndID(ctx, model.IntegrationAI, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "integration not found")
+		}
+
+		return nil, status.Errorf(codes.Internal, "can't get integration: %v", err)
+	}
+
+	aiIntegration, ok := integration.(*model.AI)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "invalid integration type given: %T", integration)
+	}
+
+	aiIntegration.DecryptSensitive(ig.Crypter)
+
+	client, err := aiclient.NewClient(aiIntegration)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't build ai client: %v", err)
+	}
+
+	return client, nil
+}
+
+// readAdmissionEventJSON returns the finding to analyse, read from History API
+// by ID so that the model sees what the system recorded.
+func (ig *IntegrationGeneric) readAdmissionEventJSON(ctx context.Context, eventID string) (string, error) {
+	if ig.AdmissionHistory == nil {
+		return "", status.Error(codes.Internal, "admission history is not configured")
+	}
+
+	event, err := ig.AdmissionHistory.Read(ctx, &history_api.ReadAdmissionEventReq{Id: eventID})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return "", status.Error(codes.NotFound, "admission event not found")
+		}
+
+		return "", status.Errorf(codes.Internal, "can't get admission event: %v", err)
+	}
+
+	eventJSON, err := protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}.Marshal(event)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "can't marshal admission event: %v", err)
+	}
+
+	return string(eventJSON), nil
 }
 
 // readRuntimeEventJSON returns the event to analyse. It's read from History API

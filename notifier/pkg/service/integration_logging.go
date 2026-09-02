@@ -129,6 +129,25 @@ func (il *IntegrationLogging) ExplainRuntimeEvent(ctx context.Context, req *api.
 	return
 }
 
+func (il *IntegrationLogging) ExplainAdmissionEvent(ctx context.Context, req *api.ExplainAdmissionEventReq) (resp *api.ExplainAdmissionEventResp, err error) {
+	defer func(t0 time.Time) {
+		corrID, _ := interceptor.CorrelationIDFromContext(ctx)
+
+		// The event JSON carries process command lines and the response carries
+		// free-form model output, so only the call's shape is audited.
+		log.Err(err).Str("delay", time.Since(t0).String()).
+			Bool("audit", true).
+			Str("integration_id", req.GetIntegrationId()).
+			Str("event_id", req.GetEventId()).
+			Str("risk", resp.GetRisk()).
+			Stringer("correlation_id", corrID).
+			Msg("Called IntegrationControllerServer.ExplainAdmissionEvent")
+	}(time.Now())
+
+	resp, err = il.IntegrationControllerServer.ExplainAdmissionEvent(ctx, req)
+	return
+}
+
 func hidePassword(req *api.Integration) *api.Integration {
 	if req == nil {
 		return nil

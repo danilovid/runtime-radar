@@ -48,6 +48,38 @@
         ]
       }
     },
+    "/api/v1/integration/ai/explain-admission-event": {
+      "post": {
+        "operationId": "IntegrationController_ExplainAdmissionEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/integrationExplainAdmissionEventResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/integrationExplainAdmissionEventReq"
+            }
+          }
+        ],
+        "tags": [
+          "IntegrationController"
+        ]
+      }
+    },
     "/api/v1/integration/ai/explain-runtime-event": {
       "post": {
         "operationId": "IntegrationController_ExplainRuntimeEvent",
@@ -356,6 +388,41 @@
           "title": "InsecureSkipVerify"
         },
         "ca": {
+          "type": "string"
+        }
+      }
+    },
+    "integrationExplainAdmissionEventReq": {
+      "type": "object",
+      "properties": {
+        "integrationId": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Identifier of the finding to explain. It is read from History API rather\nthan taken from the request, for the same reason the runtime one is."
+        }
+      }
+    },
+    "integrationExplainAdmissionEventResp": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "string"
+        },
+        "possibleCause": {
+          "type": "string"
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rawText": {
           "type": "string"
         }
       }

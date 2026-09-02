@@ -138,6 +138,12 @@ func main() {
 	}
 	defer closeRH()
 
+	admissionHistory, closeAH, err := client.NewAdmissionHistory(cfg.HistoryAPIGRPCAddr, tlsConfig, tokenKey)
+	if err != nil {
+		log.Fatal().Msgf("### Failed to connect to History API: %v", err)
+	}
+	defer closeAH()
+
 	// The assistant reaches MCP Server over the same TLS settings as the rest
 	// of the internal traffic. The URL scheme is aligned with TLS: a leftover
 	// http:// against ListenAndServeTLS fails the handshake. Tools are
@@ -151,7 +157,7 @@ func main() {
 	)
 
 	grpcSrv := grpc.NewServer(opts...)
-	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
+	notifier, notification, email, assistantService := composeServices(db, ruleController, runtimeHistory, admissionHistory, crypter, verifier, cfg.Auth, cfg.CSVersion, assistantRunner)
 
 	api.RegisterNotifierServer(grpcSrv, notifier)
 	api.RegisterNotificationControllerServer(grpcSrv, notification)
@@ -228,6 +234,7 @@ func composeServices(
 	db *gorm.DB,
 	ruleController enforcer_api.RuleControllerClient,
 	runtimeHistory history_api.RuntimeHistoryClient,
+	admissionHistory history_api.AdmissionHistoryClient,
 	crypter cipher.Crypter,
 	verifier jwt.Verifier,
 	isAuth bool,
@@ -244,6 +251,7 @@ func composeServices(
 		NotificationRepository: &database.NotificationDatabase{DB: db},
 		RuleController:         ruleController,
 		RuntimeHistory:         runtimeHistory,
+		AdmissionHistory:       admissionHistory,
 		Crypter:                crypter,
 	}
 	notification = &service.NotificationGeneric{
@@ -259,6 +267,7 @@ func composeServices(
 	}
 	assistantService = &service.AssistantGeneric{
 		IntegrationRepository: &database.IntegrationDatabase{DB: db},
+		ChatRepository:        &database.ChatDatabase{DB: db},
 		Crypter:               crypter,
 		Runner:                assistantRunner,
 	}

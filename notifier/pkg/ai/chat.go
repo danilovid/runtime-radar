@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -357,40 +358,50 @@ func anthropicMessages(messages []Message) []map[string]any {
 // arrives, so the chat widget can show the answer being written. Tool calls
 // arrive in fragments and are only complete when the stream ends.
 func (c *openAICompatibleClient) Chat(ctx context.Context, messages []Message, tools []Tool, onDelta DeltaFunc) (*ChatResult, error) {
-	reqBody := map[string]any{
-		"model":       c.conf.Model,
-		"messages":    openAIMessages(messages, false),
-		"temperature": chatTemperature,
-		"max_tokens":  chatMaxTokens,
-		"stream":      true,
+	// A refusal arrives as a status before the stream opens, so nothing has
+	// been handed to onDelta yet and the whole request can simply be repeated.
+	send := func() (io.ReadCloser, error) {
+		reqBody := map[string]any{
+			"model":    c.conf.Model,
+			"messages": openAIMessages(messages, false),
+			"stream":   true,
+		}
+		reqBody[c.maxTokensField()] = chatMaxTokens
+		c.setTemperature(reqBody, chatTemperature)
+
+		if rendered := openAITools(tools); rendered != nil {
+			reqBody["tools"] = rendered
+			reqBody["tool_choice"] = toolChoiceAuto
+			c.setToolReasoning(reqBody)
+		}
+
+		if !isOfficialOpenAI(c.baseURL) {
+			reqBody["chat_template_kwargs"] = map[string]any{"enable_thinking": false}
+		}
+
+		req, err := newJSONRequest(ctx, http.MethodPost, c.baseURL+"/chat/completions", reqBody)
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Accept", "text/event-stream")
+
+		if c.conf.APIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+c.conf.APIKey)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return streamBody(resp)
 	}
 
-	if rendered := openAITools(tools); rendered != nil {
-		reqBody["tools"] = rendered
-		reqBody["tool_choice"] = toolChoiceAuto
+	body, err := send()
+	for c.retryAfter(err) {
+		body, err = send()
 	}
-
-	if !isOfficialOpenAI(c.baseURL) {
-		reqBody["chat_template_kwargs"] = map[string]any{"enable_thinking": false}
-	}
-
-	req, err := newJSONRequest(ctx, http.MethodPost, c.baseURL+"/chat/completions", reqBody)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "text/event-stream")
-
-	if c.conf.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.conf.APIKey)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := streamBody(resp)
 	if err != nil {
 		return nil, err
 	}

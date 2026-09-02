@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/runtime-radar/runtime-radar/lib/errcommon"
 	"github.com/runtime-radar/runtime-radar/lib/security/jwt"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
@@ -33,4 +35,31 @@ func (aa *AssistantAuth) Chat(req *api.ChatReq, stream api.AssistantController_C
 	}
 
 	return aa.AssistantControllerServer.Chat(req, stream)
+}
+
+// The stored conversations are guarded by the same permission as the assistant
+// itself, and then by ownership: the service only ever reads and deletes the
+// caller's own, whatever their role.
+func (aa *AssistantAuth) ListChats(ctx context.Context, req *api.ListChatsReq) (*api.ListChatsResp, error) {
+	if err := aa.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+
+	return aa.AssistantControllerServer.ListChats(ctx, req)
+}
+
+func (aa *AssistantAuth) ReadChat(ctx context.Context, req *api.ReadChatReq) (*api.ReadChatResp, error) {
+	if err := aa.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+
+	return aa.AssistantControllerServer.ReadChat(ctx, req)
+}
+
+func (aa *AssistantAuth) DeleteChat(ctx context.Context, req *api.DeleteChatReq) (*api.DeleteChatResp, error) {
+	if err := aa.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+
+	return aa.AssistantControllerServer.DeleteChat(ctx, req)
 }

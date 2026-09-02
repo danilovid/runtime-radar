@@ -57,9 +57,143 @@
           "AssistantController"
         ]
       }
+    },
+    "/api/v1/assistant/chat/{id}": {
+      "get": {
+        "summary": "ReadChat returns one of the caller's conversations with every turn of it.",
+        "operationId": "AssistantController_ReadChat",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantReadChatResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      },
+      "delete": {
+        "summary": "DeleteChat removes one of the caller's conversations for good.",
+        "operationId": "AssistantController_DeleteChat",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantDeleteChatResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
+    },
+    "/api/v1/assistant/chats": {
+      "get": {
+        "summary": "ListChats returns the caller's own conversations, newest first and without\ntheir messages. A conversation holds whatever its author could read, so it\nis never returned to anybody else.",
+        "operationId": "AssistantController_ListChats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/assistantListChatsResp"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "How many conversations to return, newest first. Zero means the default.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "AssistantController"
+        ]
+      }
     }
   },
   "definitions": {
+    "assistantChat": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title is the opening of the first question."
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string",
+          "description": "The event the conversation was opened from, when it was opened from one."
+        },
+        "eventKind": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "messageCount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "How many turns the conversation holds. Filled in listings, where the\nmessages themselves are not returned."
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChatMessage"
+          }
+        }
+      },
+      "description": "Chat is one stored conversation. In a listing its messages are left out."
+    },
     "assistantChatChunk": {
       "type": "object",
       "properties": {
@@ -82,6 +216,10 @@
         "secret": {
           "$ref": "#/definitions/assistantSecret",
           "description": "secret carries a credential an approved tool produced. It is delivered\nto the user and deliberately kept out of the conversation the model\nsees, so that it never reaches an LLM provider."
+        },
+        "suggestions": {
+          "$ref": "#/definitions/assistantSuggestions",
+          "description": "suggestions are follow-up questions to offer under the answer."
         }
       },
       "description": "ChatChunk is one piece of the answer. Exactly one field is set."
@@ -115,7 +253,7 @@
         },
         "eventId": {
           "type": "string",
-          "description": "Optional identifier of a runtime event the question is about. The event\nitself is never taken from the client: the assistant reads it through the\ntools, so that what the model sees is what the system recorded."
+          "description": "Optional identifier of an event the question is about. The event itself is\nnever taken from the client: the assistant reads it through the tools, so\nthat what the model sees is what the system recorded."
         },
         "mode": {
           "type": "string",
@@ -124,6 +262,14 @@
         "confirmId": {
           "type": "string",
           "description": "Approval of a tool call the assistant asked about in the previous turn,\ncarrying the identifier from that Confirmation. It is the only way a tool\nthat changes anything is ever run."
+        },
+        "eventKind": {
+          "type": "string",
+          "description": "Which half of the product event_id belongs to: \"runtime\" (the default) or\n\"admission\". The two are read with different tools, and an identifier alone\ndoes not say which, so a client that opens a chat from an event page has to\nsay. Empty means runtime, for clients written before admission existed."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "Identifier of the stored conversation this turn belongs to. Empty starts a\nnew one, whose identifier comes back in the Done chunk."
         }
       }
     },
@@ -153,6 +299,14 @@
       },
       "description": "Confirmation is a tool call the assistant wants to make and may not make on\nits own: it would create, change or delete something in the product."
     },
+    "assistantDeleteChatResp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
     "assistantDone": {
       "type": "object",
       "properties": {
@@ -168,6 +322,30 @@
           "type": "integer",
           "format": "int64",
           "description": "iterations is how many model turns the answer took."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "chat_id is the stored conversation this turn was written to, so that a\nclient which started a new one learns where to continue it."
+        }
+      }
+    },
+    "assistantListChatsResp": {
+      "type": "object",
+      "properties": {
+        "chats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/assistantChat"
+          }
+        }
+      }
+    },
+    "assistantReadChatResp": {
+      "type": "object",
+      "properties": {
+        "chat": {
+          "$ref": "#/definitions/assistantChat"
         }
       }
     },
@@ -188,6 +366,18 @@
         }
       },
       "description": "Secret is a credential produced by an approved tool call. It is shown once:\nthe product stores only a hash of it."
+    },
+    "assistantSuggestions": {
+      "type": "object",
+      "properties": {
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Suggestions are follow-up questions to offer under the answer, written by the\nmodel from the exchange it just had. They arrive once, just before Done."
     },
     "assistantToolActivity": {
       "type": "object",

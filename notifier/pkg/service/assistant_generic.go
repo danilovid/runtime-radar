@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/runtime-radar/runtime-radar/lib/security/cipher"
+	"github.com/runtime-radar/runtime-radar/lib/security/jwt"
 	"github.com/runtime-radar/runtime-radar/notifier/api"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/ai"
 	"github.com/runtime-radar/runtime-radar/notifier/pkg/assistant"
@@ -36,8 +40,11 @@ type AssistantGeneric struct {
 	api.UnimplementedAssistantControllerServer
 
 	IntegrationRepository database.IntegrationRepository
-	Crypter               cipher.Crypter
-	Runner                *assistant.Runner
+	// ChatRepository stores the conversations. It may be nil, and the assistant
+	// then answers exactly as before without keeping anything.
+	ChatRepository database.ChatRepository
+	Crypter        cipher.Crypter
+	Runner         *assistant.Runner
 	// NewClient builds the model client. It is a field so that tests can
 	// replace the provider without a live endpoint.
 	NewClient func(*model.AI) (ai.Client, error)
@@ -66,16 +73,35 @@ func (ag *AssistantGeneric) Chat(req *api.ChatReq, stream api.AssistantControlle
 		return err
 	}
 
+	// The conversation is stored as it happens rather than handed over by the
+	// client afterwards: what is kept is then what the assistant actually said,
+	// and a client that never comes back still leaves a readable record.
+	chatID, storeErr := ag.openChat(ctx, req, conversation)
+	if storeErr != nil {
+		log.Warn().Err(storeErr).Msg("Can't store the chat, answering without keeping it")
+	}
+
+	answer := &strings.Builder{}
+
 	runErr := ag.Runner.Run(ctx, assistant.Request{
 		Client:        client,
 		Conversation:  conversation,
 		EventID:       eventID,
+		EventKind:     assistant.ParseEventKind(req.GetEventKind()),
 		Mode:          assistant.ParseMode(req.GetMode()),
 		ConfirmID:     confirmID,
 		Authorization: authorizationFromContext(ctx),
 		Scopes:        scopes,
 	}, func(chunk assistant.Chunk) error {
-		return stream.Send(convertChunk(chunk))
+		if chunk.Delta != "" {
+			answer.WriteString(chunk.Delta)
+		}
+
+		if chunk.Done != nil {
+			ag.closeChat(ctx, chatID, answer.String())
+		}
+
+		return stream.Send(convertChunk(chunk, chatID))
 	})
 
 	switch {
@@ -191,8 +217,13 @@ func validateEventID(eventID string) (string, error) {
 	return eventID, nil
 }
 
-func convertChunk(chunk assistant.Chunk) *api.ChatChunk {
+func convertChunk(chunk assistant.Chunk, chatID string) *api.ChatChunk {
 	switch {
+	case len(chunk.Suggestions) != 0:
+		return &api.ChatChunk{Chunk: &api.ChatChunk_Suggestions{
+			Suggestions: &api.Suggestions{Questions: chunk.Suggestions},
+		}}
+
 	case chunk.Confirmation != nil:
 		return &api.ChatChunk{Chunk: &api.ChatChunk_Confirmation{Confirmation: &api.Confirmation{
 			Id:          chunk.Confirmation.ID,
@@ -220,6 +251,7 @@ func convertChunk(chunk assistant.Chunk) *api.ChatChunk {
 		return &api.ChatChunk{Chunk: &api.ChatChunk_Done{Done: &api.Done{
 			StopReason: chunk.Done.StopReason,
 			Error:      chunk.Done.Error,
+			ChatId:     chatID,
 			Iterations: uint32(chunk.Done.Iterations), // #nosec G115 -- bounded by the runner's iteration limit
 		}}}
 
@@ -242,4 +274,232 @@ func authorizationFromContext(ctx context.Context) string {
 	}
 
 	return values[0]
+}
+
+// maxStoredChats bounds a listing, and titleLimit how much of the first
+// question is kept as a name for it.
+const (
+	maxStoredChats = 100
+	titleLimit     = 120
+)
+
+// openChat resolves the conversation this turn belongs to, creating it when the
+// client has none yet, and writes the user's turn into it. Storage never blocks
+// answering: a failure here is logged and the assistant still replies, because
+// losing a record is better than losing the answer.
+func (ag *AssistantGeneric) openChat(
+	ctx context.Context, req *api.ChatReq, conversation []ai.Message,
+) (string, error) {
+	if ag.ChatRepository == nil {
+		return "", nil
+	}
+
+	userID, err := callerID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	question := lastUserMessage(conversation)
+
+	chatID, err := uuid.Parse(req.GetChatId())
+	if err != nil {
+		chat := &model.Chat{
+			UserID:    userID,
+			Title:     truncateTitle(question),
+			EventID:   req.GetEventId(),
+			EventKind: req.GetEventKind(),
+			Mode:      req.GetMode(),
+		}
+
+		if err := ag.ChatRepository.Add(ctx, chat); err != nil {
+			return "", fmt.Errorf("can't create chat: %w", err)
+		}
+
+		chatID = chat.ID
+	}
+
+	if question == "" {
+		return chatID.String(), nil
+	}
+
+	messages := []*model.ChatMessage{{Role: model.ChatRoleUser, Content: question}}
+	if err := ag.ChatRepository.AppendMessages(ctx, userID, chatID, messages); err != nil {
+		return chatID.String(), fmt.Errorf("can't store the question: %w", err)
+	}
+
+	return chatID.String(), nil
+}
+
+// closeChat writes the answer the assistant gave. An empty answer is not
+// stored: a turn that produced only tool activity or an error has nothing to
+// show, and a blank message in the history would only confuse the next read.
+func (ag *AssistantGeneric) closeChat(ctx context.Context, chatID, answer string) {
+	if ag.ChatRepository == nil || chatID == "" || strings.TrimSpace(answer) == "" {
+		return
+	}
+
+	userID, err := callerID(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("Can't store the answer")
+
+		return
+	}
+
+	id, err := uuid.Parse(chatID)
+	if err != nil {
+		return
+	}
+
+	messages := []*model.ChatMessage{{Role: model.ChatRoleAssistant, Content: answer}}
+	if err := ag.ChatRepository.AppendMessages(ctx, userID, id, messages); err != nil {
+		log.Warn().Err(err).Msg("Can't store the answer")
+	}
+}
+
+func (ag *AssistantGeneric) ListChats(ctx context.Context, req *api.ListChatsReq) (*api.ListChatsResp, error) {
+	if ag.ChatRepository == nil {
+		return &api.ListChatsResp{}, nil
+	}
+
+	userID, err := callerID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	limit := int(req.GetLimit())
+	if limit <= 0 || limit > maxStoredChats {
+		limit = maxStoredChats
+	}
+
+	chats, err := ag.ChatRepository.GetAll(ctx, userID, limit)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "can't list chats: %v", err)
+	}
+
+	resp := &api.ListChatsResp{Chats: make([]*api.Chat, 0, len(chats))}
+	for _, chat := range chats {
+		resp.Chats = append(resp.Chats, chatToPB(chat, false))
+	}
+
+	return resp, nil
+}
+
+func (ag *AssistantGeneric) ReadChat(ctx context.Context, req *api.ReadChatReq) (*api.ReadChatResp, error) {
+	if ag.ChatRepository == nil {
+		return nil, status.Error(codes.NotFound, "chat not found")
+	}
+
+	userID, err := callerID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse chat ID: %v", err)
+	}
+
+	chat, err := ag.ChatRepository.GetByID(ctx, userID, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Error(codes.NotFound, "chat not found")
+		}
+
+		return nil, status.Errorf(codes.Internal, "can't get chat: %v", err)
+	}
+
+	return &api.ReadChatResp{Chat: chatToPB(chat, true)}, nil
+}
+
+func (ag *AssistantGeneric) DeleteChat(ctx context.Context, req *api.DeleteChatReq) (*api.DeleteChatResp, error) {
+	if ag.ChatRepository == nil {
+		return nil, status.Error(codes.NotFound, "chat not found")
+	}
+
+	userID, err := callerID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't parse chat ID: %v", err)
+	}
+
+	if err := ag.ChatRepository.DeleteByID(ctx, userID, id); err != nil {
+		return nil, status.Errorf(codes.Internal, "can't delete chat: %v", err)
+	}
+
+	return &api.DeleteChatResp{Id: req.GetId()}, nil
+}
+
+// callerID is who the conversation belongs to. It comes from the token the
+// caller presented, which the auth layer has already verified.
+func callerID(ctx context.Context) (string, error) {
+	token, err := jwt.UnverifiedTokenFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	userID := token.GetUserID()
+	if userID == "" {
+		return "", errors.New("token carries no user")
+	}
+
+	return userID, nil
+}
+
+// lastUserMessage is the question this turn is about: the client sends the
+// whole conversation, but only its final turn is new.
+func lastUserMessage(conversation []ai.Message) string {
+	for i := len(conversation) - 1; i >= 0; i-- {
+		if conversation[i].Role == ai.RoleUser {
+			return conversation[i].Content
+		}
+	}
+
+	return ""
+}
+
+func truncateTitle(question string) string {
+	title := strings.TrimSpace(question)
+	if len([]rune(title)) <= titleLimit {
+		return title
+	}
+
+	return string([]rune(title)[:titleLimit])
+}
+
+func chatToPB(chat *model.Chat, withMessages bool) *api.Chat {
+	out := &api.Chat{
+		Id:           chat.ID.String(),
+		Title:        chat.Title,
+		CreatedAt:    chat.CreatedAt.Format(time.RFC3339Nano),
+		UpdatedAt:    chat.UpdatedAt.Format(time.RFC3339Nano),
+		EventId:      chat.EventID,
+		EventKind:    chat.EventKind,
+		Mode:         chat.Mode,
+		MessageCount: uint32(messageCount(chat)), // #nosec G115 -- a conversation is not that long
+	}
+
+	if !withMessages {
+		return out
+	}
+
+	out.Messages = make([]*api.ChatMessage, 0, len(chat.Messages))
+	for _, message := range chat.Messages {
+		out.Messages = append(out.Messages, &api.ChatMessage{Role: message.Role, Content: message.Content})
+	}
+
+	return out
+}
+
+// messageCount prefers the turns that were loaded, and falls back to the count
+// a listing filled in without them.
+func messageCount(chat *model.Chat) int {
+	if len(chat.Messages) != 0 {
+		return len(chat.Messages)
+	}
+
+	return chat.MessageCount
 }

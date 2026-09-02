@@ -83,6 +83,8 @@ func Migrate(db *gorm.DB, newDB bool) error {
 		&model.Email{},
 		&model.Syslog{},
 		&model.Notification{},
+		&model.Chat{},
+		&model.ChatMessage{},
 	); err != nil {
 		return err
 	}

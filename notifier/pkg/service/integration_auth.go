@@ -75,3 +75,16 @@ func (ia *IntegrationAuth) ExplainRuntimeEvent(ctx context.Context, req *api.Exp
 	}
 	return ia.IntegrationControllerServer.ExplainRuntimeEvent(ctx, req)
 }
+
+// ExplainAdmissionEvent is guarded exactly like its runtime twin: the same two
+// permissions, for the same two reasons.
+func (ia *IntegrationAuth) ExplainAdmissionEvent(ctx context.Context, req *api.ExplainAdmissionEventReq) (*api.ExplainAdmissionEventResp, error) {
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionIntegrations, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+	if err := ia.Verifier.VerifyPermission(ctx, jwt.PermissionEvents, jwt.ActionRead); err != nil {
+		return nil, errcommon.PermissionErrorToStatus(err)
+	}
+
+	return ia.IntegrationControllerServer.ExplainAdmissionEvent(ctx, req)
+}

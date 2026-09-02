@@ -20,15 +20,20 @@ type fakeModel struct {
 	answers []*ai.ChatResult
 	err     error
 
-	mu    sync.Mutex
-	calls [][]ai.Message
-	tools []ai.Tool
-	block chan struct{}
+	mu        sync.Mutex
+	calls     [][]ai.Message
+	tools     []ai.Tool
+	callTools [][]ai.Tool
+	block     chan struct{}
 }
 
 func (m *fakeModel) Test(context.Context) error { return nil }
 
 func (m *fakeModel) ExplainRuntimeEvent(context.Context, string, string) (*ai.Result, error) {
+	return nil, errors.New("not used")
+}
+
+func (m *fakeModel) ExplainAdmissionEvent(context.Context, string, string) (*ai.Result, error) {
 	return nil, errors.New("not used")
 }
 
@@ -44,6 +49,7 @@ func (m *fakeModel) Chat(
 	snapshot := append([]ai.Message(nil), messages...)
 	m.calls = append(m.calls, snapshot)
 	m.tools = tools
+	m.callTools = append(m.callTools, tools)
 	index := len(m.calls) - 1
 	block := m.block
 	m.mu.Unlock()
@@ -243,8 +249,8 @@ func TestRunAnswersAfterToolCall(t *testing.T) {
 	if first[0].Role != ai.RoleSystem || !strings.Contains(first[0].Content, "Runtime Radar") {
 		t.Errorf("first message = %+v, want the system prompt", first[0])
 	}
-	if len(model.tools) != 1 || model.tools[0].Name != toolSearchDocs {
-		t.Errorf("tools offered = %+v", model.tools)
+	if len(model.callTools[0]) != 1 || model.callTools[0][0].Name != toolSearchDocs {
+		t.Errorf("tools offered = %+v", model.callTools[0])
 	}
 
 	// The second turn must carry the call and its result, or the model has no

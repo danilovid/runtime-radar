@@ -1046,6 +1046,136 @@ func (x *ExplainRuntimeEventResp) GetRawText() string {
 	return ""
 }
 
+type ExplainAdmissionEventReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IntegrationId string                 `protobuf:"bytes,1,opt,name=integration_id,json=integrationId,proto3" json:"integration_id,omitempty"`
+	// Identifier of the finding to explain. It is read from History API rather
+	// than taken from the request, for the same reason the runtime one is.
+	EventId       string `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExplainAdmissionEventReq) Reset() {
+	*x = ExplainAdmissionEventReq{}
+	mi := &file_integration_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExplainAdmissionEventReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExplainAdmissionEventReq) ProtoMessage() {}
+
+func (x *ExplainAdmissionEventReq) ProtoReflect() protoreflect.Message {
+	mi := &file_integration_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExplainAdmissionEventReq.ProtoReflect.Descriptor instead.
+func (*ExplainAdmissionEventReq) Descriptor() ([]byte, []int) {
+	return file_integration_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ExplainAdmissionEventReq) GetIntegrationId() string {
+	if x != nil {
+		return x.IntegrationId
+	}
+	return ""
+}
+
+func (x *ExplainAdmissionEventReq) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+type ExplainAdmissionEventResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Summary       string                 `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Risk          string                 `protobuf:"bytes,2,opt,name=risk,proto3" json:"risk,omitempty"`
+	PossibleCause string                 `protobuf:"bytes,3,opt,name=possible_cause,json=possibleCause,proto3" json:"possible_cause,omitempty"`
+	NextSteps     []string               `protobuf:"bytes,4,rep,name=next_steps,json=nextSteps,proto3" json:"next_steps,omitempty"`
+	RawText       string                 `protobuf:"bytes,5,opt,name=raw_text,json=rawText,proto3" json:"raw_text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExplainAdmissionEventResp) Reset() {
+	*x = ExplainAdmissionEventResp{}
+	mi := &file_integration_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExplainAdmissionEventResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExplainAdmissionEventResp) ProtoMessage() {}
+
+func (x *ExplainAdmissionEventResp) ProtoReflect() protoreflect.Message {
+	mi := &file_integration_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExplainAdmissionEventResp.ProtoReflect.Descriptor instead.
+func (*ExplainAdmissionEventResp) Descriptor() ([]byte, []int) {
+	return file_integration_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ExplainAdmissionEventResp) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *ExplainAdmissionEventResp) GetRisk() string {
+	if x != nil {
+		return x.Risk
+	}
+	return ""
+}
+
+func (x *ExplainAdmissionEventResp) GetPossibleCause() string {
+	if x != nil {
+		return x.PossibleCause
+	}
+	return ""
+}
+
+func (x *ExplainAdmissionEventResp) GetNextSteps() []string {
+	if x != nil {
+		return x.NextSteps
+	}
+	return nil
+}
+
+func (x *ExplainAdmissionEventResp) GetRawText() string {
+	if x != nil {
+		return x.RawText
+	}
+	return ""
+}
+
 var File_integration_proto protoreflect.FileDescriptor
 
 const file_integration_proto_rawDesc = "" +
@@ -1127,7 +1257,17 @@ const file_integration_proto_rawDesc = "" +
 	"\x0epossible_cause\x18\x03 \x01(\tR\rpossibleCause\x12\x1d\n" +
 	"\n" +
 	"next_steps\x18\x04 \x03(\tR\tnextSteps\x12\x19\n" +
-	"\braw_text\x18\x05 \x01(\tR\arawText2\xac\x06\n" +
+	"\braw_text\x18\x05 \x01(\tR\arawText\"\\\n" +
+	"\x18ExplainAdmissionEventReq\x12%\n" +
+	"\x0eintegration_id\x18\x01 \x01(\tR\rintegrationId\x12\x19\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\"\xaa\x01\n" +
+	"\x19ExplainAdmissionEventResp\x12\x18\n" +
+	"\asummary\x18\x01 \x01(\tR\asummary\x12\x12\n" +
+	"\x04risk\x18\x02 \x01(\tR\x04risk\x12%\n" +
+	"\x0epossible_cause\x18\x03 \x01(\tR\rpossibleCause\x12\x1d\n" +
+	"\n" +
+	"next_steps\x18\x04 \x03(\tR\tnextSteps\x12\x19\n" +
+	"\braw_text\x18\x05 \x01(\tR\arawText2\xd0\a\n" +
 	"\x15IntegrationController\x12f\n" +
 	"\x06Create\x12\x18.integration.Integration\x1a\".integration.CreateIntegrationResp\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/integration\x12j\n" +
 	"\x04Read\x12\x1f.integration.ReadIntegrationReq\x1a\x18.integration.Integration\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/integration/{type}/{id}\x12_\n" +
@@ -1135,7 +1275,8 @@ const file_integration_proto_rawDesc = "" +
 	"\x06Delete\x12!.integration.DeleteIntegrationReq\x1a\x16.google.protobuf.Empty\"'\x82\xd3\xe4\x93\x02!*\x1f/api/v1/integration/{type}/{id}\x12r\n" +
 	"\x04List\x12\x1f.integration.ListIntegrationReq\x1a .integration.ListIntegrationResp\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/integration/{type}/list\x12`\n" +
 	"\x06TestAI\x12\x16.integration.TestAIReq\x1a\x16.google.protobuf.Empty\"&\x82\xd3\xe4\x93\x02 :\x01*\"\x1b/api/v1/integration/ai/test\x12\x99\x01\n" +
-	"\x13ExplainRuntimeEvent\x12#.integration.ExplainRuntimeEventReq\x1a$.integration.ExplainRuntimeEventResp\"7\x82\xd3\xe4\x93\x021:\x01*\",/api/v1/integration/ai/explain-runtime-eventB\x1d\x92A\x13\x12\x11\n" +
+	"\x13ExplainRuntimeEvent\x12#.integration.ExplainRuntimeEventReq\x1a$.integration.ExplainRuntimeEventResp\"7\x82\xd3\xe4\x93\x021:\x01*\",/api/v1/integration/ai/explain-runtime-event\x12\xa1\x01\n" +
+	"\x15ExplainAdmissionEvent\x12%.integration.ExplainAdmissionEventReq\x1a&.integration.ExplainAdmissionEventResp\"9\x82\xd3\xe4\x93\x023:\x01*\"./api/v1/integration/ai/explain-admission-eventB\x1d\x92A\x13\x12\x11\n" +
 	"\x0fIntegration APIZ\x05./apib\x06proto3"
 
 var (
@@ -1151,24 +1292,26 @@ func file_integration_proto_rawDescGZIP() []byte {
 }
 
 var file_integration_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_integration_proto_goTypes = []any{
-	(AI_Provider)(0),                // 0: integration.AI.Provider
-	(Email_AuthType)(0),             // 1: integration.Email.AuthType
-	(*Integration)(nil),             // 2: integration.Integration
-	(*AI)(nil),                      // 3: integration.AI
-	(*Email)(nil),                   // 4: integration.Email
-	(*Webhook)(nil),                 // 5: integration.Webhook
-	(*Syslog)(nil),                  // 6: integration.Syslog
-	(*CreateIntegrationResp)(nil),   // 7: integration.CreateIntegrationResp
-	(*ReadIntegrationReq)(nil),      // 8: integration.ReadIntegrationReq
-	(*DeleteIntegrationReq)(nil),    // 9: integration.DeleteIntegrationReq
-	(*ListIntegrationReq)(nil),      // 10: integration.ListIntegrationReq
-	(*ListIntegrationResp)(nil),     // 11: integration.ListIntegrationResp
-	(*TestAIReq)(nil),               // 12: integration.TestAIReq
-	(*ExplainRuntimeEventReq)(nil),  // 13: integration.ExplainRuntimeEventReq
-	(*ExplainRuntimeEventResp)(nil), // 14: integration.ExplainRuntimeEventResp
-	(*emptypb.Empty)(nil),           // 15: google.protobuf.Empty
+	(AI_Provider)(0),                  // 0: integration.AI.Provider
+	(Email_AuthType)(0),               // 1: integration.Email.AuthType
+	(*Integration)(nil),               // 2: integration.Integration
+	(*AI)(nil),                        // 3: integration.AI
+	(*Email)(nil),                     // 4: integration.Email
+	(*Webhook)(nil),                   // 5: integration.Webhook
+	(*Syslog)(nil),                    // 6: integration.Syslog
+	(*CreateIntegrationResp)(nil),     // 7: integration.CreateIntegrationResp
+	(*ReadIntegrationReq)(nil),        // 8: integration.ReadIntegrationReq
+	(*DeleteIntegrationReq)(nil),      // 9: integration.DeleteIntegrationReq
+	(*ListIntegrationReq)(nil),        // 10: integration.ListIntegrationReq
+	(*ListIntegrationResp)(nil),       // 11: integration.ListIntegrationResp
+	(*TestAIReq)(nil),                 // 12: integration.TestAIReq
+	(*ExplainRuntimeEventReq)(nil),    // 13: integration.ExplainRuntimeEventReq
+	(*ExplainRuntimeEventResp)(nil),   // 14: integration.ExplainRuntimeEventResp
+	(*ExplainAdmissionEventReq)(nil),  // 15: integration.ExplainAdmissionEventReq
+	(*ExplainAdmissionEventResp)(nil), // 16: integration.ExplainAdmissionEventResp
+	(*emptypb.Empty)(nil),             // 17: google.protobuf.Empty
 }
 var file_integration_proto_depIdxs = []int32{
 	4,  // 0: integration.Integration.email:type_name -> integration.Email
@@ -1186,15 +1329,17 @@ var file_integration_proto_depIdxs = []int32{
 	10, // 12: integration.IntegrationController.List:input_type -> integration.ListIntegrationReq
 	12, // 13: integration.IntegrationController.TestAI:input_type -> integration.TestAIReq
 	13, // 14: integration.IntegrationController.ExplainRuntimeEvent:input_type -> integration.ExplainRuntimeEventReq
-	7,  // 15: integration.IntegrationController.Create:output_type -> integration.CreateIntegrationResp
-	2,  // 16: integration.IntegrationController.Read:output_type -> integration.Integration
-	15, // 17: integration.IntegrationController.Update:output_type -> google.protobuf.Empty
-	15, // 18: integration.IntegrationController.Delete:output_type -> google.protobuf.Empty
-	11, // 19: integration.IntegrationController.List:output_type -> integration.ListIntegrationResp
-	15, // 20: integration.IntegrationController.TestAI:output_type -> google.protobuf.Empty
-	14, // 21: integration.IntegrationController.ExplainRuntimeEvent:output_type -> integration.ExplainRuntimeEventResp
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
+	15, // 15: integration.IntegrationController.ExplainAdmissionEvent:input_type -> integration.ExplainAdmissionEventReq
+	7,  // 16: integration.IntegrationController.Create:output_type -> integration.CreateIntegrationResp
+	2,  // 17: integration.IntegrationController.Read:output_type -> integration.Integration
+	17, // 18: integration.IntegrationController.Update:output_type -> google.protobuf.Empty
+	17, // 19: integration.IntegrationController.Delete:output_type -> google.protobuf.Empty
+	11, // 20: integration.IntegrationController.List:output_type -> integration.ListIntegrationResp
+	17, // 21: integration.IntegrationController.TestAI:output_type -> google.protobuf.Empty
+	14, // 22: integration.IntegrationController.ExplainRuntimeEvent:output_type -> integration.ExplainRuntimeEventResp
+	16, // 23: integration.IntegrationController.ExplainAdmissionEvent:output_type -> integration.ExplainAdmissionEventResp
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1217,7 +1362,7 @@ func file_integration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_integration_proto_rawDesc), len(file_integration_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
